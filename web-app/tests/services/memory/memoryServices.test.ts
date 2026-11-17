@@ -52,7 +52,7 @@ describe("memory player service", () => {
   });
 });
 
-const SERVICE_NAMES = ["decisions", "games", "player", "preferences", "sessions", "stats"];
+const SERVICE_NAMES = ["admin", "decisions", "games", "player", "preferences", "sessions", "stats"];
 
 describe("createServices", () => {
   it("builds memory services and refuses live mode until it exists", () => {

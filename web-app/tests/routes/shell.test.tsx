@@ -65,6 +65,7 @@ describe("tier guards", () => {
     renderApp("/account");
     expect(await screen.findByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("Email"), "pat@example.com");
+    await user.type(screen.getByLabelText("Password"), "Spider2026");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByRole("link", { name: "Account" })).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "Account" }));

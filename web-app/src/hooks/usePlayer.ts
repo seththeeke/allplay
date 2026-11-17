@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PlayerMe, Tier } from "../models/api";
+import type { PlayerService } from "../services/types";
+
+export type { PlayerService, SignInProvider } from "../services/types";
 import { useServices } from "./useServices";
 
 const PLAYER_KEY = ["player"] as const;
@@ -12,23 +15,27 @@ export function tierAtLeast(tier: Tier, minimum: Tier): boolean {
 export interface UsePlayer {
   player: PlayerMe | undefined;
   loaded: boolean;
-  signIn: (email: string) => Promise<PlayerMe>;
+  /** Runs an account call that returns the new player, and updates everything that shows the player. */
+  run: (work: (service: PlayerService) => Promise<PlayerMe>) => Promise<PlayerMe>;
   signOut: () => Promise<PlayerMe>;
+  service: PlayerService;
 }
 
 export function usePlayer(): UsePlayer {
   const { player: service } = useServices();
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: PLAYER_KEY, queryFn: () => service.me() });
-  const onSuccess = (player: PlayerMe): void => {
-    queryClient.setQueryData(PLAYER_KEY, player);
-  };
-  const signIn = useMutation({ mutationFn: (email: string) => service.signIn(email), onSuccess });
-  const signOut = useMutation({ mutationFn: () => service.signOut(), onSuccess });
+  const mutation = useMutation({
+    mutationFn: (work: (player: PlayerService) => Promise<PlayerMe>) => work(service),
+    onSuccess: (player) => {
+      queryClient.setQueryData(PLAYER_KEY, player);
+    },
+  });
   return {
     player: query.data,
     loaded: query.isSuccess,
-    signIn: (email) => signIn.mutateAsync(email),
-    signOut: () => signOut.mutateAsync(),
+    run: (work) => mutation.mutateAsync(work),
+    signOut: () => mutation.mutateAsync((player) => player.signOut()),
+    service,
   };
 }

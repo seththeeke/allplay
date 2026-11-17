@@ -23,6 +23,8 @@
   --color-hearts: var(--ap-hearts);
   --color-diamonds: var(--ap-diamonds);
   --color-clubs: var(--ap-clubs);
+  --color-series-1: var(--ap-series-1);
+  --color-series-2: var(--ap-series-2);
 }
 
 :root,
@@ -136,4 +138,24 @@
     animation-duration: 0s !important;
     transition-duration: 0s !important;
   }
+}
+
+/* Chart series colors (dataviz reference palette slots 1 and 2, validated per surface). */
+:root,
+:root[data-theme="DEFAULT"],
+:root[data-theme="FOUR_COLOR"] {
+  --ap-series-1: #2a78d6;
+  --ap-series-2: #eb6834;
+}
+
+:root[data-theme="DARK"],
+:root[data-theme="HIGH_CONTRAST"] {
+  --ap-series-1: #3987e5;
+  --ap-series-2: #d95926;
+}
+
+/* Black and white keeps both series black; dashes and hatching carry identity. */
+:root[data-theme="BLACK_AND_WHITE"] {
+  --ap-series-1: #000000;
+  --ap-series-2: #000000;
 }

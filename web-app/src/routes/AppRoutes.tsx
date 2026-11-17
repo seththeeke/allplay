@@ -2,10 +2,12 @@ import { Route, Routes } from "react-router";
 import { AppShell } from "../components/AppShell";
 import { AccountPage } from "../pages/AccountPage";
 import { AdminPage } from "../pages/AdminPage";
+import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { HelpPage } from "../pages/HelpPage";
 import { HomePage } from "../pages/HomePage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { SignInPage } from "../pages/SignInPage";
+import { SignUpPage } from "../pages/SignUpPage";
 import { StatsPage } from "../pages/StatsPage";
 import { GameRoute } from "./GameRoute";
 import { RequireTier } from "./RequireTier";
@@ -20,6 +22,8 @@ export function AppRoutes(): React.JSX.Element {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<HelpPage />} />
         <Route path="sign-in" element={<SignInPage />} />
+        <Route path="sign-up" element={<SignUpPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route
           path="account"
           element={

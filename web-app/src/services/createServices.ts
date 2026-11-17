@@ -1,4 +1,5 @@
 import type { AppConfig } from "../config";
+import { createMemoryAdminService } from "./memory/memoryAdminService";
 import { createMemoryDecisionService } from "./memory/memoryDecisionService";
 import { createMemoryGameService } from "./memory/memoryGameService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
@@ -20,6 +21,7 @@ export function createServices(
   const sessions = createMemorySessionService(store, seed);
   const preferences = createMemoryPreferencesService(store);
   return {
+    admin: createMemoryAdminService(),
     games: createMemoryGameService(),
     sessions,
     preferences,

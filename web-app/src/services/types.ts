@@ -1,5 +1,9 @@
 import type {
   AbandonRequest,
+  AdminDecisionsResponse,
+  DeploymentsResponse,
+  MetricsResponse,
+  StartDeploymentResponse,
   DecisionRequest,
   DecisionResponse,
   ResolutionRequest,
@@ -24,11 +28,22 @@ export interface PreferencesService {
   patchGame(gameId: string, patch: PatchGamePreferences): Promise<PreferencesResponse>;
 }
 
-/** Current player. Sign-in here is a prototype stand-in until phase 4 wires Cognito. */
+export type SignInProvider = "GOOGLE" | "APPLE";
+
+/**
+ * Current player and account flows (authn-authz.md sections 3 and 7). The
+ * memory implementation is a prototype stand-in until AA-9 wires Cognito.
+ */
 export interface PlayerService {
   me(): Promise<PlayerMe>;
-  signIn(email: string): Promise<PlayerMe>;
+  signIn(email: string, password?: string): Promise<PlayerMe>;
+  signInWithProvider(provider: SignInProvider): Promise<PlayerMe>;
+  signUp(email: string, password: string): Promise<void>;
+  confirmSignUp(email: string, code: string): Promise<PlayerMe>;
+  requestPasswordReset(email: string): Promise<void>;
+  confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
   signOut(): Promise<PlayerMe>;
+  deleteAccount(): Promise<PlayerMe>;
 }
 
 /** Game catalog (game-engine.md section 11). */
@@ -57,7 +72,16 @@ export interface StatsService {
   list(): Promise<StatsResponse>;
 }
 
+/** Admin API (authn-authz.md section 5). */
+export interface AdminService {
+  metrics(from: string, to: string): Promise<MetricsResponse>;
+  failures(day: string): Promise<AdminDecisionsResponse>;
+  deployments(): Promise<DeploymentsResponse>;
+  startDeployment(): Promise<StartDeploymentResponse>;
+}
+
 export interface Services {
+  admin: AdminService;
   stats: StatsService;
   decisions: DecisionService;
   games: GameService;

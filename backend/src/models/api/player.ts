@@ -4,6 +4,17 @@ import { ThemeSchema } from "./decision";
 
 /** Player, preference and statistics contracts (data-model.md sections 4, 5 and 8; authn-authz.md section 5). */
 
+/** The User Pool password policy (authn-authz.md section 3), shared so every client shows the same rule. */
+export const PASSWORD_RULE =
+  "Use at least 8 characters, with an uppercase letter, a lowercase letter and a number.";
+
+/** Returns the policy text when a password breaks it, otherwise null. */
+export function passwordProblem(password: string): string | null {
+  const ok =
+    password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
+  return ok ? null : PASSWORD_RULE;
+}
+
 export const TierSchema = z.enum(["GUEST", "PLAYER", "PLAYER_PLUS", "ADMIN"]);
 export type Tier = z.infer<typeof TierSchema>;
 

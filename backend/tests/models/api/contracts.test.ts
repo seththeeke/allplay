@@ -14,6 +14,8 @@ import {
   HintResponseSchema,
   MergeRequestSchema,
   MergeTokenResponseSchema,
+  PASSWORD_RULE,
+  passwordProblem,
   PlayerMeSchema,
   PreferencesResponseSchema,
   ResolutionRequestSchema,
@@ -331,5 +333,15 @@ describe("admin and error contracts", () => {
     });
     expect(conflict.current?.session.version).toBe(38);
     expect(ApiErrorSchema.safeParse({ code: "TEAPOT", message: "x" }).success).toBe(false);
+  });
+});
+
+describe("password policy", () => {
+  it("requires length, upper case, lower case and a digit", () => {
+    expect(passwordProblem("Spider2026")).toBeNull();
+    expect(passwordProblem("short1A")).toBe(PASSWORD_RULE);
+    expect(passwordProblem("alllowercase1")).toBe(PASSWORD_RULE);
+    expect(passwordProblem("ALLUPPERCASE1")).toBe(PASSWORD_RULE);
+    expect(passwordProblem("NoDigitsHere")).toBe(PASSWORD_RULE);
   });
 });
