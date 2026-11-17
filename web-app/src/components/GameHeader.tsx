@@ -49,7 +49,7 @@ export function GameHeader({
           <dd className="font-bold">{summary["moveCount"] ?? 0}</dd>
         </div>
       </dl>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-help-id="game-actions">
         <Button variant="secondary" disabled={!canUndo} onClick={onUndo}>
           Undo
         </Button>

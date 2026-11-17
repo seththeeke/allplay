@@ -25,7 +25,12 @@ export function GameBoard({
   const stock = zones.find((zone) => zone.region === "BOTTOM");
   const deal = envelope.legalActions.find((action) => action.descriptor.kind === "DEAL");
   return (
-    <div role="region" aria-label="Card table" className="card-board rounded-2xl bg-table p-3">
+    <div
+      role="region"
+      aria-label="Card table"
+      data-help-id="board"
+      className="card-board rounded-2xl bg-table p-3"
+    >
       <FoundationRow zones={top} />
       <div className="mt-4 grid grid-cols-10 gap-[0.8vw]">
         {main.map((zone) => (

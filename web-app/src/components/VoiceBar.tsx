@@ -61,7 +61,7 @@ export function VoiceBar(): React.JSX.Element {
         phase === "PROPOSAL" ||
         phase === "CHOICES" ||
         phase === "CONFIRM_APP" ? (
-          <div>
+          <div data-help-id="talk" className="w-fit">
             <Button className="w-full sm:w-auto sm:min-w-72" onClick={voice.startListening}>
               Talk (Space)
             </Button>

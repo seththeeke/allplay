@@ -1,13 +1,16 @@
 import { GameBoard } from "../components/GameBoard";
 import { GameHeader } from "../components/GameHeader";
+import { HelpWalkthrough } from "../components/HelpWalkthrough";
 import { StatusBanner } from "../components/StatusBanner";
 import type { ColumnInteraction } from "../components/TableauColumn";
 import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
+import { usePreferences } from "../hooks/usePreferences";
 import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
 import { isMove } from "../hooks/selection";
 import type { GameCatalogEntry } from "../models/api";
+import { GAME_HELP_STEPS } from "./helpSteps";
 
 export interface GamePageProps {
   game: GameCatalogEntry;
@@ -16,6 +19,7 @@ export interface GamePageProps {
 /** The game table: header, status, board and the message line. */
 export function GamePage({ game }: GamePageProps): React.JSX.Element {
   const session = useGameSession(game.gameId);
+  const help = usePreferences(game.gameId);
   const { envelope, hintAction } = session;
   const selection = useCardSelection(
     envelope?.legalActions ?? [],
@@ -103,6 +107,14 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
             }}
             interactionFor={interactionFor}
           />
+          {help.loaded && !help.game.helpSeen ? (
+            <HelpWalkthrough
+              steps={GAME_HELP_STEPS}
+              onFinish={() => {
+                help.updateGame({ helpSeen: true });
+              }}
+            />
+          ) : null}
         </>
       )}
     </main>

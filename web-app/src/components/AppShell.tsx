@@ -31,7 +31,7 @@ export function AppShell(): React.JSX.Element {
           <NavLink to="/stats" className={navClass}>
             Stats
           </NavLink>
-          <NavLink to="/settings" className={navClass}>
+          <NavLink to="/settings" className={navClass} data-help-id="settings">
             Settings
           </NavLink>
           <NavLink to="/help" className={navClass}>
