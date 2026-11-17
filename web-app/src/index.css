@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./themes/themes.css";
+@import "./themes/board.css";
 
 /* Default large type (0-day-0-project-idea.md, Web Design); zoom preferences change the root size. */
 :root {

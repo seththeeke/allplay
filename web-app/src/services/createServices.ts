@@ -1,6 +1,7 @@
 import type { AppConfig } from "../config";
 import { createMemoryGameService } from "./memory/memoryGameService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
+import { createMemorySessionService } from "./memory/memorySessionService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
 import { createMemoryStore, type MemoryStore } from "./memory/memoryStore";
 import type { Services } from "./types";
@@ -9,12 +10,14 @@ import type { Services } from "./types";
 export function createServices(
   config: AppConfig,
   store: MemoryStore = createMemoryStore(),
+  seed: () => number = () => Math.floor(Math.random() * 2 ** 31),
 ): Services {
   if (config.dataMode === "LIVE") {
     throw new Error("Live services are not built yet; set dataMode to MEMORY.");
   }
   return {
     games: createMemoryGameService(),
+    sessions: createMemorySessionService(store, seed),
     preferences: createMemoryPreferencesService(store),
     player: createMemoryPlayerService(store),
   };

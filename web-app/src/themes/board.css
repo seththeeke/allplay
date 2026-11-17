@@ -1,0 +1,45 @@
+/* Card table geometry. Cards scale with the viewport and the zoom preference. */
+
+.card-board {
+  --card-w: min(8.4vw, 6.5rem);
+  --card-h: calc(var(--card-w) * 1.4);
+}
+
+.playing-card {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+.card-index {
+  display: block;
+  font-size: calc(var(--card-w) * 0.34);
+}
+
+.card-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-top: calc(var(--card-h) * 0.2);
+  font-size: calc(var(--card-w) * 0.6);
+}
+
+.card-slot {
+  width: var(--card-w);
+  height: var(--card-h);
+}
+
+/* Fanned columns: face-down cards show a thin edge, face-up cards show their index. */
+.fan-item[data-face="down"] + .fan-item {
+  margin-top: calc(var(--card-h) * -0.86);
+}
+
+.fan-item[data-face="up"] + .fan-item {
+  margin-top: calc(var(--card-h) * -0.66);
+}
+
+.fan-item {
+  transition: transform 200ms ease;
+}

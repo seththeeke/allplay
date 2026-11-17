@@ -1,5 +1,11 @@
 import type {
+  AbandonRequest,
+  ApplyActionRequest,
+  GameOptions,
   GamesResponse,
+  HintResponse,
+  SessionEnvelope,
+  UndoRequest,
   PatchAppPreferences,
   PatchGamePreferences,
   PlayerMe,
@@ -25,8 +31,19 @@ export interface GameService {
   list(): Promise<GamesResponse>;
 }
 
+/** Game session API (game-engine.md section 11). Failures reject with ApiRequestError. */
+export interface SessionService {
+  current(gameId: string): Promise<SessionEnvelope | null>;
+  start(gameId: string, options?: GameOptions): Promise<SessionEnvelope>;
+  apply(sessionId: string, request: ApplyActionRequest): Promise<SessionEnvelope>;
+  undo(sessionId: string, request: UndoRequest): Promise<SessionEnvelope>;
+  hint(sessionId: string): Promise<HintResponse>;
+  abandon(sessionId: string, request: AbandonRequest): Promise<SessionEnvelope>;
+}
+
 export interface Services {
   games: GameService;
+  sessions: SessionService;
   preferences: PreferencesService;
   player: PlayerService;
 }
