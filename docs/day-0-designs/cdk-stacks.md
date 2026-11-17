@@ -241,7 +241,30 @@ CLAUDE.md states the rules; linters and checks enforce them.
 | No emojis in docs or code | `scripts/check-docs.mjs` over `docs/`, `*.md` and source files, run by `npm run lint` |
 | Swift style | SwiftLint in the Xcode build |
 
-## 13. Implementation Legs
+Shared ESLint rules (the `local/comment-format` rule and the boundary rule) live once in `scripts/eslint/localRules.cjs` and are loaded by each package's `eslint.config.js`. Each package's tests include lint-rule tests that run ESLint on small fixture snippets, so a weakened rule fails the build.
+
+## 13. Local Emulator Testing
+
+The AWS Emulator (`github.com/aws/aws-emulator`, launched 2026-11-11) runs AWS APIs locally at `https://127.0.0.1:9297` with no AWS account. On macOS it runs in Docker from an image built with the project's documented Dockerfile. State lives in memory and is lost when the emulator stops; IAM policies are not evaluated.
+
+All Play uses the emulator for the parts of the backend whose AWS behavior it reproduces, and keeps everything else on fakes in unit tests and on the Test stage in integration tests.
+
+| Use the emulator for | Use fakes or the Test stage for |
+|---|---|
+| DAO and service tests against DynamoDB: tables, GSIs, conditional writes, `ADD` counters, queries | Lambda execution, API Gateway HTTP API routes and `AWS_IAM` authorization |
+| Merge, rate limit and metrics rollup logic end to end against DynamoDB | IAM and Identity Pool role policies (the emulator does not evaluate policies) |
+| Cognito User Pool sign-up, sign-in and group APIs called directly (no triggers) | Cognito Lambda triggers, managed login, Google and Apple federation, email |
+| Identity Pool guest identities and credential vending | Transcribe streaming, Polly audio, Bedrock inference (fake `LlmClient`) |
+| Secrets Manager reads | CloudFormation and `cdk deploy`, CloudFront, CodePipeline, CodeBuild, Budgets, alarms |
+
+Tooling:
+
+1. `scripts/emulator/Dockerfile` and `scripts/emulator/run.sh` build and start the emulator with telemetry off, bound to `127.0.0.1:9297`.
+2. `backend/tests/emulator/` holds emulator tests, run with `npm run test:emulator`. They create the tables they need from the same table definitions the CDK uses, and are excluded from the unit test run and its coverage gate.
+3. The emulator test setup exports the SDK settings the emulator documents (`AWS_ENDPOINT_URL`, `NODE_EXTRA_CA_CERTS`, the emulator's credentials and config files) and constructs clients with `disableHostPrefix: true`.
+4. Emulator tests run locally. The pipeline's integration tests always run against the real Test stage.
+
+## 14. Implementation Legs
 
 | Leg | Execution phase | Scope |
 |---|---|---|
@@ -256,5 +279,6 @@ CLAUDE.md states the rules; linters and checks enforce them.
 | CDK-9 | 6. Action Decider | `DecisionApi` wiring, Bedrock grants, `TranscribeVocabulary`, `ScheduledJob` for the rollup, alarms |
 | CDK-10 | 7. Web app polishing | Playwright smoke step and Prod verification step |
 | CDK-11 | After a domain is registered | Domain props, certificates, aliases, SES email |
+| CDK-12 | 4. Authentication | Emulator Dockerfile and run script, `test:emulator` setup, first emulator tests for the `Players` and `Preferences` DAOs |
 
 Authentication, data and engine resources are added by the legs of their own specs (`AA-*`, `DM-*`, `GE-*`, `AD-*`), using these constructs.
