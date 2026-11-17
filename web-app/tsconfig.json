@@ -22,7 +22,8 @@
     "noEmit": true,
     "paths": {
       "@allplay/api-models": ["../backend/src/models/api/index.ts"],
-      "@allplay/api-models/*": ["../backend/src/models/api/*"]
+      "@allplay/api-models/*": ["../backend/src/models/api/*"],
+      "zod": ["./node_modules/zod"]
     }
   },
   "include": ["src", "tests", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]

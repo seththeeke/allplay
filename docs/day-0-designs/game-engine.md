@@ -47,7 +47,7 @@ Two implementations exist:
 1. `BundledRulesRepository` serves core games from `backend/src/game-catalog/<gameId>/rules.v<N>.json`. These files are reviewed, tested and versioned in git. A released version is never edited; a rules change ships as `rules.v<N+1>.json`, and existing sessions keep playing the version pinned in their state.
 2. `CommunityRulesRepository` serves `GameDefinition` items (`data-model.md` Section 13). It is built in the Game Building phase.
 
-The catalog entry (`list()`) exposes `gameId`, `name`, `description`, `latestVersion`, `options` (with defaults and spoken labels), `players`, and `source` (`CORE` or `COMMUNITY`).
+The catalog entry (`list()`) exposes `gameId`, `name`, `description`, `path` (the direct web route, for example `/spider`), `latestVersion`, `options` (with defaults and spoken labels), `players`, and `source` (`CORE` or `COMMUNITY`). Rules documents carry `path` as a top-level field.
 
 ## 4. Rules Document Format
 
