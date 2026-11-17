@@ -9,6 +9,7 @@ import type {
   GamesResponse,
   HintResponse,
   SessionEnvelope,
+  StatsResponse,
   UndoRequest,
   PatchAppPreferences,
   PatchGamePreferences,
@@ -51,7 +52,13 @@ export interface DecisionService {
   resolve(decisionId: string, request: ResolutionRequest): Promise<ResolutionResponse>;
 }
 
+/** Player statistics (data-model.md section 8). */
+export interface StatsService {
+  list(): Promise<StatsResponse>;
+}
+
 export interface Services {
+  stats: StatsService;
   decisions: DecisionService;
   games: GameService;
   sessions: SessionService;

@@ -11,6 +11,7 @@ import type { ApiErrorCode, SessionEnvelope } from "../../models/api";
 import { ApiRequestError } from "../errors";
 import type { SessionService } from "../types";
 import type { MemoryStore } from "./memoryStore";
+import { recordResult } from "./memoryStats";
 
 const KEY = "allplay.memory.session.spider-solitaire";
 const SPIDER = "spider-solitaire";
@@ -32,10 +33,26 @@ function fail(
  * In-memory game session API backed by the prototype Spider simulator. It
  * enforces the same version checks and error codes as the real API.
  */
-export function createMemorySessionService(store: MemoryStore, seed: () => number): SessionService {
+export function createMemorySessionService(
+  store: MemoryStore,
+  seed: () => number,
+  now: () => Date = () => new Date(),
+): SessionService {
   const load = (): StoredSession | null => store.read<StoredSession | null>(KEY, null);
   const save = (session: StoredSession): void => {
     store.write(KEY, session);
+  };
+  /* A game ends as a win, or as a loss when it is left with moves made (data-model.md section 8). */
+  const finish = (session: StoredSession, won: boolean): void => {
+    if (!won && session.state.vars.moveCount === 0) return;
+    recordResult(store, {
+      gameId: SPIDER,
+      options: { suits: session.state.options.suits, dealStyle: session.state.options.dealStyle },
+      won,
+      score: session.state.vars.score,
+      moves: session.state.vars.moveCount,
+      at: now().toISOString(),
+    });
   };
   const call = <T>(work: () => T): Promise<T> => Promise.resolve().then(work);
 
@@ -64,8 +81,10 @@ export function createMemorySessionService(store: MemoryStore, seed: () => numbe
     start: (gameId, options) =>
       call(() => {
         ensureSpider(gameId);
+        const previous = load();
+        if (previous?.status === "IN_PROGRESS") finish(previous, false);
         const session: StoredSession = {
-          sessionId: `session-${String(Date.now())}`,
+          sessionId: `session-${String(now().getTime())}`,
           status: "IN_PROGRESS",
           version: 0,
           state: createSpider(parseOptions(options), seed()),
@@ -86,6 +105,7 @@ export function createMemorySessionService(store: MemoryStore, seed: () => numbe
           status: won ? "WON" : "IN_PROGRESS",
         };
         save(next);
+        if (won) finish(next, true);
         return toEnvelope(
           next,
           won ? [...events, { type: "GAME_WON", data: {}, speech: "You won" }] : events,
@@ -115,6 +135,7 @@ export function createMemorySessionService(store: MemoryStore, seed: () => numbe
           version: session.version + 1,
         };
         save(next);
+        finish(next, false);
         return toEnvelope(next);
       }),
   };

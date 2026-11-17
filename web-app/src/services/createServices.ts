@@ -4,6 +4,7 @@ import { createMemoryGameService } from "./memory/memoryGameService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
 import { createMemorySessionService } from "./memory/memorySessionService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
+import { readStats } from "./memory/memoryStats";
 import { createMemoryStore, type MemoryStore } from "./memory/memoryStore";
 import type { Services } from "./types";
 
@@ -24,5 +25,6 @@ export function createServices(
     preferences,
     player: createMemoryPlayerService(store),
     decisions: createMemoryDecisionService(sessions, preferences),
+    stats: { list: () => Promise.resolve(readStats(store)) },
   };
 }
