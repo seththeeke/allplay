@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* Default large type for the whole app (0-day-0-project-idea.md, Web Design). Themes override tokens in WA-2. */
+:root {
+  font-size: 125%;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
