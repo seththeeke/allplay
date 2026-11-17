@@ -272,8 +272,9 @@ Tooling:
 | CDK-2 | 2. Rule and build setup | `backend/` package: tsconfig, ESLint with all custom rules, Vitest with coverage thresholds, folder skeleton |
 | CDK-3 | 2. Rule and build setup | `web-app/` package: Vite, React, Tailwind, ESLint, Vitest, Playwright, folder skeleton |
 | CDK-4 | 2. Rule and build setup | `cdk/` package: app entry, stage, empty stacks, base constructs, cdk-nag, tests |
-| CDK-5 | 3. Web App prototyping | `AllPlayPipeline`: source, synth, self-mutate, Test and Prod stages, schedule, budget, alert topic; bootstrap runbook |
-| CDK-6 | 3. Web App prototyping | `WebHosting` construct; the pipeline deploys the in-memory prototype to Test and Prod |
+| CDK-5 | 3a. Pipeline walking skeleton | `AllPlayPipeline`: source, synth, self-mutate, Test and Prod stages, schedule, budget, alert topic; bootstrap runbook |
+| CDK-6 | 3a. Pipeline walking skeleton | `WebHosting` construct; the pipeline deploys the in-memory prototype to Test and Prod |
+| SK-1 to SK-3 | 3a. Pipeline walking skeleton | Sample backend route, table and guest identity, integration and smoke tests in the pipeline, a recorded green run (`README.md`, phase 3a) |
 | CDK-7 | 4. Authentication | `AllPlayApi`, `ApiBundle`, `AllPlayFunction`, route policy generation from route lists |
 | CDK-8 | 5. Game Engine | `GameApi` bundle wiring and the integration test stage step |
 | CDK-9 | 6. Action Decider | `DecisionApi` wiring, Bedrock grants, `TranscribeVocabulary`, `ScheduledJob` for the rollup, alarms |

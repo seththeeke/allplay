@@ -17,7 +17,7 @@ This folder holds the day 0 specification of All Play. Read the documents in thi
 
 ## Execution Order
 
-The execution plan in the project brief runs in eight phases. Each row below is one leg and one commit, in order. Leg details are in the named spec.
+The execution plan in the project brief runs in eight phases, plus phase 3a (the pipeline walking skeleton), which runs after the web prototype and before authentication. Each row below is one leg and one commit, in order. Leg details are in the named spec.
 
 ### Phase 1: CLAUDE.md setup
 
@@ -42,7 +42,20 @@ The prototype runs entirely in the web app's in-memory mode, with mock data shap
 | WA-7 | Settings and stats pages with auto-saved preferences (in-memory) |
 | WA-8 | Help walkthrough: highlights on first visit per game, replayable from Help |
 | WA-9 | Auth page layouts and admin page layout with mock metrics charts |
-| CDK-5, CDK-6 | Pipeline and web hosting; the prototype deploys to Test and Prod |
+
+### Phase 3a: Pipeline walking skeleton
+
+Before any phase builds application features (authentication onward), the delivery path runs end to end with the leanest possible slice of every package. Each leg is deployed through the pipeline, not by hand.
+
+| Leg | Scope |
+|---|---|
+| CDK-5 | `AllPlayPipeline`: GitHub source, synth with lint and unit tests, self-mutate, Test and Prod stages, daily schedule, budget, alert topic; `docs/runbooks/bootstrap.md` |
+| CDK-6 | `WebHosting` construct; the web app (the phase 3 prototype in in-memory mode) served from each stage |
+| SK-1 | Sample backend slice: one `AllPlayFunction`, the `AllPlayApi` HTTP API with one IAM-authorized route `GET /v1/health`, a minimal guest Identity Pool so the route can be called, and one sample table read by the route |
+| SK-2 | Integration tests for `GET /v1/health` and the Playwright smoke test, run by the pipeline against Test before Prod deploys, then the Prod read-only check |
+| SK-3 | A recorded green pipeline run from a push through Prod, with the runbook updated from what was learned |
+
+The skeleton's sample route and table stay as the health check; later legs replace the minimal Identity Pool with the full one from AA-4.
 
 ### Phase 4: Authentication
 

@@ -191,3 +191,7 @@ Each document WILL not:
 
 20. Themes: the initial release ships a default theme plus high contrast, black and white, four-color deck and dark mode themes, each backed by its own stylesheet and switchable by voice command.
 20a. Standard and language: the web and iOS clients target WCAG 2.2 AA and respect the system reduced-motion setting. The application is English only; all UI strings live in a strings file to allow localization later.
+
+#### Execution Plan
+
+21. Pipeline walking skeleton: after the web app prototype and before authentication, the pipeline is built and running end to end with a lean sample web app, backend route, CDK resource, unit tests and integration tests (phase 3a in `README.md`). No application feature phase starts until a full pipeline run has deployed through Prod.
