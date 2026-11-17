@@ -1,0 +1,139 @@
+/*
+ * Theme tokens (0-day-0-project-idea.md Appendix item 20). Each theme sets the
+ * same custom properties on the root element; components use only the
+ * Tailwind colors mapped from them below, never raw colors.
+ */
+
+@theme inline {
+  --color-page: var(--ap-page);
+  --color-surface: var(--ap-surface);
+  --color-ink: var(--ap-ink);
+  --color-muted: var(--ap-muted);
+  --color-line: var(--ap-line);
+  --color-accent: var(--ap-accent);
+  --color-on-accent: var(--ap-on-accent);
+  --color-focus: var(--ap-focus);
+  --color-table: var(--ap-table);
+  --color-on-table: var(--ap-on-table);
+  --color-card: var(--ap-card);
+  --color-card-line: var(--ap-card-line);
+  --color-card-back: var(--ap-card-back);
+  --color-highlight: var(--ap-highlight);
+  --color-spades: var(--ap-spades);
+  --color-hearts: var(--ap-hearts);
+  --color-diamonds: var(--ap-diamonds);
+  --color-clubs: var(--ap-clubs);
+}
+
+:root,
+:root[data-theme="DEFAULT"] {
+  color-scheme: light;
+  --ap-page: #f7f5ef;
+  --ap-surface: #ffffff;
+  --ap-ink: #14171a;
+  --ap-muted: #4a5159;
+  --ap-line: #8a9199;
+  --ap-accent: #1d4ed8;
+  --ap-on-accent: #ffffff;
+  --ap-focus: #b45309;
+  --ap-table: #1f5e3b;
+  --ap-on-table: #ffffff;
+  --ap-card: #ffffff;
+  --ap-card-line: #3b4148;
+  --ap-card-back: #234b8f;
+  --ap-highlight: #facc15;
+  --ap-spades: #111111;
+  --ap-hearts: #b00020;
+  --ap-diamonds: #b00020;
+  --ap-clubs: #111111;
+}
+
+:root[data-theme="FOUR_COLOR"] {
+  --ap-spades: #111111;
+  --ap-hearts: #b00020;
+  --ap-diamonds: #0047ab;
+  --ap-clubs: #00703c;
+}
+
+:root[data-theme="HIGH_CONTRAST"] {
+  color-scheme: dark;
+  --ap-page: #000000;
+  --ap-surface: #000000;
+  --ap-ink: #ffffff;
+  --ap-muted: #ffffff;
+  --ap-line: #ffffff;
+  --ap-accent: #ffff00;
+  --ap-on-accent: #000000;
+  --ap-focus: #00ffff;
+  --ap-table: #000000;
+  --ap-on-table: #ffffff;
+  --ap-card: #ffffff;
+  --ap-card-line: #ffffff;
+  --ap-card-back: #0000c0;
+  --ap-highlight: #00ffff;
+  --ap-spades: #000000;
+  --ap-hearts: #c00000;
+  --ap-diamonds: #c00000;
+  --ap-clubs: #000000;
+}
+
+:root[data-theme="BLACK_AND_WHITE"] {
+  color-scheme: light;
+  --ap-page: #ffffff;
+  --ap-surface: #ffffff;
+  --ap-ink: #000000;
+  --ap-muted: #000000;
+  --ap-line: #000000;
+  --ap-accent: #000000;
+  --ap-on-accent: #ffffff;
+  --ap-focus: #000000;
+  --ap-table: #ffffff;
+  --ap-on-table: #000000;
+  --ap-card: #ffffff;
+  --ap-card-line: #000000;
+  --ap-card-back: #000000;
+  --ap-highlight: #000000;
+  --ap-spades: #000000;
+  --ap-hearts: #000000;
+  --ap-diamonds: #000000;
+  --ap-clubs: #000000;
+}
+
+:root[data-theme="DARK"] {
+  color-scheme: dark;
+  --ap-page: #121417;
+  --ap-surface: #1d2126;
+  --ap-ink: #f1f3f5;
+  --ap-muted: #c3c9cf;
+  --ap-line: #6b737b;
+  --ap-accent: #93c5fd;
+  --ap-on-accent: #0b1220;
+  --ap-focus: #fbbf24;
+  --ap-table: #16301f;
+  --ap-on-table: #f1f3f5;
+  --ap-card: #f1f3f5;
+  --ap-card-line: #9aa3ab;
+  --ap-card-back: #2f4f86;
+  --ap-highlight: #fbbf24;
+  --ap-spades: #111111;
+  --ap-hearts: #b00020;
+  --ap-diamonds: #b00020;
+  --ap-clubs: #111111;
+}
+
+/* Motion: ON always reduces, SYSTEM follows the operating system setting. */
+:root[data-motion="ON"] *,
+:root[data-motion="ON"] *::before,
+:root[data-motion="ON"] *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-motion="SYSTEM"] *,
+  :root[data-motion="SYSTEM"] *::before,
+  :root[data-motion="SYSTEM"] *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}

@@ -1,18 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { App } from "../src/App";
+import { LOCAL_CONFIG, renderApp } from "./renderApp";
 
-const config = { stage: "LOCAL", dataMode: "MEMORY" } as const;
-
-function renderAt(path: string) {
-  return render(
-    <App
-      config={config}
-      router={(children) => <MemoryRouter initialEntries={[path]}>{children}</MemoryRouter>}
-    />,
-  );
-}
+const config = LOCAL_CONFIG;
+const renderAt = (path: string) => renderApp(path);
 
 describe("App", () => {
   it("renders the home page at /", () => {

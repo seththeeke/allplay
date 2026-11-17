@@ -1,13 +1,20 @@
 @import "tailwindcss";
+@import "./themes/themes.css";
 
-/* Default large type for the whole app (0-day-0-project-idea.md, Web Design). Themes override tokens in WA-2. */
+/* Default large type (0-day-0-project-idea.md, Web Design); zoom preferences change the root size. */
 :root {
   font-size: 125%;
-  color-scheme: light;
 }
 
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
   line-height: 1.5;
+  background: var(--ap-page);
+  color: var(--ap-ink);
+}
+
+:focus-visible {
+  outline: 4px solid var(--ap-focus);
+  outline-offset: 3px;
 }
