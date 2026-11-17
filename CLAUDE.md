@@ -30,7 +30,9 @@ Run only the affected packages. If a gate cannot run, report the task as partial
 
 ## 4. Deploy Safety Gate
 
-Any command that creates, changes or deletes AWS resources (`cdk deploy`, `cdk destroy`, `cdk bootstrap`, mutating AWS CLI calls, `scripts/grant-admin.sh`) needs explicit user confirmation immediately before that run, every time. `cdk synth` and `cdk diff` do not. Use the AWS profile `allplay`. Prefer letting the pipeline deploy.
+Any command that creates, changes or deletes AWS resources (`cdk deploy`, `cdk destroy`, `cdk bootstrap`, mutating AWS CLI calls, `scripts/grant-admin.sh`) needs explicit user confirmation immediately before that run, every time. `cdk synth` and `cdk diff` do not. Prefer letting the pipeline deploy.
+
+Every AWS CLI and CDK command uses the `allplays` profile, passed explicitly as `--profile allplays`. Never use the default or nyc311 profiles. `.claude/settings.json` sets `AWS_PROFILE=allplays` for the session, and the `.claude/hooks/aws-profile-guard.py` hook blocks any other profile, inline credentials, an unset `AWS_PROFILE`, and any `aws`/`cdk`/`sam` call without `--profile allplays`. AWS Emulator calls aimed at `127.0.0.1` are the only exception. `npm run lint` runs the same check over every npm and shell script. Never weaken the hook; if it blocks something legitimate, ask.
 
 ## 5. Architecture Rules
 

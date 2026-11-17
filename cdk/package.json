@@ -11,8 +11,9 @@
     "format": "eslint . --fix && prettier --write .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "synth": "cdk synth --quiet",
-    "cdk": "cdk"
+    "synth": "cdk synth --quiet --profile allplays",
+    "diff": "cdk diff --profile allplays",
+    "deploy": "cdk deploy --profile allplays"
   },
   "dependencies": {
     "aws-cdk-lib": "2.277.0",

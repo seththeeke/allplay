@@ -7,11 +7,12 @@
   },
   "scripts": {
     "check:docs": "node scripts/check-docs.mjs",
-    "lint": "npm run check:docs && npm run lint --prefix backend && npm run lint --prefix web-app && npm run lint --prefix cdk",
+    "lint": "npm run check:docs && npm run check:aws-profile && npm run lint --prefix backend && npm run lint --prefix web-app && npm run lint --prefix cdk",
     "test": "npm run test:coverage --prefix backend && npm run test:coverage --prefix web-app && npm run test:coverage --prefix cdk",
     "build": "npm run build --prefix backend && npm run build --prefix web-app && npm run build --prefix cdk",
     "install:all": "npm ci --prefix backend && npm ci --prefix web-app && npm ci --prefix cdk",
     "coverage:rollup": "node scripts/rollup-coverage.mjs",
-    "test:scripts": "node --test scripts/*.test.mjs"
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "check:aws-profile": "node scripts/check-aws-profile.mjs"
   }
 }
