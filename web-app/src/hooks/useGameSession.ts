@@ -14,6 +14,8 @@ export interface UseGameSession {
   undo: (source: ActionSource) => Promise<void>;
   requestHint: () => Promise<void>;
   newGame: (options?: GameOptions) => Promise<void>;
+  /** Shows a message in the game's announcement line. */
+  announce: (message: string) => void;
   /** Replaces the cached envelope, for example with one returned by the action decider. */
   replace: (envelope: SessionEnvelope) => void;
 }
@@ -64,6 +66,7 @@ export function useGameSession(gameId: string): UseGameSession {
     message,
     hintAction,
     replace,
+    announce: setMessage,
     apply: (actionId, source) =>
       envelope === undefined
         ? Promise.resolve()

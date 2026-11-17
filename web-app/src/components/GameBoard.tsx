@@ -1,13 +1,14 @@
 import type { SessionEnvelope } from "../models/api";
 import { FoundationRow } from "./FoundationRow";
 import { StockPile } from "./StockPile";
-import { TableauColumn } from "./TableauColumn";
+import { TableauColumn, type ColumnInteraction } from "./TableauColumn";
 
 export interface GameBoardProps {
   envelope: SessionEnvelope;
   highlightedCardIds: ReadonlySet<string>;
   targetZoneIds: ReadonlySet<string>;
   onDeal: (actionId: string) => void;
+  interactionFor?: (zoneId: string) => ColumnInteraction;
 }
 
 /** Lays out zones by region: completed runs on top, columns in the middle, the stock below. */
@@ -16,6 +17,7 @@ export function GameBoard({
   highlightedCardIds,
   targetZoneIds,
   onDeal,
+  interactionFor,
 }: GameBoardProps): React.JSX.Element {
   const zones = envelope.view.zones;
   const top = zones.filter((zone) => zone.region === "TOP");
@@ -32,6 +34,7 @@ export function GameBoard({
             zone={zone}
             highlightedCardIds={highlightedCardIds}
             targeted={targetZoneIds.has(zone.zoneId)}
+            {...(interactionFor === undefined ? {} : { interaction: interactionFor(zone.zoneId) })}
           />
         ))}
       </div>

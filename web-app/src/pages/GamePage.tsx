@@ -1,6 +1,9 @@
 import { GameBoard } from "../components/GameBoard";
 import { GameHeader } from "../components/GameHeader";
 import { StatusBanner } from "../components/StatusBanner";
+import type { ColumnInteraction } from "../components/TableauColumn";
+import { useCardDrag } from "../hooks/useCardDrag";
+import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
 import type { GameCatalogEntry } from "../models/api";
 
@@ -8,20 +11,43 @@ export interface GamePageProps {
   game: GameCatalogEntry;
 }
 
-const NONE: ReadonlySet<string> = new Set();
-
 /** The game table: header, status, board and the message line. */
 export function GamePage({ game }: GamePageProps): React.JSX.Element {
   const session = useGameSession(game.gameId);
   const { envelope, hintAction } = session;
-  const hintCards =
-    hintAction?.descriptor.kind === "MOVE_CARDS"
-      ? new Set(hintAction.descriptor.cards.map((card) => card.cardId))
-      : NONE;
-  const hintTargets =
-    hintAction?.descriptor.kind === "MOVE_CARDS"
-      ? new Set([hintAction.descriptor.to.zoneId])
-      : NONE;
+  const selection = useCardSelection(
+    envelope?.legalActions ?? [],
+    (actionId) => void session.apply(actionId, "POINTER"),
+    session.announce,
+  );
+  const dragging = useCardDrag(selection.drop);
+
+  const hintMove = hintAction?.descriptor.kind === "MOVE_CARDS" ? hintAction.descriptor : null;
+  const highlighted = new Set([
+    ...selection.selectedIds,
+    ...(hintMove?.cards.map((card) => card.cardId) ?? []),
+  ]);
+  const targets = new Set([
+    ...selection.targets,
+    ...(hintMove === null ? [] : [hintMove.to.zoneId]),
+  ]);
+
+  const interactionFor = (zoneId: string): ColumnInteraction => ({
+    selectedIds: selection.selectedIds,
+    dragging: dragging.drag?.zoneId === zoneId ? dragging.drag : null,
+    onCardPress: (depth, cardName) => {
+      if (!dragging.consumeClick()) selection.pressCard(zoneId, depth, cardName);
+    },
+    onZonePress: () => {
+      selection.pressZone(zoneId);
+    },
+    onCardPointerDown: (depth) => dragging.startDrag({ zoneId, depth }),
+  });
+  const run = (work: () => Promise<void>) => () => {
+    selection.clear();
+    void work();
+  };
+
   return (
     <main>
       {envelope === undefined ? (
@@ -31,23 +57,26 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
           <GameHeader
             game={game}
             envelope={envelope}
-            onUndo={() => void session.undo("POINTER")}
-            onHint={() => void session.requestHint()}
-            onNewGame={() => void session.newGame()}
+            onUndo={run(() => session.undo("POINTER"))}
+            onHint={run(() => session.requestHint())}
+            onNewGame={run(() => session.newGame())}
           />
           <p aria-live="polite" className="mb-3 min-h-9 text-2xl font-semibold">
             {session.message}
           </p>
           <StatusBanner
             envelope={envelope}
-            onUndo={() => void session.undo("POINTER")}
-            onNewGame={() => void session.newGame()}
+            onUndo={run(() => session.undo("POINTER"))}
+            onNewGame={run(() => session.newGame())}
           />
           <GameBoard
             envelope={envelope}
-            highlightedCardIds={hintCards}
-            targetZoneIds={hintTargets}
-            onDeal={(actionId) => void session.apply(actionId, "POINTER")}
+            highlightedCardIds={highlighted}
+            targetZoneIds={targets}
+            onDeal={(actionId) => {
+              run(() => session.apply(actionId, "POINTER"))();
+            }}
+            interactionFor={interactionFor}
           />
         </>
       )}

@@ -4,25 +4,33 @@ import { rankLabel, SUIT_COLOR_CLASS, SUIT_SYMBOL } from "./cards";
 export interface PlayingCardProps {
   card: CardView;
   highlighted?: boolean;
+  /** Hide from assistive technology when a surrounding control already names the card. */
+  decorative?: boolean;
 }
 
 /** One card. Face-down cards reveal nothing; face-up cards show a large rank and suit. */
-export function PlayingCard({ card, highlighted = false }: PlayingCardProps): React.JSX.Element {
+export function PlayingCard({
+  card,
+  highlighted = false,
+  decorative = false,
+}: PlayingCardProps): React.JSX.Element {
   const ring = highlighted ? "outline-4 outline-highlight outline-offset-2 outline" : "";
   if (!card.faceUp) {
     return (
       <div
-        role="img"
-        aria-label="face-down card"
+        role={decorative ? undefined : "img"}
+        aria-label={decorative ? undefined : "face-down card"}
+        aria-hidden={decorative ? true : undefined}
         className={`playing-card rounded-lg border-2 border-card-line bg-card-back ${ring}`}
       />
     );
   }
   return (
     <div
-      role="img"
-      aria-label={card.name}
-      className={`playing-card rounded-lg border-2 border-card-line bg-card px-1 ${SUIT_COLOR_CLASS[card.suit]} ${ring}`}
+      role={decorative ? undefined : "img"}
+      aria-label={decorative ? undefined : card.name}
+      aria-hidden={decorative ? true : undefined}
+      className={`playing-card rounded-lg border-2 border-card-line bg-card px-1 text-left ${SUIT_COLOR_CLASS[card.suit]} ${ring}`}
     >
       <span aria-hidden="true" className="card-index font-bold leading-none">
         {rankLabel(card.rank)}
