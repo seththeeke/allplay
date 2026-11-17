@@ -160,6 +160,8 @@ Value expressions:
 | `{ "add": [a, b] }`, `{ "sub": [a, b] }`, `{ "min": [a, b] }`, `{ "max": [a, b] }` | Arithmetic |
 | `{ "switch": <value>, "cases": { ... }, "default": <value> }` | Branch on a value |
 
+Anywhere a zone is expected, a plain zone id string (`"stock.1"`) is accepted as shorthand for `{ "zone": "stock.1" }`.
+
 Predicates:
 
 | Predicate | True when |
@@ -267,7 +269,7 @@ An ordered list of `{ "status": "WON", "when": <predicate> }`. After triggers se
 }
 ```
 
-The hint is the legal action with the highest summed weight. Ties go to the action that appears first in `listLegalActions` order. Predicates may refer to the action's parameters.
+Each entry may name an `action` template id, in which case it applies only to that template; `when` may be the literal `true`. The hint is the legal action with the highest summed weight. Ties go to the action that appears first in `listLegalActions` order. Predicates may refer to the action's parameters.
 
 ### 4.12 Speech
 
@@ -299,6 +301,8 @@ Placeholders:
 | `{target.top}` | Name of the destination's top card, or "empty" |
 | `{data.<name>}` | Event data field |
 | `{var.<name>}` | Var value |
+
+`deciderGuidance` is a list of game-specific instructions the action decider adds to its game-action prompt (`action-decision.md` Section 6), for example how players refer to columns.
 
 Card names are rendered by the engine in a fixed form ("ace of spades", "ten of hearts", "king of clubs") so every client and the decider use the same words.
 
