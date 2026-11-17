@@ -1,0 +1,329 @@
+# Action Decision Engine
+
+Status: Day 0 design, 2026-11-17.
+
+The action decider turns a player's spoken request into one deterministic action. It owns speech capture contracts, transcription, the two-layer LLM decision, verification against the game engine, the confirmation flow, and the turn records that feed the turn failure metric. It never changes game state itself: game actions are applied only through the game session service (`game-engine.md` Section 11).
+
+Related specs: `game-engine.md` (legal actions), `data-model.md` (`Decision`, `RateLimitCounter`, `MetricRollup`), `authn-authz.md` (Identity Pool credentials), `spider-solitaire.md` (decider guidance).
+
+## 1. Principles
+
+1. The LLM selects; the engine executes. The LLM only ever chooses from a numbered list of candidates the server built. Its output is validated, and anything outside the list is discarded.
+2. At most two LLM calls per turn: layer 1 classifies, layer 2 selects.
+3. The decider's input is transcript text. The web client transcribes with Amazon Transcribe; the iOS client transcribes on-device with Apple's Speech framework. Both call the same API.
+4. Every turn is recorded (`Decision`, 30 day TTL). Audio is never stored or sent to the backend.
+5. The transcript is untrusted input. It is placed in the prompt as quoted data, and because the model can only return candidate numbers, a transcript cannot cause any action outside the legal set.
+
+## 2. Turn Flow
+
+```
+Player presses Space (or the on-screen Talk button)
+  -> client streams microphone audio to Amazon Transcribe (web) or Apple Speech (iOS)
+  -> listening ends: silence timeout, Space pressed again, or 10 second cap
+  -> client POST /v1/decisions { transcript, context }
+       server, in parallel:
+         a. layer 1 classify (Bedrock)
+         b. load session, compute legal actions and view, load preferences
+       -> category GAME: layer 2 game selection (Bedrock) -> validate with engine
+       -> category APPLICATION: layer 2 application selection (Bedrock)
+       -> category RESPONSE: resolve the pending prompt (no layer 2)
+       -> category UNRECOGNIZED: reply with a retry prompt
+  <- response: proposal, choices, auto-applied result, application action, or retry prompt
+  -> client shows the proposal (and speaks it when voice output is on)
+  -> player confirms (Enter or "yes"), cancels (Escape or "no"), or picks a choice ("one", "two")
+  -> client POST /v1/decisions/{decisionId}/resolution
+```
+
+## 3. Speech Capture
+
+### 3.1 Web (Amazon Transcribe Streaming)
+
+1. The client obtains AWS credentials from the Cognito Identity Pool through Amplify (guest or signed in). The Identity Pool roles allow `transcribe:StartStreamTranscriptionWebSocket` only.
+2. On Space, the client opens a Transcribe streaming WebSocket (`en-US`, PCM 16 kHz mono, partial results stabilization `high`, the stage's custom vocabulary). Credentials and microphone permission are obtained when the game screen loads, and audio captured between the key press and the socket opening is buffered and sent first, so the first word is never lost. No socket is held open while idle, because Transcribe bills streamed audio.
+3. Partial transcripts are shown live in the listening banner.
+4. Listening ends on the first of:
+   - silence for `listenTimeoutMs` (preference, default 1200 ms) after at least one final transcript segment;
+   - the player pressing Space again;
+   - 10 seconds of capture.
+5. The final transcript is the concatenation of final segments. Up to two alternatives with confidence scores are sent along.
+6. An empty transcript produces no API call; the client shows "I didn't hear anything" and returns to idle.
+
+Custom vocabulary: one Transcribe custom vocabulary per stage, `allplay-vocabulary-<stage>`, containing the union of every core game's vocabulary (`spider-solitaire.md` Section 3) and the application command words (zoom, theme, contrast, undo, hint, confirm). It is created by a CDK custom resource, since CloudFormation has no Transcribe vocabulary resource.
+
+### 3.2 iOS (Apple Speech)
+
+The iOS client uses `SFSpeechRecognizer` with on-device recognition required, `contextualStrings` set from the same vocabulary list, and the same three end conditions. It sends `transcriptSource: "APPLE_SPEECH"`.
+
+### 3.3 Keys
+
+| Key | Idle | Listening | Proposal or choices shown |
+|---|---|---|---|
+| Space | Start listening | Stop listening | Start listening (a spoken "yes", "no" or number answers the prompt) |
+| Enter | | | Confirm the proposal |
+| Escape | | Cancel listening | Cancel the proposal |
+| 1 to 4 | | | Pick a numbered choice |
+
+On touch devices, a large Talk button replaces Space, and Confirm, Cancel and each choice are large buttons.
+
+## 4. Decision API
+
+Routes are on the All Play HTTP API with IAM authorization (`authn-authz.md` Section 4).
+
+### 4.1 POST /v1/decisions
+
+Request:
+
+```json
+{
+  "transcript": "move the seven of spades onto the eight",
+  "alternatives": [{ "transcript": "move the seven of spades on to the eight", "confidence": 0.81 }],
+  "transcriptSource": "TRANSCRIBE",
+  "context": {
+    "screen": "GAME",
+    "sessionId": "01JEX4Q8N6W2D3K5T7V9B1C3E5",
+    "expectedVersion": 37,
+    "pendingDecisionId": null
+  }
+}
+```
+
+`screen` is `HOME`, `GAME`, `STATS`, `SETTINGS` or `HELP`. `pendingDecisionId` is set when a proposal or choice list is on screen.
+
+Response (one of the outcomes below):
+
+```json
+{
+  "decisionId": "01JEX5B2R4T6Y8U0I2O4P6A8S0",
+  "outcome": "CHOICES",
+  "displayText": "There are two eights. Say 1 for column 2 or 2 for column 9.",
+  "speech": "There are two eights. Say one for column two, or two for column nine.",
+  "proposal": null,
+  "choices": [
+    { "number": 1, "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2", "text": "Seven of spades from column 4 to column 2" },
+    { "number": 2, "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.9", "text": "Seven of spades from column 4 to column 9" }
+  ],
+  "appAction": null,
+  "session": null
+}
+```
+
+| Outcome | Meaning | Client behavior |
+|---|---|---|
+| `PROPOSED` | One game action selected; confirmation required | Highlight cards and target, show banner, await Enter / Escape / speech |
+| `CHOICES` | 2 to 4 game actions match | Show numbered choices |
+| `AUTO_APPLIED` | One action selected with high confidence and the player has `autoConfirm` on; already applied | Render `session` (the new envelope) and its events |
+| `APP_ACTION` | An application action selected | Execute it locally (Section 7); destructive ones show a confirmation first |
+| `RESOLVED` | The transcript answered a pending prompt; any resulting game action is applied | Render `session` when present |
+| `UNRECOGNIZED` | Nothing matched | Show and speak the retry prompt |
+
+### 4.2 POST /v1/decisions/{decisionId}/resolution
+
+The client sends exactly one resolution per decision it received, except for `RESOLVED` and `UNRECOGNIZED` decisions, which the server finalizes itself.
+
+```json
+{
+  "resolution": "CONFIRMED",
+  "optionNumber": null,
+  "expectedVersion": 37,
+  "clientLatencyMs": 1615
+}
+```
+
+| Resolution | Valid for | Server behavior |
+|---|---|---|
+| `CONFIRMED` | `PROPOSED`, `APP_ACTION` | For a game action, applies it through the game session service and returns the envelope |
+| `CHOSE_OPTION` | `CHOICES` | Applies the chosen action and returns the envelope |
+| `REJECTED` | `PROPOSED`, `CHOICES`, `APP_ACTION` | Records the rejection |
+| `ACKNOWLEDGED` | `AUTO_APPLIED`, `APP_ACTION` that needed no confirmation | Records client latency only |
+
+`clientLatencyMs` is the time from the end of capture to the proposal (or applied result) being displayed. It is the "round trip for a move request" key metric.
+
+A resolution for a game action whose session version has moved on returns `409 VERSION_CONFLICT` with the current envelope, and the decision is recorded as `EXPIRED`.
+
+## 5. Layer 1: Classification
+
+Purpose: decide what kind of request the transcript is.
+
+Categories offered to the model depend on context:
+
+| Category | Offered when |
+|---|---|
+| `GAME` | `screen` is `GAME` |
+| `APPLICATION` | Always |
+| `RESPONSE` | `pendingDecisionId` is set |
+| `UNRECOGNIZED` | Always |
+
+Prompt structure (Bedrock Converse):
+
+1. System prompt (static per stage, cached with a `cachePoint`): the role, each category's definition with examples, the list of application action names with one-line descriptions, and the output contract.
+2. User message: the transcript and alternatives inside `<transcript>` tags, the offered categories, and when a prompt is pending, its kind (`CONFIRMATION` or `CHOICES`) and number of choices.
+3. Tool `classify`, which the model is required to call (`toolChoice: { tool: { name: "classify" } }`):
+
+```json
+{
+  "category": "GAME | APPLICATION | RESPONSE | UNRECOGNIZED",
+  "response": "CONFIRM | REJECT | OPTION | null",
+  "optionNumber": "integer 1-4 or null"
+}
+```
+
+A `RESPONSE` classification is resolved directly: `CONFIRM` and `OPTION` apply the pending action; `REJECT` records the rejection. When a pending prompt exists and layer 1 returns `GAME` or `APPLICATION`, the pending decision is recorded as `EXPIRED` (the player moved on) and the new request proceeds.
+
+## 6. Layer 2: Game Selection
+
+Purpose: choose which legal game action the player means.
+
+Candidates are built by the game session service from the session state loaded in parallel with layer 1:
+
+1. Every legal action from the engine, with equivalence groups collapsed to their first member (`game-engine.md` Section 9.3).
+2. Meta actions `UNDO` (when available) and `HINT`.
+
+Each candidate is one numbered line with its engine text and short text:
+
+```
+1 | UNDO | undo the last move
+2 | HINT | show a hint
+3 | column 4 to column 2 | Move seven of spades from column 4 to column 2 (onto eight of hearts)
+4 | column 4 to column 9 | Move seven of spades from column 4 to column 9 (onto eight of clubs)
+5 | column 6 to empty column 5 | Move king of spades from column 6 to empty column 5
+...
+12 | deal | Deal a new row of cards
+```
+
+Prompt structure:
+
+1. System prompt (static, cached): the role, the selection rules (choose only listed numbers; return several numbers only when the request genuinely fits several; return none when nothing fits; never guess a column the player did not imply), and the output contract.
+2. Second system block (static per game and rules version, cached): the game's `speech.deciderGuidance`.
+3. User message: a board summary (each zone's label and its face-up cards in plain words, face-down cards as a count), the numbered candidates, and the transcript inside `<transcript>` tags.
+4. Tool `select_actions`, required:
+
+```json
+{
+  "selected": "array of 0 to 4 candidate numbers",
+  "confidence": "HIGH | LOW"
+}
+```
+
+Post-processing:
+
+1. Numbers not in the list are discarded.
+2. Each selected action is verified with `validateAction` against the session at `expectedVersion`. Any that fail are discarded and counted as `INVALID`; if none remain, the outcome is `UNRECOGNIZED` with `outcome` recorded as `INVALID`.
+3. One action remains: `PROPOSED`, or `AUTO_APPLIED` when the player's `autoConfirm` is on and `confidence` is `HIGH`. `HINT` is always applied without confirmation and returns the hint text; `UNDO` follows the same confirmation rule as moves.
+4. Two to four remain: `CHOICES`.
+5. Zero remain, or the model returned more than four: `UNRECOGNIZED` with the prompt "I'm not sure which move you mean. Try naming the column numbers, like three to seven."
+
+## 7. Layer 2: Application Selection
+
+Purpose: choose an application action. Application actions run in the client; the server only selects them.
+
+| Action | Parameters | Confirmation |
+|---|---|---|
+| `ZOOM_IN`, `ZOOM_OUT`, `ZOOM_RESET` | | Never |
+| `SET_THEME` | `theme`: `DEFAULT`, `HIGH_CONTRAST`, `BLACK_AND_WHITE`, `FOUR_COLOR`, `DARK` | Never |
+| `SET_VOICE_OUTPUT` | `enabled` | Never |
+| `SET_AUTO_CONFIRM` | `enabled` | Never |
+| `REPEAT` | | Never (re-speaks the last prompt) |
+| `SHOW_HELP`, `SHOW_STATS`, `SHOW_SETTINGS`, `GO_HOME` | | Never |
+| `OPEN_GAME` | `gameId` | Never |
+| `NEW_GAME` | `gameId`, `options` (for example "new two suit game") | Always |
+| `SIGN_IN`, `SIGN_OUT` | | Always |
+
+Prompt structure: a cached system prompt listing every action with its parameters, allowed values and example phrasings; the user message holds the transcript; tool `select_app_action` is required and returns `{ "action": <enum>, "params": { } }` validated by a zod schema. An invalid or missing selection becomes `UNRECOGNIZED`. Preference-changing actions are saved by the client through the preferences API, like any other preference change.
+
+## 8. Model and Bedrock Configuration
+
+| Setting | Value |
+|---|---|
+| Model (both layers) | Amazon Nova Micro, cross-region inference profile `us.amazon.nova-micro-v1:0` |
+| API | Bedrock Runtime `Converse` via `@aws-sdk/client-bedrock-runtime` |
+| Region | `us-east-1` |
+| Inference | `temperature: 0`, `maxTokens: 200` (layer 1: 60) |
+| Tool use | One tool per layer, forced with `toolChoice` |
+| Caching | `cachePoint` after the static system blocks |
+| Timeout | 2,500 ms per call, one retry on throttling or 5xx with 100 ms jittered backoff |
+
+The model id, `maxTokens` and timeout are configuration per layer (`DECIDER_L1_MODEL_ID`, `DECIDER_L2_MODEL_ID`, and so on), set as Lambda environment variables from CDK context. All Bedrock access goes through one `LlmClient` interface in `service/decision/llm/`, so changing provider or model changes one implementation and the configuration, never the decider logic.
+
+A model change is accepted only when it passes the offline evaluation (Section 12) at or above the current model's accuracy.
+
+## 9. Turn Outcomes and Failure Classes
+
+| Final outcome | Failure class |
+|---|---|
+| `UNRECOGNIZED` (no category, no selection, or more than four matches) | `HARD` |
+| `INVALID` (every selection failed engine validation) | `HARD` |
+| `REJECTED` (player cancelled) | `HARD` |
+| `CHOSE_OPTION` (player resolved an ambiguity) | `SOFT` |
+| `CONFIRMED`, `AUTO_APPLIED`, `ACKNOWLEDGED`, `RESOLVED` | `NONE` |
+| `EXPIRED` (superseded, version conflict, or never resolved) | `NONE` |
+
+An undo after an auto-applied move is not a failure. A decision starts with failure class `PENDING`; the daily rollup job expires decisions still pending at the end of the day (`data-model.md` Section 12).
+
+## 10. Cost and Abuse Controls
+
+1. Per-player limits on `POST /v1/decisions`: 20 per minute and 600 per day, for guests and accounts alike, enforced with `RateLimitCounter` conditional increments. Over the limit returns `429 RATE_LIMITED` with the speech "Let's slow down for a moment. Try again in a minute."
+2. API Gateway route throttling on `POST /v1/decisions`: 50 requests per second steady, 100 burst, per stage.
+3. Bedrock token counts are added to the day's `MetricRollup` and shown on /admin.
+4. The AWS Budgets alarm (`cdk-stacks.md` Section 9) covers Bedrock and Transcribe spend.
+
+Estimated cost per voice turn with Nova Micro (about 3,700 input tokens and 100 output tokens across both layers): under $0.0002 for Bedrock. Transcribe streaming costs $0.024 per minute; a 3 second command is about $0.0012 (Transcribe bills a 15 second minimum per request, so short commands cost $0.006 each). Transcribe is therefore the larger per-turn cost.
+
+## 11. Latency Budget
+
+Target: median `clientLatencyMs` under 2,000 ms.
+
+| Step | Budget (ms) |
+|---|---|
+| Final transcript after capture ends | 300 |
+| Client to API Gateway to Lambda | 80 |
+| Layer 1, in parallel with session load and legal action computation | 450 |
+| Layer 2 | 600 |
+| Validation and response | 70 |
+| Render | 100 |
+| Total | 1,600 |
+
+Measures that hold the budget: pre-fetched credentials and buffered first audio, parallel layer 1 and session loading, cached system prompts, the decider Lambda at 1,024 MB on arm64, and `HINT`/`RESPONSE` paths that skip layer 2.
+
+## 12. Evaluation
+
+An offline utterance evaluation set lives at `backend/tests/decision-eval/`: for each core game, at least 200 cases, each with a board state (seeded game plus action history), a transcript, and the expected action ids or expected category. It includes column commands, card-name commands, ambiguous commands, application commands, responses to pending prompts, filler words, and common mistranscriptions ("for" for "four", "won" for "one").
+
+`npm run eval:decider -- --stage Test` runs the set against Bedrock and reports top-1 accuracy, ambiguity rate, unrecognized rate, and latency percentiles. It costs real money, so it is run on demand (before changing prompts or models) and never in the pipeline. Accuracy target: 95% top-1 on unambiguous cases.
+
+Unit tests (run in CI, no Bedrock calls) cover prompt building, candidate numbering, equivalence collapsing, post-processing rules, outcome and failure classification, rate limiting, and resolution handling, using a fake `LlmClient`.
+
+## 13. Voice Output (Polly)
+
+When `voiceOutputEnabled` is on, the client speaks the response `speech` field (and event speech text from the session envelope) by calling Amazon Polly `SynthesizeSpeech` directly with Identity Pool credentials (neural engine, the player's `voiceId`, SSML `prosody rate` from `speechRate`). The Identity Pool roles allow `polly:SynthesizeSpeech` only. The client caches synthesized audio by text for the session. Spoken text uses words, never symbols ("seven of spades", "column two").
+
+## 14. Code Layout
+
+```
+backend/src/controller/web-api/decisions/   router, routes, controllers for Section 4
+backend/src/service/decision/
+  decisionService.ts       orchestration (Section 2)
+  classifier.ts            layer 1
+  gameSelector.ts          layer 2 game
+  appSelector.ts           layer 2 application
+  prompts/                 prompt builders and static prompt text
+  llm/                     LlmClient interface and Bedrock Converse implementation
+  outcomes.ts              outcome and failure classification
+  rateLimiter.ts
+backend/src/models/decision.ts, appAction.ts
+```
+
+## 15. Implementation Legs
+
+Built in execution phase 6 (Backend decision actions) unless noted. Each leg is one commit.
+
+| Leg | Scope |
+|---|---|
+| AD-1 | `models/decision.ts` and `models/appAction.ts`; `LlmClient` interface, fake client, Bedrock Converse implementation with timeout and retry |
+| AD-2 | Layer 1 classifier: prompt builder, tool schema, parsing; unit tests |
+| AD-3 | Layer 2 game selector: board summary, candidate numbering with equivalence collapse, post-processing and validation through the game session service; unit tests |
+| AD-4 | Layer 2 application selector and the application action catalog; unit tests |
+| AD-5 | Decision service orchestration with parallel loading, outcomes, failure classes, `Decision` writes, metric counters; `POST /v1/decisions` and resolution routes |
+| AD-6 | Rate limiter and API throttling; Bedrock and Transcribe IAM grants; Transcribe custom vocabulary custom resource |
+| AD-7 | API integration tests for the decision routes against the Test stage, using a test-only fixed-response mode of `LlmClient` enabled by an environment variable in Test only |
+| AD-8 | Offline evaluation set and `eval:decider` script for Spider Solitaire |
+| AD-9 | Web client: Transcribe streaming capture, listening banner, proposal and choice UI, key handling, Polly playback (execution phase 7) |

@@ -344,7 +344,7 @@ GSI `ByDayOutcome` (admin failure browsing):
 
 | Key | Attribute | Format |
 |---|---|---|
-| Partition key | `dayOutcomeKey` | `<yyyy-mm-dd>#<failureClass>` where `failureClass` is `HARD`, `SOFT` or `NONE` |
+| Partition key | `dayOutcomeKey` | `<yyyy-mm-dd>#<failureClass>` where `failureClass` is `PENDING`, `HARD`, `SOFT` or `NONE` |
 | Sort key | `createdAt` | ISO timestamp |
 | Projection | ALL | |
 
@@ -364,8 +364,8 @@ Attributes:
 | `candidatesDigest` | String | SHA-256 of the candidate list, for reproducing a turn |
 | `selection` | Map | Layer 2 result: `selectedIds`, `confidence`, `modelId`, `latencyMs`, `inputTokens`, `outputTokens` |
 | `proposal` | Map | What was shown to the player: kind, action id or application action, speakable text, choices |
-| `outcome` | String | `PROPOSED`, `AUTO_APPLIED`, `CONFIRMED`, `REJECTED`, `CHOSE_OPTION`, `UNRECOGNIZED`, `INVALID`, `EXPIRED` |
-| `failureClass` | String | `HARD`, `SOFT` or `NONE` (definition in `action-decision.md` Section 9) |
+| `outcome` | String | While open: `PROPOSED`, `CHOICES`, `APP_ACTION`. Final: `AUTO_APPLIED`, `CONFIRMED`, `ACKNOWLEDGED`, `RESOLVED`, `REJECTED`, `CHOSE_OPTION`, `UNRECOGNIZED`, `INVALID`, `EXPIRED` |
+| `failureClass` | String | `PENDING` until the turn is resolved, then `HARD`, `SOFT` or `NONE` (definition in `action-decision.md` Section 9) |
 | `serverLatencyMs` | Number | Request receipt to response |
 | `clientLatencyMs` | Number | End of speech to proposal shown, reported by the client on resolution |
 | `dayOutcomeKey` | String | GSI key |
@@ -387,7 +387,7 @@ Sample:
   "uiContext": { "screen": "GAME", "pendingPrompt": null },
   "classification": {
     "category": "GAME",
-    "modelId": "anthropic.claude-opus-5-5",
+    "modelId": "us.amazon.nova-micro-v1:0",
     "latencyMs": 412,
     "inputTokens": 1180,
     "outputTokens": 22
@@ -400,7 +400,7 @@ Sample:
       "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.9"
     ],
     "confidence": "HIGH",
-    "modelId": "anthropic.claude-opus-5-5",
+    "modelId": "us.amazon.nova-micro-v1:0",
     "latencyMs": 655,
     "inputTokens": 2410,
     "outputTokens": 61
@@ -492,7 +492,7 @@ The /admin page reads a date range with one `Query` (`period BETWEEN :from AND :
 Two writers fill each day's item:
 
 1. Live counters. The decision and session services `ADD` to the current day's item as events happen: decision counts by outcome and failure class, LLM token totals, game starts, wins and abandons, and latency histogram buckets.
-2. The daily rollup job. An EventBridge Scheduler rule runs at 00:15 UTC, scans `AllPlay-Players-<Stage>` once (projection: `kind`, `status`, `lastActiveAt`, `createdAt`) and writes `totalPlayers`, `totalAccounts`, `totalGuests`, `activePlayers30d`, `newPlayers` for the previous day. It then computes `p50` and `p95` latency from the histogram buckets.
+2. The daily rollup job. An EventBridge Scheduler rule runs at 00:15 UTC, scans `AllPlay-Players-<Stage>` once (projection: `kind`, `status`, `lastActiveAt`, `createdAt`) and writes `totalPlayers`, `totalAccounts`, `totalGuests`, `activePlayers30d`, `newPlayers` for the previous day. It then computes `p50` and `p95` latency from the histogram buckets, and marks every decision of the previous day still in the `<day>#PENDING` partition as `EXPIRED` with failure class `NONE`, counting them.
 
 Latency histogram bucket upper bounds (milliseconds): 250, 500, 750, 1000, 1500, 2000, 3000, 5000, and an overflow bucket. Two histograms are kept: `clientLatency` (end of speech to proposal shown, the "round trip for a move request" key metric) and `serverLatency`.
 

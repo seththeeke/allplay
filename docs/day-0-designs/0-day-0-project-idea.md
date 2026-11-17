@@ -162,6 +162,7 @@ Each document WILL not:
 #### Voice and the Action Decider
 
 4. LLM layering: the action decider uses two Bedrock layers as specified. Layer one classifies the transcript as an application action or a game action. Layer two selects the specific action from the candidate set for that category (application actions, or the legal moves vended by the game engine). A turn makes at most two LLM calls.
+4a. LLM model: both layers use the cheapest AWS-native Bedrock model, Amazon Nova Micro, through the Bedrock Converse API. The model id is configuration per layer so it can be changed without code changes; model changes are gated by the offline utterance evaluation set.
 5. Transcription path: the client streams audio directly to Amazon Transcribe streaming using temporary credentials from a Cognito Identity Pool, which supports both guest (unauthenticated) and signed-in identities. Transcribe end-of-speech detection stops listening automatically, and pressing Space also ends listening. Latency target: median under 2 seconds from end of speech to the proposed move appearing on screen.
 6. Key mapping: Space starts and stops listening. Enter confirms a proposed action. Escape cancels a proposed action. Spoken "yes" and "no" are equivalent to Enter and Escape.
 7. Voice output: Polly is off by default and enabled per player preference. When enabled it speaks confirmation prompts, errors and hints. Reading board state aloud is out of scope; the primary audience is players with motor impairments.
