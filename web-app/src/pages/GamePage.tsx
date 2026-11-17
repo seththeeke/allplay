@@ -5,6 +5,8 @@ import type { ColumnInteraction } from "../components/TableauColumn";
 import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
+import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
+import { isMove } from "../hooks/selection";
 import type { GameCatalogEntry } from "../models/api";
 
 export interface GamePageProps {
@@ -21,15 +23,38 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
     session.announce,
   );
   const dragging = useCardDrag(selection.drop);
+  const voice = useVoice();
+  useVoiceGameTarget(
+    envelope === undefined
+      ? null
+      : {
+          sessionId: envelope.session.sessionId,
+          version: envelope.session.version,
+          replace: session.replace,
+          newGame: session.newGame,
+        },
+  );
+
+  /* Voice proposals and choices light up the cards they would move and where they would go. */
+  const voiceIds = new Set([
+    ...(voice.proposedActionId === null ? [] : [voice.proposedActionId]),
+    ...voice.choices.map((choice) => choice.actionId),
+  ]);
+  const voiceMoves = (envelope?.legalActions ?? [])
+    .filter(isMove)
+    .filter((action) => voiceIds.has(action.actionId))
+    .map((action) => action.descriptor);
 
   const hintMove = hintAction?.descriptor.kind === "MOVE_CARDS" ? hintAction.descriptor : null;
   const highlighted = new Set([
     ...selection.selectedIds,
     ...(hintMove?.cards.map((card) => card.cardId) ?? []),
+    ...voiceMoves.flatMap((move) => move.cards.map((card) => card.cardId)),
   ]);
   const targets = new Set([
     ...selection.targets,
     ...(hintMove === null ? [] : [hintMove.to.zoneId]),
+    ...voiceMoves.map((move) => move.to.zoneId),
   ]);
 
   const interactionFor = (zoneId: string): ColumnInteraction => ({

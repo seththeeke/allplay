@@ -4,7 +4,7 @@ import { rankLabel, SUIT_COLOR_CLASS, SUIT_SYMBOL } from "./cards";
 export interface PlayingCardProps {
   card: CardView;
   highlighted?: boolean;
-  /** Hide from assistive technology when a surrounding control already names the card. */
+  /** Hide a face-up card from assistive technology when a surrounding control already names it. */
   decorative?: boolean;
 }
 
@@ -18,9 +18,8 @@ export function PlayingCard({
   if (!card.faceUp) {
     return (
       <div
-        role={decorative ? undefined : "img"}
-        aria-label={decorative ? undefined : "face-down card"}
-        aria-hidden={decorative ? true : undefined}
+        role="img"
+        aria-label="face-down card"
         className={`playing-card rounded-lg border-2 border-card-line bg-card-back ${ring}`}
       />
     );

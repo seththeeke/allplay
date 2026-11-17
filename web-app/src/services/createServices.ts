@@ -1,4 +1,5 @@
 import type { AppConfig } from "../config";
+import { createMemoryDecisionService } from "./memory/memoryDecisionService";
 import { createMemoryGameService } from "./memory/memoryGameService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
 import { createMemorySessionService } from "./memory/memorySessionService";
@@ -15,10 +16,13 @@ export function createServices(
   if (config.dataMode === "LIVE") {
     throw new Error("Live services are not built yet; set dataMode to MEMORY.");
   }
+  const sessions = createMemorySessionService(store, seed);
+  const preferences = createMemoryPreferencesService(store);
   return {
     games: createMemoryGameService(),
-    sessions: createMemorySessionService(store, seed),
-    preferences: createMemoryPreferencesService(store),
+    sessions,
+    preferences,
     player: createMemoryPlayerService(store),
+    decisions: createMemoryDecisionService(sessions, preferences),
   };
 }

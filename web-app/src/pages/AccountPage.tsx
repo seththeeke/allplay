@@ -8,7 +8,7 @@ export function AccountPage(): React.JSX.Element {
   const navigate = useNavigate();
   return (
     <main>
-      <PageHeading title="Account" lead={player?.email ?? "Signed in"} />
+      <PageHeading title="Account" lead={player?.email} />
       <Button
         variant="secondary"
         onClick={() => {

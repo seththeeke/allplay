@@ -25,7 +25,7 @@ export function createMemoryPlayerService(store: MemoryStore): PlayerService {
         playerId: `ACCT#${normalized}`,
         kind: "ACCOUNT",
         tier: normalized.startsWith("admin") ? "ADMIN" : "PLAYER",
-        displayName: normalized.split("@")[0] ?? normalized,
+        displayName: normalized.replace(/@.*$/, ""),
         email: normalized,
       });
     },

@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router";
 import { tierAtLeast, usePlayer } from "../hooks/usePlayer";
+import { VoiceProvider } from "../voice/VoiceProvider";
+import { VoiceBar } from "./VoiceBar";
 
 const LINK = "rounded-lg px-3 py-2 text-xl font-semibold underline-offset-4 hover:underline";
 const ACTIVE = "bg-accent text-on-accent";
@@ -46,9 +48,12 @@ export function AppShell(): React.JSX.Element {
           </NavLink>
         </nav>
       </header>
-      <div id="main" className="mx-auto max-w-6xl p-4">
-        <Outlet />
-      </div>
+      <VoiceProvider>
+        <div id="main" className="mx-auto max-w-6xl p-4 pb-64">
+          <Outlet />
+        </div>
+        <VoiceBar />
+      </VoiceProvider>
     </div>
   );
 }

@@ -1,0 +1,170 @@
+import { describe, expect, it } from "vitest";
+import type { DecisionRequest } from "../../../src/models/api";
+import { createServices } from "../../../src/services/createServices";
+import { createMemoryStore } from "../../../src/services/memory/memoryStore";
+import { must } from "../../must";
+import type { SpiderState } from "../../../test-data/spider/simulator";
+import { LOCAL_CONFIG } from "../../renderApp";
+
+async function setup() {
+  const services = createServices(LOCAL_CONFIG, createMemoryStore(null), () => 7);
+  const envelope = await services.sessions.start("spider-solitaire");
+  const request = (
+    transcript: string,
+    pendingDecisionId: string | null = null,
+    version = 0,
+  ): DecisionRequest => ({
+    transcript,
+    transcriptSource: "TRANSCRIBE",
+    context: {
+      screen: "GAME",
+      sessionId: envelope.session.sessionId,
+      expectedVersion: version,
+      pendingDecisionId,
+    },
+  });
+  return { services, envelope, request };
+}
+
+describe("memory decision service", () => {
+  it("proposes a single move and applies it on confirmation", async () => {
+    const { services, request } = await setup();
+    const proposal = await services.decisions.decide(request("deal"));
+    expect(proposal).toMatchObject({ outcome: "PROPOSED", proposal: { actionId: "DEAL_ROW" } });
+    const { session } = await services.decisions.resolve(proposal.decisionId, {
+      resolution: "CONFIRMED",
+      optionNumber: null,
+      expectedVersion: 0,
+      clientLatencyMs: 900,
+    });
+    expect(session?.session.version).toBe(1);
+  });
+
+  it("applies a move when the player says yes", async () => {
+    const { services, request } = await setup();
+    const proposal = await services.decisions.decide(request("deal"));
+    const answer = await services.decisions.decide(request("yes", proposal.decisionId));
+    expect(answer.outcome).toBe("RESOLVED");
+    expect(answer.session?.session.version).toBe(1);
+  });
+
+  it("cancels on no, and rejects resolutions without applying anything", async () => {
+    const { services, request } = await setup();
+    const proposal = await services.decisions.decide(request("deal"));
+    expect((await services.decisions.decide(request("no", proposal.decisionId))).displayText).toBe(
+      "Cancelled.",
+    );
+    const another = await services.decisions.decide(request("deal"));
+    const rejected = await services.decisions.resolve(another.decisionId, {
+      resolution: "REJECTED",
+      optionNumber: null,
+      expectedVersion: 0,
+      clientLatencyMs: 0,
+    });
+    expect(rejected.session).toBeNull();
+    expect(
+      (
+        await services.decisions.resolve("unknown", {
+          resolution: "CONFIRMED",
+          optionNumber: null,
+          expectedVersion: 0,
+          clientLatencyMs: 0,
+        })
+      ).session,
+    ).toBeNull();
+  });
+
+  it("offers numbered choices for an ambiguous card and applies the chosen one", async () => {
+    const store = createMemoryStore(null);
+    const services = createServices(LOCAL_CONFIG, store, () => 7);
+    const envelope = await services.sessions.start("spider-solitaire");
+    /* Hand-build a table where two sevens can each go onto an eight. */
+    const key = "allplay.memory.session.spider-solitaire";
+    const stored = store.read<{ state: SpiderState }>(key, null as never);
+    const cards = Object.values(stored.state.cards);
+    const [sevenA, sevenB] = cards.filter((card) => card.rank === 7);
+    const eight = must(cards.find((card) => card.rank === 8));
+    for (const card of [must(sevenA), must(sevenB), eight]) card.faceUp = true;
+    const used = new Set([must(sevenA).id, must(sevenB).id, eight.id]);
+    for (const zoneId of Object.keys(stored.state.zones)) {
+      stored.state.zones[zoneId] = (stored.state.zones[zoneId] ?? []).filter((id) => !used.has(id));
+    }
+    stored.state.zones["tableau.1"]?.push(must(sevenA).id);
+    stored.state.zones["tableau.2"]?.push(must(sevenB).id);
+    stored.state.zones["tableau.3"]?.push(eight.id);
+    store.write(key, stored);
+    const request: DecisionRequest = {
+      transcript: "the seven onto the eight",
+      transcriptSource: "TRANSCRIBE",
+      context: {
+        screen: "GAME",
+        sessionId: envelope.session.sessionId,
+        expectedVersion: 0,
+        pendingDecisionId: null,
+      },
+    };
+    const decision = await services.decisions.decide(request);
+    expect(decision.outcome).toBe("CHOICES");
+    expect(decision.choices?.slice(0, 2).map((choice) => choice.number)).toEqual([1, 2]);
+    const answer = await services.decisions.decide({
+      ...request,
+      transcript: "two",
+      context: { ...request.context, pendingDecisionId: decision.decisionId },
+    });
+    expect(answer.session?.session.version).toBe(1);
+    const chooseAgain = await services.decisions.decide(request);
+    const viaResolve = await services.decisions.resolve(chooseAgain.decisionId, {
+      resolution: "CHOSE_OPTION",
+      optionNumber: 9,
+      expectedVersion: 1,
+      clientLatencyMs: 10,
+    });
+    expect(viaResolve.session).toBeNull();
+  });
+
+  it("asks before destructive application actions and returns the action on yes", async () => {
+    const { services, request } = await setup();
+    const decision = await services.decisions.decide(request("new game"));
+    expect(decision).toMatchObject({
+      outcome: "APP_ACTION",
+      appAction: { action: "NEW_GAME" },
+      displayText: "Are you sure?",
+    });
+    const answer = await services.decisions.decide(request("yes", decision.decisionId));
+    expect(answer.appAction?.action).toBe("NEW_GAME");
+    expect((await services.decisions.decide(request("zoom in"))).displayText).toBe("OK.");
+  });
+
+  it("auto-applies a unique move when auto confirm is on", async () => {
+    const { services, request } = await setup();
+    await services.preferences.patchApp({ autoConfirm: true });
+    const decision = await services.decisions.decide(request("deal"));
+    expect(decision.outcome).toBe("AUTO_APPLIED");
+    expect(decision.session?.session.version).toBe(1);
+  });
+
+  it("undoes through the session and answers hints directly", async () => {
+    const { services, request } = await setup();
+    await services.preferences.patchApp({ autoConfirm: true });
+    await services.decisions.decide(request("deal"));
+    const undone = await services.decisions.decide(request("undo", null, 1));
+    expect(undone.session?.session.summary["undoCount"]).toBe(1);
+    const hint = await services.decisions.decide(request("hint", null, 2));
+    expect(hint.outcome).toBe("RESOLVED");
+    expect(hint.displayText).toMatch(/^Move /);
+  });
+
+  it("does not understand game moves outside a game or nonsense", async () => {
+    const { services, request } = await setup();
+    const home = await services.decisions.decide({
+      ...request("deal"),
+      context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingDecisionId: null },
+    });
+    expect(home.outcome).toBe("UNRECOGNIZED");
+    expect((await services.decisions.decide(request("sing a song"))).outcome).toBe("UNRECOGNIZED");
+    const decision = await services.decisions.decide(request("deal"));
+    expect(
+      (await services.decisions.decide(request("number four", decision.decisionId))).outcome,
+    ).not.toBe("RESOLVED");
+  });
+});

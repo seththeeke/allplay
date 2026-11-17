@@ -1,5 +1,9 @@
 import type {
   AbandonRequest,
+  DecisionRequest,
+  DecisionResponse,
+  ResolutionRequest,
+  ResolutionResponse,
   ApplyActionRequest,
   GameOptions,
   GamesResponse,
@@ -41,7 +45,14 @@ export interface SessionService {
   abandon(sessionId: string, request: AbandonRequest): Promise<SessionEnvelope>;
 }
 
+/** Action decider API (action-decision.md section 4). */
+export interface DecisionService {
+  decide(request: DecisionRequest): Promise<DecisionResponse>;
+  resolve(decisionId: string, request: ResolutionRequest): Promise<ResolutionResponse>;
+}
+
 export interface Services {
+  decisions: DecisionService;
   games: GameService;
   sessions: SessionService;
   preferences: PreferencesService;
