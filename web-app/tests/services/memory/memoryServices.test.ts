@@ -52,12 +52,13 @@ describe("memory player service", () => {
   });
 });
 
+const SERVICE_NAMES = ["games", "player", "preferences"];
+
 describe("createServices", () => {
   it("builds memory services and refuses live mode until it exists", () => {
-    expect(Object.keys(createServices({ stage: "LOCAL", dataMode: "MEMORY" }))).toEqual([
-      "preferences",
-      "player",
-    ]);
+    expect(Object.keys(createServices({ stage: "LOCAL", dataMode: "MEMORY" })).sort()).toEqual(
+      SERVICE_NAMES,
+    );
     expect(() => createServices({ stage: "TEST", dataMode: "LIVE" })).toThrow(/Live services/);
   });
 });

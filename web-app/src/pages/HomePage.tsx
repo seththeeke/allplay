@@ -1,9 +1,19 @@
-/** Portal home. Game tiles and voice navigation arrive in WA-3. */
+import { GameTile } from "../components/GameTile";
+import { PageHeading } from "../components/PageHeading";
+import { useGames } from "../hooks/useGames";
+
+/** Portal home: every playable game as a large tile. */
 export function HomePage(): React.JSX.Element {
+  const { games } = useGames();
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <h1 className="text-5xl font-bold">All Play</h1>
-      <p className="mt-4 text-2xl">Card games you can play with your voice.</p>
+    <main>
+      <PageHeading title="All Play" lead="Card games you can play with your voice." />
+      <h2 className="sr-only">Games</h2>
+      <ul className="grid gap-6 md:grid-cols-2">
+        {games.map((game) => (
+          <GameTile key={game.gameId} game={game} />
+        ))}
+      </ul>
     </main>
   );
 }

@@ -7,15 +7,18 @@ const config = LOCAL_CONFIG;
 const renderAt = (path: string) => renderApp(path);
 
 describe("App", () => {
-  it("renders the home page at /", () => {
+  it("renders the home page at /", async () => {
     renderAt("/");
+    await screen.findByRole("link", { name: /Spider Solitaire/ });
     expect(screen.getByRole("heading", { level: 1, name: "All Play" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
 
-  it("renders the not found page for unknown paths, with a way home", () => {
+  it("renders the not found page for unknown paths, with a way home", async () => {
     renderAt("/nowhere");
-    expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Page not found" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Go to the home page" })).toHaveAttribute("href", "/");
   });
 

@@ -1,4 +1,5 @@
 import type { AppConfig } from "../config";
+import { createMemoryGameService } from "./memory/memoryGameService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
 import { createMemoryStore, type MemoryStore } from "./memory/memoryStore";
@@ -13,6 +14,7 @@ export function createServices(
     throw new Error("Live services are not built yet; set dataMode to MEMORY.");
   }
   return {
+    games: createMemoryGameService(),
     preferences: createMemoryPreferencesService(store),
     player: createMemoryPlayerService(store),
   };

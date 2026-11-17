@@ -1,4 +1,5 @@
 import type {
+  GamesResponse,
   PatchAppPreferences,
   PatchGamePreferences,
   PlayerMe,
@@ -19,7 +20,13 @@ export interface PlayerService {
   signOut(): Promise<PlayerMe>;
 }
 
+/** Game catalog (game-engine.md section 11). */
+export interface GameService {
+  list(): Promise<GamesResponse>;
+}
+
 export interface Services {
+  games: GameService;
   preferences: PreferencesService;
   player: PlayerService;
 }

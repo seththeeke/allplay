@@ -4,13 +4,13 @@ import { AccountPage } from "../pages/AccountPage";
 import { AdminPage } from "../pages/AdminPage";
 import { HelpPage } from "../pages/HelpPage";
 import { HomePage } from "../pages/HomePage";
-import { NotFoundPage } from "../pages/NotFoundPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { SignInPage } from "../pages/SignInPage";
 import { StatsPage } from "../pages/StatsPage";
+import { GameRoute } from "./GameRoute";
 import { RequireTier } from "./RequireTier";
 
-/** Route table. Game routes such as /spider arrive in WA-3. */
+/** Route table. Unmatched paths resolve as game links (for example /spider) or not found. */
 export function AppRoutes(): React.JSX.Element {
   return (
     <Routes>
@@ -36,7 +36,7 @@ export function AppRoutes(): React.JSX.Element {
             </RequireTier>
           }
         />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<GameRoute />} />
       </Route>
     </Routes>
   );
