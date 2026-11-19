@@ -44,12 +44,15 @@ export function createBundledRulesRepository(
     if (game === undefined) throw new UnknownGameError(`${gameId} v${String(version ?? "latest")}`);
     return game;
   };
-  const doc = (gameId: string, version?: number): Promise<RulesDocument> => {
-    const game = compiled(gameId, version);
-    return Promise.resolve(
-      (docs.get(gameId) ?? []).find((d) => d.version === game.rulesVersion) as RulesDocument,
-    );
-  };
+  const doc = (gameId: string, version?: number): Promise<RulesDocument> =>
+    new Promise((resolve) => {
+      const game = compiled(gameId, version);
+      resolve(
+        (docs.get(gameId) as RulesDocument[]).find(
+          (d) => d.version === game.rulesVersion,
+        ) as RulesDocument,
+      );
+    });
   return {
     compiled,
     get: (gameId, version) => doc(gameId, version),

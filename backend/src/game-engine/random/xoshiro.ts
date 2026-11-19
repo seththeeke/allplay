@@ -18,7 +18,7 @@ export function createRandom(seed: string): Random {
     throw new InvalidGameInputError("Seed must be 32 lowercase hex characters");
   }
   const s = [0, 8, 16, 24].map((offset) => Number.parseInt(seed.slice(offset, offset + 8), 16));
-  let [s0 = 0, s1 = 0, s2 = 0, s3 = 0] = s;
+  let [s0, s1, s2, s3] = s as [number, number, number, number];
   if ((s0 | s1 | s2 | s3) === 0) s0 = 1;
   const nextUint32 = (): number => {
     const result = Math.imul(rotl(Math.imul(s1, 5) >>> 0, 7), 9) >>> 0;
@@ -31,13 +31,15 @@ export function createRandom(seed: string): Random {
     s3 = rotl(s3, 11);
     return result;
   };
-  const nextInt = (bound: number): number => {
-    const limit = 2 ** 32 - (2 ** 32 % bound);
-    let value = nextUint32();
-    while (value >= limit) value = nextUint32();
-    return value % bound;
-  };
-  return { nextUint32, nextInt };
+  return { nextUint32, nextInt: (bound) => boundedInt(nextUint32, bound) };
+}
+
+/** Uniform integer in [0, bound) from 32-bit draws, rejecting the incomplete top range to avoid modulo bias. */
+export function boundedInt(next: () => number, bound: number): number {
+  const limit = 2 ** 32 - (2 ** 32 % bound);
+  let value = next();
+  while (value >= limit) value = next();
+  return value % bound;
 }
 
 /** Fisher-Yates shuffle in place. */

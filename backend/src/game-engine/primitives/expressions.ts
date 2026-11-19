@@ -1,7 +1,7 @@
 import { EngineInvariantError } from "../errors";
 import type { Expr } from "../rules/schema";
-import type { GameState, Suit } from "../types";
-import type { GameLayout } from "./layout";
+import type { CardState, GameState, Suit } from "../types";
+import { zonesOfType, type GameLayout } from "./layout";
 
 /** A card reference produced by `card` and `cards` (game-engine.md section 4.5). */
 export interface CardRef {
@@ -34,6 +34,11 @@ const isCardRef = (value: Value): value is CardRef =>
 
 const num = (value: Value): number | null => (typeof value === "number" ? value : null);
 
+/** The cards of a zone; every zone id the evaluator produces names an existing zone. */
+export function pileOf(state: GameState, zoneId: string): string[] {
+  return state.zones[zoneId] as string[];
+}
+
 function fail(message: string): never {
   throw new EngineInvariantError(message);
 }
@@ -55,7 +60,7 @@ function cardsOf(value: Value): CardRef[] {
 }
 
 function cardAt(zone: string, fromTop: number | null, state: GameState): CardRef | null {
-  const pile = state.zones[zone] ?? [];
+  const pile = pileOf(state, zone);
   if (fromTop === null || fromTop < 1 || fromTop > pile.length) return null;
   return { cardId: pile[pile.length - fromTop] as string };
 }
@@ -80,9 +85,8 @@ function follows(
   suit: SuitRule,
   state: GameState,
 ): boolean {
-  const low = state.cards[beneath];
-  const high = state.cards[above];
-  if (low === undefined || high === undefined) return false;
+  const low = state.cards[beneath] as CardState;
+  const high = state.cards[above] as CardState;
   if (high.rank !== low.rank + rankStep) return false;
   if (suit === "SAME") return high.suit === low.suit;
   if (suit === "ALTERNATE_COLOR") return COLOR[high.suit] !== COLOR[low.suit];
@@ -90,7 +94,7 @@ function follows(
 }
 
 function runLength(spec: Operands, ctx: EvalContext): number {
-  const pile = ctx.state.zones[zoneOf(spec["zone"] ?? null, ctx)] ?? [];
+  const pile = pileOf(ctx.state, zoneOf(spec["zone"] as Expr, ctx));
   const rankStep = num(evaluate(spec["rankStep"] ?? -1, ctx)) ?? -1;
   const suit = (spec["suit"] ?? "ANY") as SuitRule;
   const faceUpOnly = spec["faceUpOnly"] === true;
@@ -119,7 +123,7 @@ function isSequence(spec: Operands, ctx: EvalContext): boolean {
 function eachZone(spec: Operands, ctx: EvalContext): boolean[] {
   const type = spec["type"] as string;
   const as = spec["as"] as string;
-  return (ctx.layout.zoneIdsByType.get(type) ?? []).map((zoneId) =>
+  return zonesOfType(ctx.layout, type).map((zoneId) =>
     truthy(evaluate(spec["where"] ?? true, { ...ctx, refs: { ...ctx.refs, [as]: zoneId } })),
   );
 }
@@ -157,7 +161,7 @@ export function evaluate(expr: Expr, ctx: EvalContext): Value {
   if (Array.isArray(expr)) return fail("An array is not an expression");
   const ops = operands(expr);
   if ("switch" in ops) {
-    const key = JSON.stringify(evaluate(ops["switch"] ?? null, ctx)).replace(/^"|"$/g, "");
+    const key = JSON.stringify(evaluate(ops["switch"], ctx)).replace(/^"|"$/g, "");
     const cases = operands(ops["cases"] ?? null);
     const chosen = key in cases ? cases[key] : ops["default"];
     return chosen === undefined ? null : evaluate(chosen, ctx);
@@ -177,18 +181,18 @@ export function evaluate(expr: Expr, ctx: EvalContext): Value {
     case "zone":
       return zoneOf(arg, ctx);
     case "count":
-      return (ctx.state.zones[zoneOf(arg, ctx)] ?? []).length;
+      return pileOf(ctx.state, zoneOf(arg, ctx)).length;
     case "card": {
       const spec = operands(arg);
       return cardAt(
-        zoneOf(spec["zone"] ?? null, ctx),
+        zoneOf(spec["zone"] as Expr, ctx),
         num(evaluate(spec["fromTop"] ?? 1, ctx)),
         ctx.state,
       );
     }
     case "cards": {
       const spec = operands(arg);
-      const pile = ctx.state.zones[zoneOf(spec["zone"] ?? null, ctx)] ?? [];
+      const pile = pileOf(ctx.state, zoneOf(spec["zone"] as Expr, ctx));
       const n = num(evaluate(spec["fromTop"] ?? null, ctx)) ?? 0;
       return pile.slice(Math.max(0, pile.length - n)).map((cardId) => ({ cardId }));
     }
@@ -223,7 +227,7 @@ export function evaluate(expr: Expr, ctx: EvalContext): Value {
     case "gte":
       return compare(op, args());
     case "isEmpty":
-      return (ctx.state.zones[zoneOf(arg, ctx)] ?? []).length === 0;
+      return pileOf(ctx.state, zoneOf(arg, ctx)).length === 0;
     case "isNull":
       return evaluate(arg, ctx) === null;
     case "isSequence":

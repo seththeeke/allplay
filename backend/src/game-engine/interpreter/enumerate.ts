@@ -1,4 +1,5 @@
 import { holds, intValue, type EvalContext } from "../primitives/expressions";
+import { zonesOfType } from "../primitives/layout";
 import type { ActionTemplate } from "../rules/schema";
 import { actionText } from "../speech/templates";
 import type { GameState, LegalAction } from "../types";
@@ -10,8 +11,7 @@ type Param = ActionTemplate["params"][number];
 
 /** Values of a parameter's domain under the earlier parameters' binding (game-engine.md section 4.7). */
 function domainValues(engine: Engine, param: Param, ctx: EvalContext): (string | number)[] {
-  if ("zones" in param.domain)
-    return [...(engine.layout.zoneIdsByType.get(param.domain.zones.type) ?? [])];
+  if ("zones" in param.domain) return [...zonesOfType(engine.layout, param.domain.zones.type)];
   const min = intValue(param.domain.int.min, ctx);
   const max = intValue(param.domain.int.max, ctx);
   if (min === null || max === null) return [];
@@ -101,15 +101,16 @@ export function toLegalAction(
 ): LegalAction {
   const ctx = evalContext(engine, state, binding);
   const descriptor = describeAction(template, ctx);
-  const speech = engine.rules.speech.actions[template.id];
+  /* Static checks guarantee speech text for every action. */
+  const speech = engine.rules.speech.actions[template.id] as { text: string; short: string };
   const actionId = actionIdOf(template, binding);
   const action: LegalAction = {
     actionId,
     templateId: template.id,
     params: { ...binding },
     descriptor,
-    text: actionText(speech?.text ?? template.id, binding, descriptor, state, engine.layout),
-    shortText: actionText(speech?.short ?? template.id, binding, descriptor, state, engine.layout),
+    text: actionText(speech.text, binding, descriptor, state, engine.layout),
+    shortText: actionText(speech.short, binding, descriptor, state, engine.layout),
   };
   const equivalence = template.equivalence;
   if (equivalence !== undefined && holds(equivalence.when, ctx)) {

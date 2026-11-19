@@ -28,11 +28,13 @@ const isObj = (expr: Expr | undefined): expr is Obj =>
   typeof expr === "object" && expr !== null && !Array.isArray(expr);
 
 function checkZone(expr: Expr | undefined, scope: Scope, at: string, c: Checker): void {
-  if (typeof expr === "string") {
+  if (expr === undefined || expr === null) {
+    c.issues.push(`${at}: missing zone`);
+  } else if (typeof expr === "string") {
     if (!c.zoneIds.has(expr)) c.issues.push(`${at}: unknown zone ${expr}`);
-    return;
+  } else {
+    checkExpr(expr, scope, at, c);
   }
-  checkExpr(expr ?? null, scope, at, c);
 }
 
 function checkZoneType(type: unknown, at: string, c: Checker): void {
@@ -59,7 +61,7 @@ export function checkExpr(expr: Expr, scope: Scope, at: string, c: Checker): voi
     return;
   }
   if ("switch" in expr) {
-    checkExpr(expr["switch"] ?? null, scope, `${at}.switch`, c);
+    checkExpr(expr["switch"], scope, `${at}.switch`, c);
     for (const [key, value] of Object.entries(isObj(expr["cases"]) ? expr["cases"] : {}))
       checkExpr(value, scope, `${at}.cases.${key}`, c);
     if (expr["default"] !== undefined) checkExpr(expr["default"], scope, `${at}.default`, c);
@@ -67,7 +69,7 @@ export function checkExpr(expr: Expr, scope: Scope, at: string, c: Checker): voi
   }
   const keys = Object.keys(expr);
   const [op = ""] = keys;
-  const arg = expr[op] ?? null;
+  const arg = expr[op] as Expr;
   const here = `${at}.${op}`;
   if (keys.length !== 1) {
     c.issues.push(

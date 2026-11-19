@@ -54,7 +54,3 @@ export function checkInvariants(state: GameState): void {
     throw new EngineInvariantError("A card is missing from every zone");
   }
 }
-
-export function templateOf(engine: Engine, templateId: string): ActionTemplate | undefined {
-  return engine.templates.get(templateId);
-}

@@ -1,6 +1,7 @@
 import { EngineInvariantError } from "../errors";
 import { changeVar, runEffect, type MutationContext } from "../primitives/effects";
 import { holds } from "../primitives/expressions";
+import { zonesOfType } from "../primitives/layout";
 import { TRIGGER_PASS_LIMIT, type Engine } from "./engine";
 
 /**
@@ -12,9 +13,7 @@ export function settleTriggers(engine: Engine, ctx: MutationContext): void {
     let fired = false;
     for (const trigger of engine.rules.triggers) {
       const zones =
-        trigger.forEach === undefined
-          ? [null]
-          : (engine.layout.zoneIdsByType.get(trigger.forEach.type) ?? []);
+        trigger.forEach === undefined ? [null] : zonesOfType(engine.layout, trigger.forEach.type);
       for (const zoneId of zones) {
         const refs =
           trigger.forEach === undefined || zoneId === null
@@ -34,9 +33,8 @@ export function settleTriggers(engine: Engine, ctx: MutationContext): void {
   );
 }
 
-/** Applies the first matching end condition while the game is in progress (section 4.9). */
+/** Applies the first matching end condition (section 4.9); callers only pass in-progress games. */
 export function evaluateEndConditions(engine: Engine, ctx: MutationContext): void {
-  if (ctx.state.status !== "IN_PROGRESS") return;
   const ended = engine.rules.endConditions.find((condition) => holds(condition.when, ctx));
   if (ended === undefined) return;
   ctx.state.status = ended.status;

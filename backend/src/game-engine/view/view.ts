@@ -1,4 +1,5 @@
 import type { GameLayout } from "../primitives/layout";
+import type { ZoneType } from "../rules/schema";
 import { cardFace } from "../speech/cards";
 import type { CardView, GameState, GameStatusInfo, GameView, ZoneRef } from "../types";
 
@@ -15,10 +16,10 @@ export function buildView(state: GameState, layout: GameLayout, status: GameStat
     vars: { ...state.vars },
     zones: layout.order.map((zoneId) => {
       const zoneRef = layout.refs.get(zoneId) as ZoneRef;
-      const zoneType = layout.zoneTypes.get(zoneRef.type);
-      const pile = state.zones[zoneId] ?? [];
+      const zoneType = layout.zoneTypes.get(zoneRef.type) as ZoneType;
+      const pile = state.zones[zoneId] as string[];
       const cards =
-        zoneType?.visibility === "CARDS"
+        zoneType.visibility === "CARDS"
           ? pile.map((cardId): CardView => {
               const card = state.cards[cardId];
               return card?.faceUp === true
@@ -28,8 +29,8 @@ export function buildView(state: GameState, layout: GameLayout, status: GameStat
           : null;
       return {
         ...zoneRef,
-        layout: zoneType?.layout ?? "STACK",
-        region: zoneType?.region ?? "MAIN",
+        layout: zoneType.layout,
+        region: zoneType.region,
         count: pile.length,
         cards,
       };

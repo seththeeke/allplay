@@ -18,7 +18,7 @@ const RANK_NAMES = [
 
 /** Spoken rank word: 1 is "ace", 13 is "king". */
 export function rankName(rank: number): string {
-  return RANK_NAMES[rank - 1] ?? String(rank);
+  return RANK_NAMES[rank - 1] as string;
 }
 
 /** The fixed card name every client and the decider use, for example "ten of hearts" (game-engine.md section 4.12). */

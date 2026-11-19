@@ -1,5 +1,5 @@
 import type { GameLayout } from "../primitives/layout";
-import type { ActionDescriptor, GameEvent, GameState } from "../types";
+import type { ActionDescriptor, GameEvent, GameState, ZoneRef } from "../types";
 
 const SUITS = new Set(["SPADES", "HEARTS", "DIAMONDS", "CLUBS"]);
 
@@ -10,8 +10,8 @@ export function render(template: string, resolve: (key: string) => string | unde
 
 /** Spoken form of a zone: its label, prefixed with "empty" when it holds no cards. */
 export function zoneText(zoneId: string, state: GameState, layout: GameLayout): string {
-  const label = layout.refs.get(zoneId)?.label ?? zoneId;
-  return (state.zones[zoneId] ?? []).length === 0 ? `empty ${label}` : label;
+  const label = (layout.refs.get(zoneId) as ZoneRef).label;
+  return (state.zones[zoneId] as string[]).length === 0 ? `empty ${label}` : label;
 }
 
 function valueText(value: unknown, state: GameState, layout: GameLayout): string {
@@ -30,8 +30,7 @@ export function actionText(
 ): string {
   return render(template, (key) => {
     const [scope, name = ""] = key.split(".");
-    if (scope === "param")
-      return params[name] === undefined ? undefined : valueText(params[name], state, layout);
+    if (scope === "param") return valueText(params[name], state, layout);
     if (scope === "var")
       return state.vars[name] === undefined ? undefined : String(state.vars[name]);
     if (descriptor.kind !== "MOVE_CARDS") return undefined;

@@ -125,13 +125,13 @@ export function undo(engine: Engine, state: GameState, seatId: SeatId): ApplyRes
     throw new IllegalActionError("NOT_SEATED", "UNDO");
   if (!statusOf(engine, state).canUndo) throw new UndoUnavailableError("Nothing to undo");
   const undone = state.history.at(-1) as string;
-  const template = parseActionId(engine, undone)?.template;
+  const { template } = parseActionId(engine, undone) as { template: ActionTemplate };
   const { undo: rule } = engine.rules;
-  const kept = rule.refundUndoneAction ? 0 : (template?.score ?? 0);
+  const kept = rule.refundUndoneAction ? 0 : template.score;
   const next = replay(engine, state, state.history.slice(0, -1));
   next.scoreCarry = state.scoreCarry + rule.score + kept;
-  next.vars["score"] = (next.vars["score"] ?? 0) + next.scoreCarry;
-  next.vars["undoCount"] = (state.vars["undoCount"] ?? 0) + 1;
+  next.vars["score"] = (next.vars["score"] as number) + next.scoreCarry;
+  next.vars["undoCount"] = (state.vars["undoCount"] as number) + 1;
   next.version = state.version + 1;
   const events: GameEvent[] = [{ type: "ACTION_UNDONE", data: { actionId: undone }, speech: null }];
   return { state: next, events: withSpeech(engine, next, events), status: statusOf(engine, next) };

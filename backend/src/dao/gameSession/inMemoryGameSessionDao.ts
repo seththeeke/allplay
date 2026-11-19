@@ -27,24 +27,28 @@ function load(item: StoredSession): GameSession {
  */
 export function createInMemoryGameSessionDao(): GameSessionDao {
   const items = new Map<string, StoredSession>();
+  /* Each method runs inside a promise so a schema failure rejects like a DynamoDB error would. */
+  const run = <T>(work: () => T): Promise<T> =>
+    new Promise((resolve) => {
+      resolve(work());
+    });
   return {
-    create: (session) => {
-      if (items.has(session.sessionId))
-        return Promise.reject(new SessionExistsError(session.sessionId));
-      items.set(session.sessionId, store(session));
-      return Promise.resolve();
-    },
-    get: (sessionId) => {
-      const item = items.get(sessionId);
-      return Promise.resolve(item === undefined ? null : load(item));
-    },
-    update: (session, expectedVersion) => {
-      const current = items.get(session.sessionId);
-      if (current?.version !== expectedVersion) {
-        return Promise.reject(new SessionVersionConflictError(session.sessionId));
-      }
-      items.set(session.sessionId, store(session));
-      return Promise.resolve();
-    },
+    create: (session) =>
+      run(() => {
+        if (items.has(session.sessionId)) throw new SessionExistsError(session.sessionId);
+        items.set(session.sessionId, store(session));
+      }),
+    get: (sessionId) =>
+      run(() => {
+        const item = items.get(sessionId);
+        return item === undefined ? null : load(item);
+      }),
+    update: (session, expectedVersion) =>
+      run(() => {
+        if (items.get(session.sessionId)?.version !== expectedVersion) {
+          throw new SessionVersionConflictError(session.sessionId);
+        }
+        items.set(session.sessionId, store(session));
+      }),
   };
 }

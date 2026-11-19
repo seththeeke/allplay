@@ -11,6 +11,11 @@ export interface GameLayout {
   refs: ReadonlyMap<string, ZoneRef>;
 }
 
+/** The instances of a zone type; static checks guarantee every referenced type exists. */
+export function zonesOfType(layout: GameLayout, type: string): readonly string[] {
+  return layout.zoneIdsByType.get(type) as readonly string[];
+}
+
 export function buildLayout(types: readonly ZoneType[]): GameLayout {
   const zoneTypes = new Map<string, ZoneType>();
   const zoneIdsByType = new Map<string, string[]>();

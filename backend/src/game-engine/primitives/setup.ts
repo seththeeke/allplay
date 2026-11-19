@@ -2,6 +2,7 @@ import { EngineInvariantError } from "../errors";
 import { shuffle, type Random } from "../random/xoshiro";
 import type { CopySpec, RulesDocument, SetupStep } from "../rules/schema";
 import { evaluate, holds, zoneOf, type EvalContext } from "./expressions";
+import { zonesOfType } from "./layout";
 
 const ALL_RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -12,10 +13,8 @@ export function copySpecs(
 ): CopySpec[] {
   const { copies } = cardSet;
   if (Array.isArray(copies)) return copies;
-  const specs = copies.cases[String(options[copies.switch.option])];
-  if (specs === undefined)
-    throw new EngineInvariantError(`No card set case for ${copies.switch.option}`);
-  return specs;
+  /* Static checks guarantee a case for every option value. */
+  return copies.cases[String(options[copies.switch.option])] as CopySpec[];
 }
 
 function createCards(specs: CopySpec[], into: string, faceUp: boolean, ctx: EvalContext): void {
@@ -39,17 +38,17 @@ function dealRows(
   ctx: EvalContext,
 ): void {
   const source = ctx.state.zones[zoneOf(spec.from, ctx)] as string[];
-  const targets = ctx.layout.zoneIdsByType.get(spec.type) ?? [];
+  const targets = zonesOfType(ctx.layout, spec.type);
   const remaining = targets.map((_, i) => spec.counts[i] ?? 0);
   while (remaining.some((count) => count > 0)) {
     targets.forEach((zoneId, i) => {
-      if ((remaining[i] ?? 0) === 0) return;
+      if (remaining[i] === 0) return;
       const cardId = source.pop();
       if (cardId === undefined)
         throw new EngineInvariantError(`Not enough cards to deal to ${spec.type}`);
       (ctx.state.cards[cardId] as { faceUp: boolean }).faceUp = spec.faceUp;
       (ctx.state.zones[zoneId] as string[]).push(cardId);
-      remaining[i] = (remaining[i] ?? 0) - 1;
+      remaining[i] = (remaining[i] as number) - 1;
     });
   }
 }
@@ -64,8 +63,9 @@ export function runSetupStep(
   if (step.when !== undefined && !holds(step.when, ctx)) return;
   if ("createCards" in step) {
     const spec = step.createCards;
-    const cardSet = rules.cardSets.find((set) => set.id === spec.cardSet);
-    if (cardSet === undefined) throw new EngineInvariantError(`Unknown card set ${spec.cardSet}`);
+    const cardSet = rules.cardSets.find(
+      (set) => set.id === spec.cardSet,
+    ) as RulesDocument["cardSets"][number];
     createCards(copySpecs(cardSet, ctx.state.options), zoneOf(spec.into, ctx), spec.faceUp, ctx);
   } else if ("shuffle" in step) {
     shuffle(ctx.state.zones[zoneOf(step.shuffle.zone, ctx)] as string[], random);
