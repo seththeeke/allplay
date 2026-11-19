@@ -49,6 +49,7 @@ Cognito trigger Lambdas live in the stateful stack because the User Pool referen
 | `AllPlay-DecisionApi-<Stage>` | API: `/v1/decisions*` | 1024 | 10 s |
 | `AllPlay-PlayerApi-<Stage>` | API: `/v1/players*` | 512 | 10 s |
 | `AllPlay-AdminApi-<Stage>` | API: `/v1/admin*` | 512 | 10 s |
+| `AllPlay-HealthApi-<Stage>` | API: `GET /v1/health` | 256 | 5 s |
 | `AllPlay-MetricsRollup-<Stage>` | Scheduler, daily 00:15 UTC | 512 | 5 min |
 | `AllPlay-CognitoPreSignUp-<Stage>` | User Pool | 256 | 5 s |
 | `AllPlay-CognitoPostConfirmation-<Stage>` | User Pool | 256 | 5 s |
@@ -62,6 +63,8 @@ Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedro
 `AllPlay-Api-<Stage>` is one HTTP API. Each bundle has an import-free route list at `backend/src/controller/web-api/<bundle>/<bundle>Routes.ts` (method, path, minimum tier). `cdk/` imports these files to create routes; it is the only sanctioned import from `cdk/` into `backend/`, legal because those files import nothing. The same lists generate the IAM route policies for each Identity Pool role from each route's minimum tier, so route authorization is defined in one place.
 
 `POST /v1/decisions` has its own throttling: 50 requests per second, burst 100.
+
+`GET /v1/health` is the only route without `AWS_IAM`. It is served by the dedicated `HealthApi` Lambda (bundle `health`), reads no data, and returns `200` with `{ "status": "OK", "stage": "<Stage>" }`. The API is reached at its default `execute-api` URL until a domain exists (Section 8), and the stage's `config.json` carries that URL as `apiUrl`. The web app's `/health` page calls the route and shows the result.
 
 ## 6. Web Hosting
 
@@ -77,14 +80,14 @@ Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedro
 
 | Step | Behavior |
 |---|---|
-| Source | GitHub repository through an AWS CodeStar connection (`connectionArn` in CDK context). Pushes do not trigger the pipeline |
+| Source | GitHub repository `seththeeke/allplay`, branch `main`, through an AWS CodeConnections connection whose ARN is read at deploy time from the SSM parameter `/allplay/github-connection-arn`, so the public repository holds no account identifiers. Pushes do not trigger the pipeline |
 | Triggers | EventBridge Scheduler daily at 10:00 UTC, and `POST /v1/admin/deployments` from either stage |
 | Synth | `npm ci` in each package; lint everywhere; unit tests with coverage gates in `backend/`, `web-app/` and `cdk/`; `web-app` build; `cdk synth` with cdk-nag checks |
 | Self-mutate | Updates the pipeline from the synthesized template |
 | Deploy Test | `AllPlayStateful-Test`, then `AllPlayApp-Test` |
-| Test verification | CodeBuild: API integration tests against Test (test account credentials from Secrets Manager `allplay/test/integration`); Playwright browser smoke tests against the Test URL |
+| Test verification | CodeBuild: API integration tests against Test (`backend` `npm run test:integration` with the stage's API URL; test account credentials from Secrets Manager `allplay/test/integration` once routes need them); a smoke test of the Test CloudFront URL; Playwright browser smoke tests from CDK-10 |
 | Deploy Prod | Runs only when Test verification passes: `AllPlayStateful-Prod`, then `AllPlayApp-Prod` |
-| Prod verification | Read-only smoke: load the site, obtain guest credentials, `GET /v1/games` |
+| Prod verification | Read-only smoke: load the site and `GET /v1/health`; from AA-4 also obtain guest credentials and `GET /v1/games` |
 
 CodeBuild uses the small ARM Linux image with npm caching. A failed run sends a notification to the alert topic.
 
@@ -114,7 +117,7 @@ Telemetry not used: X-Ray tracing, CloudWatch dashboards, custom CloudWatch metr
 
 ### 9.1 Alarms
 
-Per stage, notifying the alert topic (email subscription from CDK context `alertEmail`):
+Per stage, notifying the alert topic `AllPlay-Alerts` (defined in `AllPlayPipeline`). The email subscription is created by hand (Section 10) so no address is committed to the public repository:
 
 1. `DecisionApi` errors at least 5 in 5 minutes.
 2. `GameApi` errors at least 5 in 5 minutes.
@@ -139,10 +142,11 @@ Per stage, notifying the alert topic (email subscription from CDK context `alert
 Done once by hand, documented in `docs/runbooks/bootstrap.md`:
 
 1. `cdk bootstrap` of the account and region.
-2. A CodeStar connection to GitHub, authorized in the console; its ARN goes in CDK context.
-3. The federation secret per stage (`authn-authz.md` Section 3.1) and the Google and Apple developer configuration.
-4. The integration test secret `allplay/test/integration`.
-5. The first `cdk deploy AllPlayPipeline`; afterward the pipeline deploys itself.
+2. A CodeConnections connection to GitHub, authorized in the console; its ARN is stored in the SSM parameter `/allplay/github-connection-arn`.
+3. An email subscription to the `AllPlay-Alerts` topic, confirmed from the inbox, after the first pipeline deploy.
+4. The federation secret per stage (`authn-authz.md` Section 3.1) and the Google and Apple developer configuration.
+5. The integration test secret `allplay/test/integration`.
+6. The first `cdk deploy AllPlayPipeline`; afterward the pipeline deploys itself.
 
 Every mutating command follows the CLAUDE.md deploy safety gate.
 
@@ -274,8 +278,8 @@ Tooling:
 | CDK-4 | 2. Rule and build setup | `cdk/` package: app entry, stage, empty stacks, base constructs, cdk-nag, tests |
 | CDK-5 | 3a. Pipeline walking skeleton | `AllPlayPipeline`: source, synth, self-mutate, Test and Prod stages, schedule, budget, alert topic; bootstrap runbook |
 | CDK-6 | 3a. Pipeline walking skeleton | `WebHosting` construct; the pipeline deploys the in-memory prototype to Test and Prod |
-| SK-1 to SK-3 | 3a. Pipeline walking skeleton | Sample backend route, table and guest identity, integration and smoke tests in the pipeline, a recorded green run (`README.md`, phase 3a) |
-| CDK-7 | 4. Authentication | `AllPlayApi`, `ApiBundle`, `AllPlayFunction`, route policy generation from route lists |
+| SK-1 to SK-3 | 3a. Pipeline walking skeleton | `AllPlayFunction` and `AllPlayApi` constructs with the public health route and its Lambda, integration and smoke tests in the pipeline, a recorded green run (`README.md`, phase 3a) |
+| CDK-7 | 4. Authentication | `ApiBundle`, `AWS_IAM` routes from route lists, route policy generation |
 | CDK-8 | 5. Game Engine | `GameApi` bundle wiring and the integration test stage step |
 | CDK-9 | 6. Action Decider | `DecisionApi` wiring, Bedrock grants, `TranscribeVocabulary`, `ScheduledJob` for the rollup, alarms |
 | CDK-10 | 7. Web app polishing | Playwright smoke step and Prod verification step |
