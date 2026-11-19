@@ -1,0 +1,6 @@
+{
+  "name": "Dealing the whole stock before building leaves no moves",
+  "options": { "suits": 1, "dealStyle": "MICROSOFT" },
+  "seed": "000000000000000000000000000000d9",
+  "actions": ["DEAL_ROW", "DEAL_ROW", "DEAL_ROW", "DEAL_ROW", "DEAL_ROW"]
+}

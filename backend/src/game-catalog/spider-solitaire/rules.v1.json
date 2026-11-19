@@ -1,0 +1,761 @@
+{
+  "schemaVersion": 1,
+  "gameId": "spider-solitaire",
+  "version": 1,
+  "name": "Spider Solitaire",
+  "description": "Build eight full suits from king down to ace.",
+  "path": "/spider",
+  "players": {
+    "min": 1,
+    "max": 1
+  },
+  "options": {
+    "suits": {
+      "type": "ENUM",
+      "values": [1, 2, 4],
+      "default": 1,
+      "labels": {
+        "1": "one suit",
+        "2": "two suits",
+        "4": "four suits"
+      }
+    },
+    "dealStyle": {
+      "type": "ENUM",
+      "values": ["MICROSOFT", "HOYLE"],
+      "default": "MICROSOFT",
+      "labels": {
+        "MICROSOFT": "standard deal",
+        "HOYLE": "Hoyle deal"
+      }
+    }
+  },
+  "vars": {
+    "score": {
+      "initial": 500,
+      "label": "score"
+    },
+    "completedRuns": {
+      "initial": 0,
+      "label": "completed runs"
+    }
+  },
+  "cardSets": [
+    {
+      "id": "main",
+      "copies": {
+        "switch": {
+          "option": "suits"
+        },
+        "cases": {
+          "1": [
+            {
+              "suits": ["SPADES"],
+              "ranks": "A-K",
+              "times": 8
+            }
+          ],
+          "2": [
+            {
+              "suits": ["SPADES", "HEARTS"],
+              "ranks": "A-K",
+              "times": 4
+            }
+          ],
+          "4": [
+            {
+              "suits": ["SPADES", "HEARTS", "DIAMONDS", "CLUBS"],
+              "ranks": "A-K",
+              "times": 2
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "zones": [
+    {
+      "type": "stock",
+      "count": 1,
+      "label": {
+        "singular": "stock",
+        "plural": "stock",
+        "numbered": false
+      },
+      "aliases": ["deck", "pile of cards"],
+      "visibility": "COUNT_ONLY",
+      "layout": "STACK",
+      "region": "BOTTOM"
+    },
+    {
+      "type": "foundation",
+      "count": 8,
+      "label": {
+        "singular": "completed run",
+        "plural": "completed runs",
+        "numbered": false
+      },
+      "aliases": [],
+      "visibility": "CARDS",
+      "layout": "STACK",
+      "region": "TOP"
+    },
+    {
+      "type": "tableau",
+      "count": 10,
+      "label": {
+        "singular": "column",
+        "plural": "columns",
+        "numbered": true
+      },
+      "aliases": ["pile", "stack", "row"],
+      "visibility": "CARDS",
+      "layout": "FAN_DOWN",
+      "region": "MAIN"
+    }
+  ],
+  "setup": [
+    {
+      "createCards": {
+        "cardSet": "main",
+        "into": "stock.1",
+        "faceUp": false
+      }
+    },
+    {
+      "shuffle": {
+        "zone": "stock.1"
+      }
+    },
+    {
+      "when": {
+        "eq": [
+          {
+            "option": "dealStyle"
+          },
+          "MICROSOFT"
+        ]
+      },
+      "dealRows": {
+        "from": "stock.1",
+        "type": "tableau",
+        "counts": [6, 6, 6, 6, 5, 5, 5, 5, 5, 5],
+        "faceUp": false
+      }
+    },
+    {
+      "when": {
+        "eq": [
+          {
+            "option": "dealStyle"
+          },
+          "HOYLE"
+        ]
+      },
+      "dealRows": {
+        "from": "stock.1",
+        "type": "tableau",
+        "counts": [5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        "faceUp": false
+      }
+    }
+  ],
+  "actions": [
+    {
+      "id": "MOVE_UNIT",
+      "kind": "MOVE_CARDS",
+      "params": [
+        {
+          "name": "from",
+          "domain": {
+            "zones": {
+              "type": "tableau"
+            }
+          },
+          "prune": [
+            {
+              "not": {
+                "isEmpty": {
+                  "param": "from"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "depth",
+          "domain": {
+            "int": {
+              "min": 1,
+              "max": {
+                "runLength": {
+                  "zone": {
+                    "param": "from"
+                  },
+                  "rankStep": -1,
+                  "suit": "SAME",
+                  "faceUpOnly": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "to",
+          "domain": {
+            "zones": {
+              "type": "tableau"
+            }
+          },
+          "prune": [
+            {
+              "neq": [
+                {
+                  "param": "to"
+                },
+                {
+                  "param": "from"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "require": [
+        {
+          "any": [
+            {
+              "isEmpty": {
+                "param": "to"
+              }
+            },
+            {
+              "eq": [
+                {
+                  "rank": {
+                    "card": {
+                      "zone": {
+                        "param": "to"
+                      },
+                      "fromTop": 1
+                    }
+                  }
+                },
+                {
+                  "add": [
+                    {
+                      "rank": {
+                        "card": {
+                          "zone": {
+                            "param": "from"
+                          },
+                          "fromTop": {
+                            "param": "depth"
+                          }
+                        }
+                      }
+                    },
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "not": {
+            "all": [
+              {
+                "isEmpty": {
+                  "param": "to"
+                }
+              },
+              {
+                "eq": [
+                  {
+                    "param": "depth"
+                  },
+                  {
+                    "count": {
+                      "param": "from"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "moveCards": {
+            "from": {
+              "param": "from"
+            },
+            "count": {
+              "param": "depth"
+            },
+            "to": {
+              "param": "to"
+            }
+          }
+        }
+      ],
+      "score": -1,
+      "countsAsMove": true,
+      "equivalence": {
+        "param": "to",
+        "when": {
+          "isEmpty": {
+            "param": "to"
+          }
+        }
+      }
+    },
+    {
+      "id": "DEAL_ROW",
+      "kind": "DEAL",
+      "params": [],
+      "require": [
+        {
+          "not": {
+            "isEmpty": {
+              "zone": "stock.1"
+            }
+          }
+        },
+        {
+          "forAll": {
+            "type": "tableau",
+            "as": "z",
+            "where": {
+              "not": {
+                "isEmpty": {
+                  "ref": "z"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "effects": [
+        {
+          "dealRow": {
+            "from": {
+              "zone": "stock.1"
+            },
+            "type": "tableau",
+            "faceUp": true
+          }
+        }
+      ],
+      "score": -1,
+      "countsAsMove": true
+    }
+  ],
+  "triggers": [
+    {
+      "id": "COMPLETE_RUN",
+      "forEach": {
+        "type": "tableau",
+        "as": "z"
+      },
+      "when": {
+        "all": [
+          {
+            "gte": [
+              {
+                "count": {
+                  "ref": "z"
+                }
+              },
+              13
+            ]
+          },
+          {
+            "eq": [
+              {
+                "rank": {
+                  "card": {
+                    "zone": {
+                      "ref": "z"
+                    },
+                    "fromTop": 1
+                  }
+                }
+              },
+              1
+            ]
+          },
+          {
+            "gte": [
+              {
+                "runLength": {
+                  "zone": {
+                    "ref": "z"
+                  },
+                  "rankStep": -1,
+                  "suit": "SAME",
+                  "faceUpOnly": true
+                }
+              },
+              13
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "emit": {
+            "event": "RUN_COMPLETED",
+            "data": {
+              "zone": {
+                "ref": "z"
+              },
+              "suit": {
+                "suit": {
+                  "card": {
+                    "zone": {
+                      "ref": "z"
+                    },
+                    "fromTop": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "moveToFirstEmpty": {
+            "from": {
+              "ref": "z"
+            },
+            "count": 13,
+            "type": "foundation"
+          }
+        },
+        {
+          "addVar": {
+            "name": "completedRuns",
+            "by": 1
+          }
+        }
+      ],
+      "score": 100
+    },
+    {
+      "id": "FLIP_EXPOSED",
+      "forEach": {
+        "type": "tableau",
+        "as": "z"
+      },
+      "when": {
+        "all": [
+          {
+            "not": {
+              "isEmpty": {
+                "ref": "z"
+              }
+            }
+          },
+          {
+            "not": {
+              "faceUp": {
+                "card": {
+                  "zone": {
+                    "ref": "z"
+                  },
+                  "fromTop": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "flipTop": {
+            "zone": {
+              "ref": "z"
+            },
+            "faceUp": true
+          }
+        }
+      ],
+      "score": 0
+    }
+  ],
+  "endConditions": [
+    {
+      "status": "WON",
+      "when": {
+        "forAll": {
+          "type": "foundation",
+          "as": "f",
+          "where": {
+            "eq": [
+              {
+                "count": {
+                  "ref": "f"
+                }
+              },
+              13
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "undo": {
+    "allowed": true,
+    "score": -1,
+    "refundUndoneAction": false
+  },
+  "hints": {
+    "weights": [
+      {
+        "action": "MOVE_UNIT",
+        "weight": 100,
+        "when": {
+          "all": [
+            {
+              "not": {
+                "isNull": {
+                  "card": {
+                    "zone": {
+                      "param": "from"
+                    },
+                    "fromTop": {
+                      "add": [
+                        {
+                          "param": "depth"
+                        },
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "not": {
+                "faceUp": {
+                  "card": {
+                    "zone": {
+                      "param": "from"
+                    },
+                    "fromTop": {
+                      "add": [
+                        {
+                          "param": "depth"
+                        },
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "action": "MOVE_UNIT",
+        "weight": 60,
+        "when": {
+          "all": [
+            {
+              "eq": [
+                {
+                  "param": "depth"
+                },
+                {
+                  "count": {
+                    "param": "from"
+                  }
+                }
+              ]
+            },
+            {
+              "not": {
+                "isEmpty": {
+                  "param": "to"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "action": "MOVE_UNIT",
+        "weight": 50,
+        "when": {
+          "all": [
+            {
+              "not": {
+                "isEmpty": {
+                  "param": "to"
+                }
+              }
+            },
+            {
+              "eq": [
+                {
+                  "suit": {
+                    "card": {
+                      "zone": {
+                        "param": "to"
+                      },
+                      "fromTop": 1
+                    }
+                  }
+                },
+                {
+                  "suit": {
+                    "card": {
+                      "zone": {
+                        "param": "from"
+                      },
+                      "fromTop": {
+                        "param": "depth"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "action": "MOVE_UNIT",
+        "weight": -20,
+        "when": {
+          "isEmpty": {
+            "param": "to"
+          }
+        }
+      },
+      {
+        "action": "MOVE_UNIT",
+        "weight": -300,
+        "when": {
+          "all": [
+            {
+              "not": {
+                "isNull": {
+                  "card": {
+                    "zone": {
+                      "param": "from"
+                    },
+                    "fromTop": {
+                      "add": [
+                        {
+                          "param": "depth"
+                        },
+                        1
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "faceUp": {
+                "card": {
+                  "zone": {
+                    "param": "from"
+                  },
+                  "fromTop": {
+                    "add": [
+                      {
+                        "param": "depth"
+                      },
+                      1
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "eq": [
+                {
+                  "rank": {
+                    "card": {
+                      "zone": {
+                        "param": "from"
+                      },
+                      "fromTop": {
+                        "add": [
+                          {
+                            "param": "depth"
+                          },
+                          1
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "add": [
+                    {
+                      "rank": {
+                        "card": {
+                          "zone": {
+                            "param": "from"
+                          },
+                          "fromTop": {
+                            "param": "depth"
+                          }
+                        }
+                      }
+                    },
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "action": "DEAL_ROW",
+        "weight": -50,
+        "when": true
+      },
+      {
+        "weight": -1000,
+        "when": {
+          "reversesLastAction": true
+        }
+      }
+    ]
+  },
+  "speech": {
+    "zoneAliases": {
+      "tableau": ["column", "pile", "stack", "row"],
+      "stock": ["stock", "deck"]
+    },
+    "actions": {
+      "MOVE_UNIT": {
+        "text": "Move {cards.lead} from {param.from} to {param.to}",
+        "short": "{param.from} to {param.to}"
+      },
+      "DEAL_ROW": {
+        "text": "Deal a new row of cards",
+        "short": "deal"
+      }
+    },
+    "events": {
+      "RUN_COMPLETED": "Completed a run of {data.suit}",
+      "GAME_WON": "You won. Final score {var.score}"
+    },
+    "deciderGuidance": [
+      "Columns are numbered 1 to 10 from left to right. \"Three to seven\", \"column three to column seven\", \"three on seven\" and \"move three over to seven\" all mean move from column 3 to column 7.",
+      "When a column-to-column command matches more than one depth, the engine's rules already allow only the depth whose bottom card fits the target, so non-empty targets are unique. For an empty target, the largest movable unit is meant unless the player names a card.",
+      "Card references: \"the seven of hearts\", \"the red seven\" (two-suit and four-suit games), \"the seven\", \"the black jack\". Rank words: ace, two through ten, jack, queen, king. Players may say \"on the eight\" or \"onto the eight of spades\" for the target.",
+      "\"Deal\", \"deal more cards\", \"next row\", \"more cards\" all mean `DEAL_ROW`.",
+      "\"Empty column\", \"open column\", \"the space\" refer to any empty column; the engine's equivalence groups resolve which."
+    ]
+  }
+}

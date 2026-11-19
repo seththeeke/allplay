@@ -420,7 +420,7 @@ export type ActionValidation =
   | { valid: false; reason: "UNKNOWN_ACTION" | "NOT_LEGAL" | "GAME_OVER" | "NOT_SEATED" };
 ```
 
-Errors thrown: `RulesValidationError`, `IllegalActionError`, `UndoUnavailableError`, `EngineInvariantError`. Each has a stable `.name`.
+Errors thrown: `RulesValidationError`, `IllegalActionError`, `UndoUnavailableError`, `EngineInvariantError`, and `InvalidGameInputError` (unknown or invalid options, a malformed seed, or a wrong seat count passed to `createGame`). Each has a stable `.name`.
 
 ## 9. Legal Actions
 

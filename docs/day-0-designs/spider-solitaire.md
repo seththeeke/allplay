@@ -37,6 +37,7 @@ File: `backend/src/game-catalog/spider-solitaire/rules.v1.json`.
   "version": 1,
   "name": "Spider Solitaire",
   "description": "Build eight full suits from king down to ace.",
+  "path": "/spider",
   "players": { "min": 1, "max": 1 },
 
   "options": {
@@ -315,8 +316,8 @@ Transcribe custom vocabulary for Spider: spades, hearts, diamonds, clubs, ace, j
 4. Equivalence tests: moves to two empty columns share an `equivalenceKey`.
 5. Hint tests: exposing a face-down card beats a lateral move; deal is suggested only when no move has positive weight; a move that reverses the previous move is never suggested while another move exists.
 6. Golden games: three recorded winning games (one per suit option) replayed from their seeds.
-8. Functional playthroughs (`game-engine.md` Section 11.2): from fixed seeds, a recorded winning line ends `WON` with score and run counts asserted; a recorded losing line deals the stock early, reaches a dead end, and is abandoned.
 7. Simulation: the engine's rules validator (`game-engine.md` Section 13) passes for every option combination.
+8. Functional playthroughs (`game-engine.md` Section 11.2): from fixed seeds, a recorded winning line ends `WON` with score and run counts asserted; a recorded losing line deals the stock early, reaches a dead end, and is abandoned.
 
 ## 6. Implementation Legs
 
