@@ -11,6 +11,7 @@ import type {
   ApplyActionRequest,
   GameOptions,
   GamesResponse,
+  HealthResponse,
   HintResponse,
   SessionEnvelope,
   StatsResponse,
@@ -80,7 +81,20 @@ export interface AdminService {
   startDeployment(): Promise<StartDeploymentResponse>;
 }
 
+/** Result of one call to `GET /v1/health`: the HTTP status, the parsed body when it matched the contract, and the round trip time. */
+export interface HealthCheck {
+  httpStatus: number;
+  body: HealthResponse | null;
+  latencyMs: number;
+}
+
+/** Stage health check (cdk-stacks.md section 5); live whenever the stage config carries an API URL. */
+export interface HealthService {
+  check(): Promise<HealthCheck>;
+}
+
 export interface Services {
+  health: HealthService;
   admin: AdminService;
   stats: StatsService;
   decisions: DecisionService;

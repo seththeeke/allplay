@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_APP_PREFERENCES } from "../../../src/models/api";
 import { createServices } from "../../../src/services/createServices";
 import { mergeDefined } from "../../../src/services/mergeDefined";
@@ -52,7 +52,16 @@ describe("memory player service", () => {
   });
 });
 
-const SERVICE_NAMES = ["admin", "decisions", "games", "player", "preferences", "sessions", "stats"];
+const SERVICE_NAMES = [
+  "admin",
+  "decisions",
+  "games",
+  "health",
+  "player",
+  "preferences",
+  "sessions",
+  "stats",
+];
 
 describe("createServices", () => {
   it("builds memory services and refuses live mode until it exists", () => {
@@ -60,6 +69,22 @@ describe("createServices", () => {
       SERVICE_NAMES,
     );
     expect(() => createServices({ stage: "TEST", dataMode: "LIVE" })).toThrow(/Live services/);
+  });
+
+  it("checks health live when the stage config has an API URL", async () => {
+    const local = createServices({ stage: "LOCAL", dataMode: "MEMORY" });
+    await expect(local.health.check()).resolves.toMatchObject({ body: { stage: "LOCAL" } });
+    const fetchSpy = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ status: "OK", stage: "Test" }))),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+    const staged = createServices({
+      stage: "TEST",
+      dataMode: "MEMORY",
+      apiUrl: "https://api.example.com/",
+    });
+    await expect(staged.health.check()).resolves.toMatchObject({ body: { stage: "Test" } });
+    vi.unstubAllGlobals();
   });
 });
 

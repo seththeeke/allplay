@@ -3,6 +3,7 @@ import { AppShell } from "../components/AppShell";
 import { AccountPage } from "../pages/AccountPage";
 import { AdminPage } from "../pages/AdminPage";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
+import { HealthPage } from "../pages/HealthPage";
 import { HelpPage } from "../pages/HelpPage";
 import { HomePage } from "../pages/HomePage";
 import { SettingsPage } from "../pages/SettingsPage";
@@ -21,6 +22,7 @@ export function AppRoutes(): React.JSX.Element {
         <Route path="stats" element={<StatsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<HelpPage />} />
+        <Route path="health" element={<HealthPage />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
