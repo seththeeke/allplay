@@ -19,7 +19,7 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
 
 3. Authorize the connection by hand: AWS console, Developer Tools, Settings, Connections, `AllPlay-GitHub`, Update pending connection, then install the AWS Connector for GitHub app on the `seththeeke/allplay` repository. The connection status must read Available.
 
-4. CloudFront account verification. A new account cannot create CloudFront distributions until AWS Support verifies it. The first deploy fails with `Your account must be verified before you can add new CloudFront resources`; open a Support case (Account and billing) quoting that message and wait for the confirmation.
+4. CloudFront account verification. A new account cannot create CloudFront distributions until AWS Support verifies it; adding MFA to the root user does not do it. The first deploy fails with `Your account must be verified before you can add new CloudFront resources`; open a Support case (Account and billing) quoting that message and wait for the confirmation.
 
 ## 2. First pipeline deploy
 
@@ -35,11 +35,7 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
    npx cdk deploy AllPlayPipeline --profile allplays --require-approval never
    ```
 
-3. Subscribe an email address to the alert topic and confirm it from the inbox. The address is not committed to the repository:
-
-   ```
-   aws sns subscribe --topic-arn <AllPlay-Alerts topic arn> --protocol email --notification-endpoint <address> --profile allplays --region us-east-1
-   ```
+3. Confirm the `AllPlay-Alerts` email subscription from the link AWS sends to the alert address (`ALERT_EMAIL` in `cdk/lib/stacks/AllPlayPipelineStack.ts`).
 
 ## 3. Operating the pipeline
 

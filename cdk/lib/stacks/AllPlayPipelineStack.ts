@@ -6,6 +6,7 @@ import { PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { Schedule, ScheduleExpression } from "aws-cdk-lib/aws-scheduler";
 import { CodePipelineStartPipelineExecution } from "aws-cdk-lib/aws-scheduler-targets";
 import { Topic } from "aws-cdk-lib/aws-sns";
+import { EmailSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import {
   CodePipeline,
@@ -28,6 +29,8 @@ export const REPOSITORY = "seththeeke/allplay";
 export const BRANCH = "main";
 export const CONNECTION_PARAMETER = "/allplay/github-connection-arn";
 export const MONTHLY_BUDGET_USD = 25;
+/** The one place the alert address is defined (cdk-stacks.md section 9.1). */
+export const ALERT_EMAIL = "seththeeke@gmail.com";
 export const CDK_CLI_VERSION = "2.1148.1";
 
 /** Lint, unit tests with coverage gates, builds, then synth with cdk-nag, all from the repository root. */
@@ -123,6 +126,7 @@ export class AllPlayPipelineStack extends Stack {
       displayName: "All Play alerts",
       enforceSSL: true,
     });
+    this.alerts.addSubscription(new EmailSubscription(ALERT_EMAIL));
     this.alerts.addToResourcePolicy(
       new PolicyStatement({
         actions: ["sns:Publish"],

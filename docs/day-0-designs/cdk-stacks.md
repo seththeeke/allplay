@@ -117,7 +117,7 @@ Telemetry not used: X-Ray tracing, CloudWatch dashboards, custom CloudWatch metr
 
 ### 9.1 Alarms
 
-Per stage, notifying the alert topic `AllPlay-Alerts` (defined in `AllPlayPipeline`). The email subscription is created by hand (Section 10) so no address is committed to the public repository:
+Per stage, notifying the alert topic `AllPlay-Alerts` (defined in `AllPlayPipeline`, with an email subscription to the address in `ALERT_EMAIL` in that stack):
 
 1. `DecisionApi` errors at least 5 in 5 minutes.
 2. `GameApi` errors at least 5 in 5 minutes.
@@ -143,7 +143,7 @@ Done once by hand, documented in `docs/runbooks/bootstrap.md`:
 
 1. `cdk bootstrap` of the account and region.
 2. A CodeConnections connection to GitHub, authorized in the console; its ARN is stored in the SSM parameter `/allplay/github-connection-arn`.
-3. An email subscription to the `AllPlay-Alerts` topic, confirmed from the inbox, after the first pipeline deploy.
+3. Confirming the `AllPlay-Alerts` email subscription from the inbox after the first pipeline deploy.
 4. The federation secret per stage (`authn-authz.md` Section 3.1) and the Google and Apple developer configuration.
 5. The integration test secret `allplay/test/integration`.
 6. The first `cdk deploy AllPlayPipeline`; afterward the pipeline deploys itself.

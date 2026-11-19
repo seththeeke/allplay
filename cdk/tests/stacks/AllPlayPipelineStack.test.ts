@@ -2,6 +2,7 @@ import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../../lib/app";
 import {
+  ALERT_EMAIL,
   CONNECTION_PARAMETER,
   SYNTH_COMMANDS,
   verifyCommands,
@@ -103,6 +104,10 @@ describe("AllPlayPipelineStack", () => {
 
   it("alerts on failures and on a $25 monthly budget", () => {
     template.hasResourceProperties("AWS::SNS::Topic", { TopicName: "AllPlay-Alerts" });
+    template.hasResourceProperties("AWS::SNS::Subscription", {
+      Protocol: "email",
+      Endpoint: ALERT_EMAIL,
+    });
     template.hasResource("AWS::CodeStarNotifications::NotificationRule", {
       Properties: Match.objectLike({
         EventTypeIds: ["codepipeline-pipeline-pipeline-execution-failed"],
