@@ -131,9 +131,11 @@ export class AllPlayPipelineStack extends Stack {
         conditions: { StringEquals: { "aws:SourceAccount": this.account } },
       }),
     );
-    this.pipeline.pipeline.notifyOn("PipelineFailed", this.alerts, {
+    const failures = this.pipeline.pipeline.notifyOn("PipelineFailed", this.alerts, {
       events: [PipelineNotificationEvents.PIPELINE_EXECUTION_FAILED],
     });
+    /* The rule is rejected unless the topic policy granting CodeStar Notifications exists first. */
+    failures.node.addDependency(this.alerts);
 
     new Schedule(this, "DailyRun", {
       scheduleName: `${PROJECT_NAME}-DailyPipelineRun`,

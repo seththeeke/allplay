@@ -103,8 +103,11 @@ describe("AllPlayPipelineStack", () => {
 
   it("alerts on failures and on a $25 monthly budget", () => {
     template.hasResourceProperties("AWS::SNS::Topic", { TopicName: "AllPlay-Alerts" });
-    template.hasResourceProperties("AWS::CodeStarNotifications::NotificationRule", {
-      EventTypeIds: ["codepipeline-pipeline-pipeline-execution-failed"],
+    template.hasResource("AWS::CodeStarNotifications::NotificationRule", {
+      Properties: Match.objectLike({
+        EventTypeIds: ["codepipeline-pipeline-pipeline-execution-failed"],
+      }),
+      DependsOn: Match.arrayWith([Match.stringLikeRegexp("AlertsPolicy")]),
     });
     template.hasResourceProperties("AWS::Budgets::Budget", {
       Budget: Match.objectLike({ BudgetLimit: { Amount: 25, Unit: "USD" }, TimeUnit: "MONTHLY" }),
