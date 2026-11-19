@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings 0 && prettier --check .",
     "format": "eslint . --fix && prettier --write .",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "zod": "4.6.7"

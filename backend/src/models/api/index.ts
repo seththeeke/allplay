@@ -4,5 +4,6 @@ export * from "./common";
 export * from "./decision";
 export * from "./errors";
 export * from "./game";
+export * from "./health";
 export * from "./player";
 export * from "./session";

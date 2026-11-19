@@ -21,5 +21,11 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["src", "tests", "vitest.config.ts", "eslint.boundaries.js"]
+  "include": [
+    "src",
+    "tests",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "eslint.boundaries.js"
+  ]
 }
