@@ -21,6 +21,12 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
 
 4. CloudFront account verification. A new account cannot create CloudFront distributions until AWS Support verifies it; adding MFA to the root user does not do it. The first deploy fails with `Your account must be verified before you can add new CloudFront resources`; open a Support case (Account and billing) quoting that message and wait for the confirmation.
 
+5. CodeBuild concurrency. A new account starts with an applied quota of 0 concurrent builds, so the pipeline's Build step fails with `Cannot have more than 0 builds in queue for the account`. The pipeline uses only ARM small builds; request quota `L-5ED1D25B` (Concurrently running builds for ARM/Small environment) of 2:
+
+   ```
+   aws service-quotas request-service-quota-increase --service-code codebuild --quota-code L-5ED1D25B --desired-value 2 --profile allplays --region us-east-1
+   ```
+
 ## 2. First pipeline deploy
 
 1. Build the web app, because the stages publish `web-app/dist`:
