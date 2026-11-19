@@ -23,7 +23,7 @@ Source rules: `docs/game-context/spider-solitaire/basics.md` (the Hoyle deal), w
 7. When a column's top card is face down, it turns face up automatically.
 8. When the top 13 cards of a column form a same-suit sequence from king (deepest) to ace (top), they are removed to the next empty foundation slot automatically, for 100 points.
 9. Dealing places one face-up card on each column from the stock. A deal is not allowed while any column is empty.
-10. The game is won when all eight runs are complete. There is no losing state; a player with no moves left can undo or start a new game. A game the player leaves for a new one counts as a loss in statistics.
+10. The game is won when all eight runs are complete. There is no losing status. A dead end (stock empty, no legal move, game not won) leaves the game `IN_PROGRESS` with `blocked: true`; the player can undo or abandon. An abandoned game, including an abandoned dead end, counts as a loss in statistics.
 11. Scoring (Microsoft): start at 500, minus 1 for every move and every deal, plus 100 for every completed run, minus 1 for every undo. An undo does not refund the undone move's point, but it does take back a completed run bonus the undone move earned.
 
 ## 2. Rules Document
@@ -315,6 +315,7 @@ Transcribe custom vocabulary for Spider: spades, hearts, diamonds, clubs, ace, j
 4. Equivalence tests: moves to two empty columns share an `equivalenceKey`.
 5. Hint tests: exposing a face-down card beats a lateral move; deal is suggested only when no move has positive weight; a move that reverses the previous move is never suggested while another move exists.
 6. Golden games: three recorded winning games (one per suit option) replayed from their seeds.
+8. Functional playthroughs (`game-engine.md` Section 11.2): from fixed seeds, a recorded winning line ends `WON` with score and run counts asserted; a recorded losing line deals the stock early, reaches a dead end, and is abandoned.
 7. Simulation: the engine's rules validator (`game-engine.md` Section 13) passes for every option combination.
 
 ## 6. Implementation Legs

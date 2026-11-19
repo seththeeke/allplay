@@ -546,6 +546,19 @@ Error responses:
 
 Performance target: server time for `POST .../actions` under 150 ms at p50 and 300 ms at p95 on a warm Lambda.
 
+### 11.1 Session Persistence
+
+The game session service depends only on the `GameSessionDao` interface (`backend/src/dao/gameSession/`), which has two implementations with identical behavior:
+
+1. `InMemoryGameSessionDao` keeps sessions in a map, enforces the same `version` condition as DynamoDB, and stores the engine state through the same codec. It backs unit and functional tests and local runs.
+2. `DynamoGameSessionDao` stores `GameSession` items (`data-model.md` Section 6) with conditional writes. It is built in DM-3.
+
+A shared DAO contract test suite runs against both implementations, so the in-memory DAO cannot drift from DynamoDB.
+
+### 11.2 Functional Tests
+
+Functional tests (`backend/tests/functional/`) play complete games through the game session service, exactly as the HTTP API will, on the in-memory DAO. Each scenario fixes the 128-bit seed, which fixes the shuffle and therefore the deal, and lists the player's actions; the scenario asserts the outcome. Spider Solitaire scenarios cover at least a win (all eight runs completed, status `WON`) and a loss (the player's choices reach a dead end: stock empty, no legal action, status still `IN_PROGRESS` with `blocked: true`; the player then abandons, which `PlayerStats` counts as a loss). Winning lines are found by a test-only solver (`backend/tests/functional/solver.ts`) and recorded in the scenario, so the test replays a fixed line rather than searching. The same scenarios run against `DynamoGameSessionDao` on the AWS Emulator once DM-3 exists.
+
 ## 12. Pointer and Keyboard Play
 
 Clients implement tap-to-select and drag-and-drop by filtering `legalActions` from the envelope:
@@ -619,7 +632,9 @@ Each leg is one commit, built in execution phase 5 (Game Engine) unless noted.
 | GE-7 | Views, redaction, descriptors, speech templates and card names; redaction tests |
 | GE-8 | Simulation validator (Section 13) and property tests |
 | GE-9 | `game-catalog` with `BundledRulesRepository` and a minimal test game (a 20-card toy game) that exercises the full interface |
-| GE-10 | Game session service, `GameSession`/`SeatAssignment`/`PlayerStats` writes, session routes and controllers |
+| GE-10 | Game session service on the `GameSessionDao` interface with `InMemoryGameSessionDao` and the DAO contract tests (Section 11.1) |
+| GE-12 | Functional tests: full Spider Solitaire playthroughs from fixed seeds through the session service, including a win and a dead-end loss (Section 11.2) |
+| GE-13 | Session routes and controllers, `SeatAssignment` and `PlayerStats` writes |
 | GE-11 | API integration tests for the session routes against the Test stage, plus performance tests |
 
 Spider Solitaire itself lands in the legs of `spider-solitaire.md`.
