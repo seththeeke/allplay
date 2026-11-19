@@ -1,11 +1,15 @@
-import { App } from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { AllPlayStage } from "../lib/stage";
+import { WEB_FIXTURE, testApp } from "./testApp";
 
 function build(stageName: "Test" | "Prod") {
-  const app = new App();
-  return new AllPlayStage(app, stageName, { stageName, env: { region: "us-east-1" } });
+  const app = testApp();
+  return new AllPlayStage(app, stageName, {
+    stageName,
+    webAssetPath: WEB_FIXTURE,
+    env: { region: "us-east-1" },
+  });
 }
 
 describe("AllPlayStage", () => {

@@ -6,6 +6,8 @@ import { AllPlayStatefulStack } from "./stacks/AllPlayStatefulStack";
 
 export interface AllPlayStageProps extends StageProps {
   stageName: StageName;
+  /** Directory holding the web app's production build. */
+  webAssetPath: string;
 }
 
 /** One deployment of All Play: the stateful stack and the app stack (cdk-stacks.md section 2). */
@@ -24,6 +26,7 @@ export class AllPlayStage extends Stage {
       stackName: stackName("App", stage),
       stage,
       stateful: this.stateful,
+      webAssetPath: props.webAssetPath,
     });
     Tags.of(this).add("Project", PROJECT_NAME);
     Tags.of(this).add("Stage", stage);
