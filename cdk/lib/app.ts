@@ -1,9 +1,9 @@
 import { Validations, type App } from "aws-cdk-lib";
 import { AwsSolutionsChecks } from "cdk-nag";
-import { DEFAULT_REGION, STAGE_NAMES } from "./config";
+import { DEFAULT_REGION } from "./config";
 import { WEB_DIST_DIR } from "./paths";
 import { AllPlayPipelineStack } from "./stacks/AllPlayPipelineStack";
-import { AllPlayStage } from "./stage";
+import type { AllPlayStage } from "./stage";
 
 export interface BuiltApp {
   pipeline: AllPlayPipelineStack;
@@ -16,20 +16,17 @@ export function webAssetPathFor(app: App): string {
 }
 
 /**
- * Adds every All Play stack to the app. Stages are instantiated directly for
- * local synth until CDK-5 moves them into the pipeline. No account is set, so
- * synth never needs AWS credentials.
+ * Adds the pipeline stack, which holds the Test and Prod stages it deploys.
+ * A stage can also be deployed by hand as `AllPlayPipeline/<Stage>/*`. No
+ * account is set, so synth never needs AWS credentials.
  */
 export function buildApp(app: App): BuiltApp {
   const region = (app.node.tryGetContext("allplay:region") as string | undefined) ?? DEFAULT_REGION;
   const pipeline = new AllPlayPipelineStack(app, "AllPlayPipeline", {
     stackName: "AllPlayPipeline",
     env: { region },
+    webAssetPath: webAssetPathFor(app),
   });
-  const webAssetPath = webAssetPathFor(app);
-  const stages = STAGE_NAMES.map(
-    (stageName) => new AllPlayStage(app, stageName, { stageName, webAssetPath, env: { region } }),
-  );
   Validations.of(app).addPlugins(new AwsSolutionsChecks(app, { verbose: true }));
-  return { pipeline, stages };
+  return { pipeline, stages: pipeline.stages };
 }

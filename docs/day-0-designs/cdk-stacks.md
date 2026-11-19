@@ -214,10 +214,12 @@ The API contract models are defined once in `backend/src/models/api/` and import
 
 ```
 cdk/
-  bin/app.ts             app entry: pipeline stack, and stage stacks for local synth
+  bin/app.ts             app entry: the pipeline stack, which holds the Test and Prod stages
+                         (deploy one by hand as AllPlayPipeline/<Stage>/*)
   lib/stage.ts           AllPlayStage (stateful and app stacks for one stage)
   lib/stacks/            AllPlayPipeline, AllPlayStateful, AllPlayApp
   lib/constructs/        Section 3
+  lib/nag.ts             acknowledgment helper for findings on CDK-generated resources
   tests/                 mirrors lib/; fine-grained assertions, no snapshots
 ```
 

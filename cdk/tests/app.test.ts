@@ -32,6 +32,9 @@ describe("buildApp", () => {
   it("honors a region from context", () => {
     const app = testApp({ "allplay:region": "us-west-2" });
     expect(buildApp(app).pipeline.region).toBe("us-west-2");
+    const { "allplay:region": _region, ...withoutRegion } = TEST_CONTEXT as Record<string, unknown>;
+    expect(_region).toBe("us-east-1");
+    expect(buildApp(new App({ context: withoutRegion })).pipeline.region).toBe("us-east-1");
   });
 
   it("synthesizes every stack without credentials and with no cdk-nag errors", () => {
