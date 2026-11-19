@@ -77,7 +77,7 @@ function acknowledgeDeploymentHandler(deployment: BucketDeployment, bucket: IBuc
     ...["s3:GetObject*", "s3:GetBucket*", "s3:List*", "s3:DeleteObject*", "s3:Abort*"].map(
       (action) => `AwsSolutions-IAM5[Action::${action}]`,
     ),
-    `AwsSolutions-IAM5[Resource::arn:<AWS::Partition>:s3:::cdk-hnb659fds-assets-<AWS::AccountId>-${stack.region}/*]`,
+    `AwsSolutions-IAM5[Resource::arn:${stack.partition}:s3:::cdk-hnb659fds-assets-<AWS::AccountId>-${stack.region}/*]`,
     `AwsSolutions-IAM5[Resource::<${bucketId}.Arn>/*]`,
     "AwsSolutions-IAM5[Resource::*]",
   ];

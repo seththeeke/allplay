@@ -18,13 +18,17 @@ export class AllPlayStage extends Stage {
   constructor(scope: Construct, id: string, props: AllPlayStageProps) {
     super(scope, id, props);
     const stage = props.stageName;
+    /* explicitStackTags (cdk.json) applies stack tags only when passed to the stack itself. */
+    const tags = { Project: PROJECT_NAME, Stage: stage };
     this.stateful = new AllPlayStatefulStack(this, "Stateful", {
       stackName: stackName("Stateful", stage),
       stage,
+      tags,
     });
     this.app = new AllPlayAppStack(this, "App", {
       stackName: stackName("App", stage),
       stage,
+      tags,
       stateful: this.stateful,
       webAssetPath: props.webAssetPath,
     });
