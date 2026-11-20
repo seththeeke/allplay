@@ -13,6 +13,7 @@ This folder holds the day 0 specification of All Play. Read the documents in thi
 | `prototype-mocks.md` | Every mock in the web prototype and the leg that replaces it |
 | `local-development.md` | The whole system running locally in memory: local server, fakes, local integration tests |
 | `action-decision.md` | Speech capture, the two-layer LLM decision, confirmation, turn records |
+| `transcribe-polly-bedrock.md` | Bedrock, Transcribe and Polly as drop-in implementations of the local provider interfaces (`local-aws` preset) |
 | `authn-authz.md` | Guests, accounts, roles, Cognito, IAM route authorization, guest merge |
 | `cdk-stacks.md` | Stacks, constructs, pipeline, cost and telemetry, codebase layout and tooling |
 | `/CLAUDE.md` | Working rules for Claude in this repository |

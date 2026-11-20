@@ -366,7 +366,7 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 | AD-12 | Decision intake: `POST /v1/decisions` parses the request, records a `Decision` through an in-memory `DecisionDao`, and replies `UNRECOGNIZED` with the heard text until the layers of AD-2 to AD-5 replace that reply |
 | AD-13 | `TextToSpeech` with Kokoro and recording implementations, `POST /local/speech/synthesize`, and the web `SpeechOutput` local server implementation |
 | AD-14 | Claude Code and Claude API `LlmClient` implementations and their tests |
-| AD-15 | Server-side Transcribe and Polly implementations for the `local-aws` preset |
+| AD-15 | Server-side Transcribe and Polly implementations for the `local-aws` preset (`transcribe-polly-bedrock.md`, TPB-2 and TPB-3) |
 | AD-9 | Web client: Transcribe streaming capture, listening banner, proposal and choice UI, key handling, Polly playback (execution phase 7) |
 
 ## 16. Provider Interfaces
