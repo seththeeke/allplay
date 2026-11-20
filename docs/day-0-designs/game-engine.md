@@ -638,3 +638,33 @@ Each leg is one commit, built in execution phase 5 (Game Engine) unless noted.
 | GE-11 | API integration tests for the session routes against the Test stage, plus performance tests |
 
 Spider Solitaire itself lands in the legs of `spider-solitaire.md`.
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-20. Built ahead of phase 4 by the owner's direction.
+
+| Leg | Status | Notes |
+|---|---|---|
+| GE-1 | Done | Public types, errors (adds `InvalidGameInputError`), xoshiro128** and Fisher-Yates shuffle, isolation lint rules |
+| GE-2 | Done | `RulesDocumentSchema` (zod) and static checks, including missing zones and speech placeholders |
+| GE-3 | Done | Every expression and predicate primitive in Section 4.5 |
+| GE-4 | Done | Setup steps, `createGame`, triggers to a fixed point with the pass limit, end conditions, card conservation |
+| GE-5 | Done | Enumeration with prune, action ids, `validateAction`, `applyAction` |
+| GE-6 | Done | Undo by replay with `scoreCarry`, hints with `reversesLastAction`, equivalence keys |
+| GE-7 | Done | Views with redaction, descriptors, speech templates and card names |
+| GE-8 | Open | Simulation validator (Section 13 stage 3) and property tests |
+| GE-9 | Done | `createBundledRulesRepository` in `game-catalog/`; the toy game lives in `backend/tests/game-engine/toyRules.ts` and uses every primitive |
+| GE-10 | Done | `createGameSessionService` on `GameSessionDao`, `createInMemoryGameSessionDao`, gzip state codec, ULIDs, and the shared DAO contract tests |
+| GE-11 | Open | Needs the session routes and a deployed Test stage |
+| GE-12 | Done | `backend/tests/functional/`: win from seed `...0001` (108 recorded actions, score 1192), dead-end loss from seed `...00d9` (five early deals, then abandon), undo out of the dead end, a stale version conflict, and the Hoyle final deal |
+| GE-13 | Open | Session routes and controllers, `SeatAssignment` and `PlayerStats` writes |
+
+Spider legs: SP-1 to SP-3 are done (`game-catalog/spider-solitaire/rules.v1.json`, deal, move, run and scoring tests); SP-4 hint tests are partly done; SP-5 golden games are open. DM-3 (`DynamoGameSessionDao`) is open and must pass `backend/tests/dao/gameSession/gameSessionDaoContract.ts`.
+
+Known gaps:
+
+1. The session `summary` holds the game's vars only; `stockDealsRemaining` (`data-model.md` Section 6) is not computed yet.
+2. Engine `LOST` maps to session status `ABANDONED`, since the session status set has no `LOST`.
+3. The test-only solver (`tests/functional/solver.ts`) follows hints; it wins seed `...0001` but not every seed. Scenarios replay recorded lines, regenerated with `npx tsx tests/functional/recordScenarios.ts`.
+
+Coverage at this point: 151 backend tests, 99.9% lines and 99.7% branches.
