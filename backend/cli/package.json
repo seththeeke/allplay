@@ -1,0 +1,16 @@
+{
+  "name": "game-engine-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Play All Play's Spider Solitaire in the terminal on the in-memory game engine.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bin": {
+    "game-engine-cli": "dist/game-engine-cli.mjs"
+  },
+  "files": [
+    "dist"
+  ]
+}

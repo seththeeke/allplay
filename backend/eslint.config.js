@@ -5,7 +5,7 @@ import { boundaries } from "./eslint.boundaries.js";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules", "coverage", "dist", "tests/lint/fixtures/**"],
+    ignores: ["node_modules", "coverage", "dist", "cli/dist", "tests/lint/fixtures/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,

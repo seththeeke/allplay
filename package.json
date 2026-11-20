@@ -13,6 +13,7 @@
     "install:all": "npm ci --prefix backend && npm ci --prefix web-app && npm ci --prefix cdk",
     "coverage:rollup": "node scripts/rollup-coverage.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
-    "check:aws-profile": "node scripts/check-aws-profile.mjs"
+    "check:aws-profile": "node scripts/check-aws-profile.mjs",
+    "cli:install": "npm ci --prefix backend && npm run build:cli --prefix backend && npm install -g ./backend/cli"
   }
 }

@@ -727,6 +727,8 @@ Spider legs SP-1 to SP-5 are done:
 
 The golden lines are found by test-only solvers (`tests/functional/solver.ts`): hint following, depth-first search, and a deal-by-deal best-first search. `npx tsx tests/functional/recordScenarios.ts` regenerates them.
 
+The command-line client (Addendum A, CLI-1 and CLI-2) is done: `npm run cli:install`, then `game-engine-cli start --spider`.
+
 Remaining outside the in-memory engine: DM-3 (`DynamoGameSessionDao`, which must pass `backend/tests/dao/gameSession/gameSessionDaoContract.ts`), GE-13 and GE-11.
 
 Known gap: engine `LOST` maps to session status `ABANDONED`, since the session status set has no `LOST`. No core game reaches `LOST` today.
