@@ -651,6 +651,54 @@ Each leg is one commit, built in execution phase 5 (Game Engine) unless noted.
 
 Spider Solitaire itself lands in the legs of `spider-solitaire.md`.
 
+## Addendum A: Command-Line Client
+
+A terminal client plays Spider Solitaire on the engine, entirely in memory, so the engine can be played and checked by hand before any web or API work. It is a client like the web app: it renders the view and the legal action list and sends action ids, and it never decides legality itself.
+
+### A.1 Install and Start
+
+The client is the npm package `game-engine-cli`, whose manifest is `backend/cli/package.json` and whose single bundled file is built from `backend/src/cli/` by `npm run build:cli` in `backend/`. From the repository root:
+
+```
+npm run cli:install
+game-engine-cli start --spider
+```
+
+`cli:install` installs the backend's dependencies, builds the bundle, and installs the package globally from `backend/cli`. `npm pack` in `backend/cli` produces a tarball that installs anywhere with `npm install -g <tarball>`. The package is not published to the npm registry; publishing is a separate decision.
+
+`game-engine-cli start --spider` starts a one-suit Spider Solitaire game with the standard (Microsoft) deal, the one option the client offers. `--seed <32 hex characters>` replays a specific deal. `game-engine-cli --help` prints usage.
+
+### A.2 Architecture
+
+1. The client builds the game session service (Section 11) on `InMemoryGameSessionDao` and the bundled rules repository, and plays every command through it, exactly as the HTTP API does. State lasts until the client exits.
+2. Every client function of the engine is a command: start a new game, view the board, list legal moves, apply a move, deal, hint, undo, and abandon.
+3. Output is plain text with no color codes, emoji or icons. Cards print as rank and suit letter (`AS`, `10S`, `KS`); face-down cards print as `--`.
+
+### A.3 Commands
+
+| Command | Effect |
+|---|---|
+| `board`, `b` | Prints the board: columns 1 to 10 side by side, completed runs, stock size, deals left, score and moves |
+| `moves`, `m` | Lists legal actions numbered from 1, with their engine text |
+| `<n>` or `move <n>` | Plays legal action number `n` from the latest list |
+| `<from> <to>` or `move <from> <to>` | Plays the move from column `from` to column `to`. A non-empty target admits one depth; for an empty target the largest movable unit is moved |
+| `move <actionId>` | Plays an exact action id |
+| `deal`, `d` | Deals a row from the stock |
+| `hint`, `h` | Shows the engine's hint |
+| `undo`, `u` | Undoes the last action |
+| `new` | Abandons the current game and starts a new one |
+| `help`, `?` | Lists commands |
+| `quit`, `q` | Exits |
+
+After every action the client prints the event speech (for example "Completed a run of spades") and the board. Illegal or unknown input prints the reason and changes nothing. A win or a dead end is announced, with the commands still available.
+
+### A.4 Legs
+
+| Leg | Scope |
+|---|---|
+| CLI-1 | This addendum |
+| CLI-2 | `backend/src/cli/` (argument parsing, board rendering, command loop), `backend/cli/package.json`, `build:cli` and `cli:install` scripts, unit tests driving the loop with scripted input |
+
 ## Appendix: Implementation Progress
 
 Status as of 2026-11-20. The in-memory game engine is complete. Built ahead of phase 4 by the owner's direction.
