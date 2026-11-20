@@ -15,6 +15,9 @@ export function devCaller(headers: IncomingHttpHeaders): string {
 export interface LocalRequest {
   method: string;
   path: string;
+  /** The matched route's path template, for example `/v1/sessions/{sessionId}`. */
+  template?: string;
+  pathParameters?: Record<string, string>;
   query: string;
   headers: IncomingHttpHeaders;
   body: Buffer;
@@ -35,12 +38,15 @@ export function toHttpApiEvent(
       Array.isArray(value) ? value.join(",") : (value ?? ""),
     ]),
   );
+  const query = Object.fromEntries(new URLSearchParams(request.query));
   return {
     version: "2.0",
-    routeKey: `${request.method} ${request.path}`,
+    routeKey: `${request.method} ${request.template ?? request.path}`,
     rawPath: request.path,
     rawQueryString: request.query,
     headers,
+    ...(request.pathParameters === undefined ? {} : { pathParameters: request.pathParameters }),
+    ...(Object.keys(query).length === 0 ? {} : { queryStringParameters: query }),
     ...(request.body.length === 0
       ? {}
       : { body: request.body.toString("base64"), isBase64Encoded: true }),

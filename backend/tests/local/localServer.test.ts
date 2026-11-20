@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createLogger } from "../../src/logger";
 import { DEFAULT_DEV_CALLER, devCaller, toHttpApiEvent } from "../../src/local/eventAdapter";
 import { createLocalProviders, type LocalProviders } from "../../src/local/providers";
-import { createLocalServer, MAX_BODY_BYTES } from "../../src/local/server";
+import { createLocalServer, matchRoute, MAX_BODY_BYTES } from "../../src/local/server";
 import { resolveSettings } from "../../src/local/settings";
 import { fakeSpeech, silentWav } from "../service/speech/fakeSpeech";
 
@@ -104,12 +104,74 @@ describe("local server", () => {
     expect(await (await fetch(`${base}/local/decisions`)).json()).toEqual({ decisions: [] });
   });
 
+  it("serves the session routes with path parameters, and deals a fixed seed", async () => {
+    const post = (path: string, body: unknown) =>
+      fetch(`${base}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const seed = "00000000000000000000000000000001";
+    expect((await post("/local/seed", { seed: "xyz" })).status).toBe(400);
+    expect((await post("/local/seed", { seed })).status).toBe(200);
+    const first = (await (await post("/v1/sessions", { gameId: "spider-solitaire" })).json()) as {
+      session: { sessionId: string };
+      view: unknown;
+      legalActions: { actionId: string }[];
+    };
+    const again = (await (await post("/v1/sessions", { gameId: "spider-solitaire" })).json()) as {
+      view: unknown;
+    };
+    expect(again.view).toEqual(first.view);
+    const current = await fetch(`${base}/v1/sessions/current?gameId=spider-solitaire`);
+    expect(current.status).toBe(200);
+    const id = encodeURIComponent(first.session.sessionId);
+    expect((await fetch(`${base}/v1/sessions/${id}`)).status).toBe(200);
+    expect((await fetch(`${base}/v1/sessions/${id}/hint`)).status).toBe(200);
+    expect(
+      (
+        await fetch(`${base}/v1/sessions/current?gameId=spider-solitaire`, {
+          headers: { "x-allplay-dev-caller": "someone-else" },
+        })
+      ).status,
+    ).toBe(404);
+    expect((await post("/local/seed", { seed: null })).status).toBe(200);
+    const random = (await (await post("/v1/sessions", { gameId: "spider-solitaire" })).json()) as {
+      view: unknown;
+    };
+    expect(random.view).not.toEqual(first.view);
+    expect((await fetch(`${base}/local/seed`, { method: "POST", body: "not json" })).status).toBe(
+      400,
+    );
+  });
+
+  it("prefers literal routes over parameters when matching", () => {
+    const route = (template: string) => ({
+      method: "GET",
+      template,
+      segments: template.split("/"),
+      handler: () => Promise.reject(new Error("unused")),
+    });
+    const routes = [route("/v1/sessions/{sessionId}"), route("/v1/sessions/current")];
+    expect(matchRoute(routes, "GET", "/v1/sessions/current")?.route.template).toBe(
+      "/v1/sessions/current",
+    );
+    expect(matchRoute(routes, "GET", "/v1/sessions/abc")?.pathParameters).toEqual({
+      sessionId: "abc",
+    });
+    expect(matchRoute(routes, "GET", "/v1/sessions/")).toBeNull();
+    expect(matchRoute(routes, "POST", "/v1/sessions/abc")).toBeNull();
+    expect(matchRoute(routes, "GET", "/v1/other/abc")).toBeNull();
+  });
+
   it("answers unknown routes with 404 and handler failures with 500", async () => {
     expect((await fetch(`${base}/v1/nope`)).status).toBe(404);
     const original = providers.handlers.health;
-    const broken = vi
-      .spyOn(providers, "handlers", "get")
-      .mockReturnValue({ health: () => Promise.reject(new Error("boom")), decisions: original });
+    const broken = vi.spyOn(providers, "handlers", "get").mockReturnValue({
+      health: () => Promise.reject(new Error("boom")),
+      decisions: original,
+      game: original,
+    });
     const failed = await fetch(`${base}/v1/health`);
     expect(failed.status).toBe(500);
     broken.mockRestore();
@@ -149,6 +211,7 @@ describe("event adapter", () => {
       version: "2.0",
       routeKey: "POST /v1/decisions",
       rawQueryString: "a=1",
+      queryStringParameters: { a: "1" },
       body: Buffer.from("{}").toString("base64"),
       isBase64Encoded: true,
       headers: { accept: "a,b" },

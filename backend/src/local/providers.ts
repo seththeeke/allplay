@@ -1,10 +1,19 @@
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createDecisionsHandler } from "../controller/web-api/decisions/decisionsController";
+import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
 import type { HttpResult } from "../controller/web-api/shared/response";
 import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
+import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
+import { createInMemorySeatAssignmentDao } from "../dao/seatAssignment/inMemorySeatAssignmentDao";
+import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
+import {
+  createGameSessionService,
+  type GameSessionService,
+} from "../service/gameSession/gameSessionService";
 import { createHealthService } from "../service/healthService";
 import { createMacosSpeech } from "../service/speech/macosSpeech";
 import type { ProviderStatus, SpeechToText } from "../service/speech/speechToText";
@@ -26,17 +35,24 @@ export interface LocalProviders {
   settings: LocalSettings;
   speechToText: SpeechToText;
   decisions: DecisionService;
-  handlers: { health: Handler; decisions: Handler };
+  sessions: GameSessionService;
+  handlers: { health: Handler; decisions: Handler; game: Handler };
   status(): Promise<Record<string, CapabilityStatus>>;
-  /** Drops all in-memory state, for tests (POST /local/reset). */
+  /** Drops all in-memory state and the fixed seed, for tests (POST /local/reset). */
   reset(): void;
+  /** Fixes the seed of every game started from now on, or clears it (POST /local/seed). */
+  setSeed(seed: string | null): void;
 }
 
 export interface ProviderOverrides {
   speechCandidates?: SpeechToText[];
   logger?: Logger;
+  /** The seed of games started while no seed is fixed; random by default. */
+  newSeed?: () => string;
   now?: () => Date;
 }
+
+const randomSeed = (): string => randomBytes(16).toString("hex");
 
 const notYet = (setting: string, leg: string): CapabilityStatus => ({
   setting,
@@ -82,14 +98,29 @@ export async function createLocalProviders(
     candidates.length === 1 && speechToText.name === "typed"
       ? (candidates[0] as SpeechToText)
       : speechToText;
+  const repository = createBundledRulesRepository();
+  let fixedSeed: string | null = null;
   const build = () => {
     const decisions = createDecisionService({
       dao: createInMemoryDecisionDao(),
       ...(overrides.now ? { now: overrides.now } : {}),
     });
+    const sessions = createGameSessionService({
+      dao: createInMemoryGameSessionDao(),
+      seats: createInMemorySeatAssignmentDao(),
+      games: (gameId, version) => repository.compiled(gameId, version),
+      ...(overrides.now ? { now: overrides.now } : {}),
+      newSeed: () => fixedSeed ?? (overrides.newSeed ?? randomSeed)(),
+    });
     return {
       decisions,
+      sessions,
       handlers: {
+        game: createGameHandler({
+          catalog: repository,
+          sessions,
+          logger: logger.child({ bundle: "game" }),
+        }),
         health: createHealthHandler({
           health: createHealthService("LOCAL"),
           logger: logger.child({ bundle: "health" }),
@@ -107,6 +138,9 @@ export async function createLocalProviders(
     speechToText,
     get decisions() {
       return built.decisions;
+    },
+    get sessions() {
+      return built.sessions;
     },
     get handlers() {
       return built.handlers;
@@ -127,7 +161,11 @@ export async function createLocalProviders(
       speechOut: notYet(settings.speechOut, "AD-13"),
     }),
     reset: () => {
+      fixedSeed = null;
       built = build();
+    },
+    setSeed: (seed) => {
+      fixedSeed = seed;
     },
   };
   return providers;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryGameSessionDao } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
+import { createInMemorySeatAssignmentDao } from "../../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
 import {
   SessionVersionConflictError,
   type GameSessionDao,
@@ -21,6 +22,7 @@ const PLAYER = "GUEST#p1";
 function setup(dao: GameSessionDao = createInMemoryGameSessionDao()) {
   const service = createGameSessionService({
     dao,
+    seats: createInMemorySeatAssignmentDao(),
     games,
     newSeed: () => "00000000000000000000000000000001",
   });
@@ -57,7 +59,11 @@ describe("game session service", () => {
   });
 
   it("uses a random seed and the clock when none are injected", async () => {
-    const service = createGameSessionService({ dao: createInMemoryGameSessionDao(), games });
+    const service = createGameSessionService({
+      dao: createInMemoryGameSessionDao(),
+      seats: createInMemorySeatAssignmentDao(),
+      games,
+    });
     const a = await service.start(PLAYER, { gameId: "spider-solitaire" });
     const b = await service.start(PLAYER, { gameId: "spider-solitaire" });
     expect(a.session.sessionId).not.toBe(b.session.sessionId);
@@ -143,6 +149,7 @@ describe("game session service", () => {
     ).rejects.toThrow("disk on fire");
     const exploding = createGameSessionService({
       dao: createInMemoryGameSessionDao(),
+      seats: createInMemorySeatAssignmentDao(),
       games: () => {
         throw new Error("catalog down");
       },
@@ -156,6 +163,7 @@ describe("game session service", () => {
     const toy = compileRules(toyRules());
     const service = createGameSessionService({
       dao: createInMemoryGameSessionDao(),
+      seats: createInMemorySeatAssignmentDao(),
       games: () => toy,
       newSeed: () => "00000000000000000000000000000001",
     });
@@ -175,5 +183,25 @@ describe("game session service", () => {
 
   it("sorts option names into the variant key", () => {
     expect(variantKeyOf({ suits: 4, dealStyle: "HOYLE" })).toBe("dealStyle=HOYLE;suits=4");
+  });
+});
+
+describe("game session service seats", () => {
+  it("resumes the current game and abandons it when a new one starts", async () => {
+    const { service } = setup();
+    expect(await service.current(PLAYER, "spider-solitaire")).toBeNull();
+    const first = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    expect((await service.current(PLAYER, "spider-solitaire"))?.session.sessionId).toBe(
+      first.session.sessionId,
+    );
+    const second = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    expect((await service.get(PLAYER, first.session.sessionId)).session.status).toBe("ABANDONED");
+    expect((await service.current(PLAYER, "spider-solitaire"))?.session.sessionId).toBe(
+      second.session.sessionId,
+    );
+    await service.abandon(PLAYER, second.session.sessionId, { expectedVersion: 0 });
+    expect(await service.current(PLAYER, "spider-solitaire")).toBeNull();
+    const third = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    expect(third.session.status).toBe("IN_PROGRESS");
   });
 });

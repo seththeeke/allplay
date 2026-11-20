@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryGameSessionDao } from "../../src/dao/gameSession/inMemoryGameSessionDao";
+import { createInMemorySeatAssignmentDao } from "../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
 import { createBundledRulesRepository } from "../../src/game-catalog";
 import { SessionEnvelopeSchema, type SessionEnvelope } from "../../src/models/api";
 import { GameSessionError } from "../../src/service/gameSession/errors";
@@ -17,6 +18,7 @@ const repository = createBundledRulesRepository();
 function serviceFor(scenario: Scenario): GameSessionService {
   return createGameSessionService({
     dao: createInMemoryGameSessionDao(),
+    seats: createInMemorySeatAssignmentDao(),
     games: (gameId, version) => repository.compiled(gameId, version),
     newSeed: () => scenario.seed,
     now: () => new Date("2026-11-19T12:00:00.000Z"),

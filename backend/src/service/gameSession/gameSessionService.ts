@@ -3,6 +3,7 @@ import {
   SessionVersionConflictError,
   type GameSessionDao,
 } from "../../dao/gameSession/gameSessionDao";
+import type { SeatAssignmentDao } from "../../dao/seatAssignment/seatAssignmentDao";
 import { UnknownGameError } from "../../game-catalog";
 import {
   IllegalActionError,
@@ -30,6 +31,7 @@ const SEAT = "S1";
 
 export interface GameSessionServiceDeps {
   dao: GameSessionDao;
+  seats: SeatAssignmentDao;
   /** The compiled game for an id and optional pinned version; throws UnknownGameError. */
   games: (gameId: string, version?: number) => CompiledGame;
   now?: () => Date;
@@ -40,9 +42,11 @@ export interface GameSessionServiceDeps {
 export interface GameSessionService {
   start(
     playerId: string,
-    input: { gameId: string; options?: Record<string, unknown> },
+    input: { gameId: string; options?: Record<string, unknown> | undefined },
   ): Promise<SessionEnvelope>;
   get(playerId: string, sessionId: string): Promise<SessionEnvelope>;
+  /** The player's in-progress session of a game, or null (`GET /v1/sessions/current`). */
+  current(playerId: string, gameId: string): Promise<SessionEnvelope | null>;
   applyAction(
     playerId: string,
     sessionId: string,
@@ -110,6 +114,21 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
     };
   };
 
+  const writeSeat = (session: GameSession, playerId: string, at: string): Promise<void> =>
+    deps.seats.put({
+      playerId,
+      sessionId: session.sessionId,
+      gameId: session.gameId,
+      seatId: SEAT,
+      status: session.status,
+      lastActionAt: at,
+      playerGameKey: `${playerId}|${session.gameId}`,
+      statusSortKey: `${session.status}#${at}`,
+      entityVersion: 1,
+      createdAt: session.createdAt,
+      updatedAt: at,
+    });
+
   const load = async (playerId: string, sessionId: string): Promise<GameSession> => {
     const session = await deps.dao.get(sessionId);
     if (session === null) throw notFound("Session");
@@ -144,6 +163,10 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         throw versionConflict(envelope(await load(playerId, session.sessionId)));
       }
       throw error;
+    }
+    /* The seat changes only with the session status (data-model.md section 7). */
+    if (updated.status !== session.status) {
+      await Promise.all(updated.seats.map((seat) => writeSeat(updated, seat.playerId, at)));
     }
     return updated;
   };
@@ -182,6 +205,20 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         if (error instanceof InvalidGameInputError) throw invalidRequest(error.message);
         throw error;
       }
+      /* Starting a game abandons the player's game of the same kind still in progress (game-engine.md section 11). */
+      const previous = await deps.seats.currentFor(playerId, game.gameId);
+      if (previous !== null) {
+        const old = await deps.dao.get(previous.sessionId);
+        if (old?.status === "IN_PROGRESS") {
+          const version = old.version + 1;
+          await save(
+            playerId,
+            old,
+            { status: "ABANDONED", version, state: { ...old.state, version } },
+            old.version,
+          );
+        }
+      }
       const at = now().toISOString();
       const session: GameSession = {
         sessionId: newSessionId(),
@@ -202,9 +239,14 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         updatedAt: at,
       };
       await deps.dao.create(session);
+      await writeSeat(session, playerId, at);
       return envelope(session);
     },
     get: async (playerId, sessionId) => envelope(await load(playerId, sessionId)),
+    current: async (playerId, gameId) => {
+      const seat = await deps.seats.currentFor(playerId, gameId);
+      return seat === null ? null : envelope(await load(playerId, seat.sessionId));
+    },
     applyAction: async (playerId, sessionId, input) => {
       const session = await loadForWrite(playerId, sessionId, input.expectedVersion);
       const result = engineCall(() =>

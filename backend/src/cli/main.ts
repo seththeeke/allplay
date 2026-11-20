@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
+import { createInMemorySeatAssignmentDao } from "../dao/seatAssignment/inMemorySeatAssignmentDao";
 import { createBundledRulesRepository } from "../game-catalog";
 import { createGameSessionService } from "../service/gameSession/gameSessionService";
 import { parseArgs, USAGE } from "./args";
@@ -35,6 +36,7 @@ export async function runCli(
   const seed = args.seed;
   const service = createGameSessionService({
     dao: createInMemoryGameSessionDao(),
+    seats: createInMemorySeatAssignmentDao(),
     games: (gameId, version) => repository.compiled(gameId, version),
     newSeed: () => seed ?? newSeed(),
   });

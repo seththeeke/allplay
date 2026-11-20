@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { decisionsRoutes } from "../controller/web-api/decisions/decisionsRoutes";
+import { gameRoutes } from "../controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../controller/web-api/health/healthRoutes";
+import { SEED_PATTERN } from "../game-engine";
 import { isWav, SpeechUnavailableError } from "../service/speech/speechToText";
 import { devCaller, toHttpApiEvent } from "./eventAdapter";
 import type { Handler, LocalProviders } from "./providers";
@@ -9,6 +11,38 @@ import type { Handler, LocalProviders } from "./providers";
 export const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
 class TooLargeError extends Error {}
+
+interface ApiRoute {
+  method: string;
+  template: string;
+  segments: string[];
+  handler: Handler;
+}
+
+/** Matches a path against a template such as `/v1/sessions/{sessionId}`; literal routes win over parameters. */
+export function matchRoute(
+  routes: readonly ApiRoute[],
+  method: string,
+  path: string,
+): { route: ApiRoute; pathParameters: Record<string, string> } | null {
+  const parts = path.split("/");
+  const matches = routes.flatMap((route) => {
+    if (route.method !== method || route.segments.length !== parts.length) return [];
+    const pathParameters: Record<string, string> = {};
+    for (const [index, segment] of route.segments.entries()) {
+      const part = parts[index] as string;
+      if (segment.startsWith("{")) {
+        if (part === "") return [];
+        pathParameters[segment.slice(1, -1)] = decodeURIComponent(part);
+      } else if (segment !== part) return [];
+    }
+    return [{ route, pathParameters }];
+  });
+  matches.sort(
+    (a, b) => Object.keys(a.pathParameters).length - Object.keys(b.pathParameters).length,
+  );
+  return matches[0] ?? null;
+}
 
 function readBody(request: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -26,27 +60,35 @@ function readBody(request: IncomingMessage): Promise<Buffer> {
   });
 }
 
+/** `{ seed }` from a request body: a 32 digit hex seed, null to clear, or undefined when invalid. */
+function parseSeed(body: Buffer): string | null | undefined {
+  try {
+    const value = (JSON.parse(body.toString("utf8")) as { seed?: unknown }).seed;
+    if (value === null) return null;
+    return typeof value === "string" && SEED_PATTERN.test(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * The local server (local-development.md section 2): the backend's route
  * lists served through the same Lambda handlers, plus local-only routes.
  */
 export function createLocalServer(providers: LocalProviders): Server {
-  const api = new Map<string, Handler>([
-    ...healthRoutes.map(
-      (route) =>
-        [
-          `${route.method} ${route.path}`,
-          (event: unknown) => providers.handlers.health(event),
-        ] as const,
-    ),
-    ...decisionsRoutes.map(
-      (route) =>
-        [
-          `${route.method} ${route.path}`,
-          (event: unknown) => providers.handlers.decisions(event),
-        ] as const,
-    ),
-  ]);
+  const bundles = [
+    [healthRoutes, "health"],
+    [decisionsRoutes, "decisions"],
+    [gameRoutes, "game"],
+  ] as const;
+  const api: ApiRoute[] = bundles.flatMap(([routes, bundle]) =>
+    routes.map((route) => ({
+      method: route.method,
+      template: route.path,
+      segments: route.path.split("/"),
+      handler: (event: unknown) => providers.handlers[bundle](event),
+    })),
+  );
 
   const cors = {
     "access-control-allow-origin": providers.settings.webOrigin,
@@ -80,6 +122,16 @@ export function createLocalServer(providers: LocalProviders): Server {
       case "POST /local/reset":
         providers.reset();
         return [200, { reset: true }];
+      case "POST /local/seed": {
+        const seed = parseSeed(body);
+        if (seed === undefined)
+          return [
+            400,
+            { code: "VALIDATION_ERROR", message: "Send { seed } as 32 hex digits, or null." },
+          ];
+        providers.setSeed(seed);
+        return [200, { seed }];
+      }
       case "GET /local/decisions":
         return [
           200,
@@ -124,12 +176,14 @@ export function createLocalServer(providers: LocalProviders): Server {
       try {
         const body = await readBody(request);
         const route = `${method} ${url.pathname}`;
-        const handler = api.get(route);
-        if (handler !== undefined) {
-          const result = await handler(
+        const matched = matchRoute(api, method, url.pathname);
+        if (matched !== null) {
+          const result = await matched.route.handler(
             toHttpApiEvent({
               method,
               path: url.pathname,
+              template: matched.route.template,
+              pathParameters: matched.pathParameters,
               query: url.search.slice(1),
               headers: request.headers,
               body,
