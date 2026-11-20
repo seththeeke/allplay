@@ -187,3 +187,17 @@ Each leg ships with unit tests at the coverage CLAUDE.md requires. AWS clients a
 | TPB-5 | Acceptance run of Section 8, the Bedrock model decision, and progress notes in this spec, `action-decision.md` and `local-development.md` | |
 
 Order: TPB-1, then TPB-2 and TPB-3, then TPB-4 and TPB-5. Each leg is one commit and each is verified by hand in the Voice Lab before the next starts.
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-20.
+
+| Leg | Status | Notes |
+|---|---|---|
+| TPB-1 | Done | `bedrockConverse.ts`. Calls authenticate and reach Nova Micro, but the account's Bedrock inference quotas are applied at 0, so every call is throttled until AWS Support raises them (`docs/runbooks/bootstrap.md` step 6). The decider degrades as designed: an `UNRECOGNIZED` turn that says why |
+| TPB-2 | Done | `transcribe.ts` and the shared `wav.ts`. A spoken "move three over to seven" transcribes to "Move 3 over to 7." in about 0.7 s |
+| TPB-3 | Done | `polly.ts`. A long reply synthesizes in about 0.3 s; Polly's WAV transcribed back through Transcribe returns the original sentence |
+| TPB-4 | Done | `npm run dev:aws`; the runbook step for Bedrock quotas |
+| TPB-5 | Waiting on the Bedrock quota | Verified so far: `GET /local/status` reports all three AWS providers available. A mixed setup (`local-aws` with `ALLPLAY_LLM=claude-code`) took a spoken clip through Transcribe, proposed the right move, and spoke the reply with Polly. The voice playthrough and the Nova Micro decision follow once Bedrock calls are allowed |
+
+The only files changed outside Sections 4 to 7 were their tests, and two local server tests that had asserted the old "arrives with AD-15" placeholders.
