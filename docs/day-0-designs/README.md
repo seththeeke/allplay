@@ -64,6 +64,12 @@ The health Lambda, route and page stay as the stage health check. The skeleton h
 
 Phase 5 status (2026-11-20): the in-memory game engine is closed; see the Appendix of `game-engine.md`. Its session routes (GE-13), their integration tests (GE-11) and the DynamoDB session DAO (DM-3) follow with local development (LD-2) and authentication.
 
+Build order from 2026-11-20, by the owner's direction:
+
+1. `transcribe-polly-bedrock.md` (TPB-1 to TPB-5): Bedrock, Transcribe and Polly behind the existing provider interfaces, still in memory, on the developer's machine with the developer's `allplays` credentials. No credentials are ever stored in the repository.
+2. Phase 4, Authentication: the Cognito User Pool and Identity Pool, AuthN and AuthZ (DM-1, DM-2, CDK-7, AA-1 to AA-10). Identity Pool credentials are what let deployed browsers call Transcribe and Polly, and players are the first persisted data.
+3. Persistence extended from players to sessions, preferences, stats and decisions (DM-3, DM-4, DM-5), then the deployed game and decision APIs (CDK-8, CDK-9) and the deployed voice path (WP-1, WP-2).
+
 ### Phase 4: Authentication
 
 DM-1, DM-2 (`data-model.md`); CDK-7 (`cdk-stacks.md`); AA-1 through AA-10 (`authn-authz.md`).
