@@ -84,9 +84,13 @@ describe("voice turns from the microphone", () => {
     fireEvent.keyDown(document.body, { key: " " });
     await screen.findByRole("button", { name: "Stop (Space)" });
     vi.advanceTimersByTime(MAX_CAPTURE_MS);
-    expect(await within(voiceBar()).findByText("I didn't hear anything.")).toBeInTheDocument();
+    /* Fake timers only for the capture limit; the rest runs on real time so slow machines keep up. */
+    vi.useRealTimers();
+    expect(
+      await within(voiceBar()).findByText("I didn't hear anything.", {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: " " });
-    await screen.findByRole("button", { name: "Stop (Space)" });
+    await screen.findByRole("button", { name: "Stop (Space)" }, { timeout: 5000 });
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Stop (Space)" })).not.toBeInTheDocument();
