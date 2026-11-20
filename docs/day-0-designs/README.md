@@ -61,6 +61,8 @@ Status (2026-11-20): phase 3a is complete. AWS Support cleared CloudFront verifi
 
 The health Lambda, route and page stay as the stage health check. The skeleton has no table and no Identity Pool; DM-1 and AA-4 add them. Playwright smoke tests arrive with CDK-10. Every mock the prototype still relies on is listed in `prototype-mocks.md`.
 
+Phase 5 status (2026-11-20): the in-memory game engine is closed; see the Appendix of `game-engine.md`. Its session routes (GE-13), their integration tests (GE-11) and the DynamoDB session DAO (DM-3) follow with local development (LD-2) and authentication.
+
 ### Phase 4: Authentication
 
 DM-1, DM-2 (`data-model.md`); CDK-7 (`cdk-stacks.md`); AA-1 through AA-10 (`authn-authz.md`).

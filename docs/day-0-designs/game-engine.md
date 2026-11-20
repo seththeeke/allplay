@@ -701,7 +701,7 @@ After every action the client prints the event speech (for example "Completed a 
 
 ## Appendix: Implementation Progress
 
-Status as of 2026-11-20. The in-memory game engine is complete. Built ahead of phase 4 by the owner's direction.
+Status as of 2026-11-20: closed. The in-memory game engine, Spider Solitaire and the command-line client are complete and accepted by the owner. Built ahead of phase 4 by the owner's direction. The open legs below move to later work: GE-13 and GE-11 with `local-development.md` (LD-2) and the guest Identity Pool (AA-4), and DM-3 when DynamoDB tables are built.
 
 | Leg | Status | Notes |
 |---|---|---|
@@ -733,4 +733,9 @@ Remaining outside the in-memory engine: DM-3 (`DynamoGameSessionDao`, which must
 
 Known gap: engine `LOST` maps to session status `ABANDONED`, since the session status set has no `LOST`. No core game reaches `LOST` today.
 
-Coverage at this point: 171 backend tests, 99.8% lines and 99.4% branches.
+Acceptance evidence (2026-11-20, commit `a94c253`):
+
+- 182 backend tests pass, with 99.6% lines and 98.8% branches.
+- GitHub Actions is green, including the full-size rules simulation.
+- The golden games replay exactly for one, two and four suits.
+- The installed `game-engine-cli` plays the recorded one-suit line to a win: 108 moves, 8 runs, score 1192. It also refuses illegal moves, undoes, and reports the dead end after dealing the whole stock early.
