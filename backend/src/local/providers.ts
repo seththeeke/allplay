@@ -11,9 +11,14 @@ import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
 import { readApiKey } from "../service/decision/llm/apiKey";
+import {
+  createBedrockLlm,
+  DEFAULT_AWS_REGION,
+  DEFAULT_BEDROCK_MODEL,
+} from "../service/decision/llm/bedrockConverse";
 import { createClaudeApiLlm, DEFAULT_CLAUDE_MODEL } from "../service/decision/llm/claudeApi";
 import { createClaudeCodeLlm } from "../service/decision/llm/claudeCode";
-import { createFakeLlm, createUnavailableLlm } from "../service/decision/llm/fakeLlm";
+import { createFakeLlm } from "../service/decision/llm/fakeLlm";
 import type { LlmClient } from "../service/decision/llm/llmClient";
 import {
   createGameSessionService,
@@ -93,7 +98,10 @@ function languageModel(
 ): LlmClient {
   if (settings.llm === "fake") return createFakeLlm();
   if (settings.llm === "bedrock")
-    return createUnavailableLlm("bedrock", "Bedrock arrives with AD-15.");
+    return createBedrockLlm({
+      modelId: env["ALLPLAY_BEDROCK_MODEL"] ?? DEFAULT_BEDROCK_MODEL,
+      region: env["ALLPLAY_AWS_REGION"] ?? DEFAULT_AWS_REGION,
+    });
   const model = env["ALLPLAY_CLAUDE_MODEL"] ?? DEFAULT_CLAUDE_MODEL;
   if (settings.llm === "claude-code")
     return createClaudeCodeLlm({ binary: env["ALLPLAY_CLAUDE_BIN"] ?? "claude", model });
