@@ -10,6 +10,10 @@ import { createInMemorySeatAssignmentDao } from "../dao/seatAssignment/inMemoryS
 import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
+import { readApiKey } from "../service/decision/llm/apiKey";
+import { createClaudeApiLlm, DEFAULT_CLAUDE_MODEL } from "../service/decision/llm/claudeApi";
+import { createFakeLlm, createUnavailableLlm } from "../service/decision/llm/fakeLlm";
+import type { LlmClient } from "../service/decision/llm/llmClient";
 import {
   createGameSessionService,
   type GameSessionService,
@@ -34,6 +38,7 @@ export interface CapabilityStatus extends ProviderStatus {
 export interface LocalProviders {
   settings: LocalSettings;
   speechToText: SpeechToText;
+  llm: LlmClient;
   decisions: DecisionService;
   sessions: GameSessionService;
   handlers: { health: Handler; decisions: Handler; game: Handler };
@@ -47,12 +52,27 @@ export interface LocalProviders {
 export interface ProviderOverrides {
   speechCandidates?: SpeechToText[];
   logger?: Logger;
+  llm?: LlmClient;
   /** The seed of games started while no seed is fixed; random by default. */
   newSeed?: () => string;
   now?: () => Date;
 }
 
 const randomSeed = (): string => randomBytes(16).toString("hex");
+
+/** The language model for a setting (action-decision.md section 8). */
+function languageModel(
+  settings: LocalSettings,
+  env: Readonly<Record<string, string | undefined>>,
+): LlmClient {
+  if (settings.llm === "fake") return createFakeLlm();
+  if (settings.llm === "bedrock")
+    return createUnavailableLlm("bedrock", "Bedrock arrives with AD-15.");
+  return createClaudeApiLlm({
+    apiKey: readApiKey(env, `${LOCAL_DIR}anthropic-api-key`),
+    model: env["ALLPLAY_CLAUDE_MODEL"] ?? DEFAULT_CLAUDE_MODEL,
+  });
+}
 
 const notYet = (setting: string, leg: string): CapabilityStatus => ({
   setting,
@@ -98,19 +118,25 @@ export async function createLocalProviders(
     candidates.length === 1 && speechToText.name === "typed"
       ? (candidates[0] as SpeechToText)
       : speechToText;
+  const llm = overrides.llm ?? languageModel(settings, env);
   const repository = createBundledRulesRepository();
   let fixedSeed: string | null = null;
   const build = () => {
-    const decisions = createDecisionService({
-      dao: createInMemoryDecisionDao(),
-      ...(overrides.now ? { now: overrides.now } : {}),
-    });
     const sessions = createGameSessionService({
       dao: createInMemoryGameSessionDao(),
       seats: createInMemorySeatAssignmentDao(),
       games: (gameId, version) => repository.compiled(gameId, version),
       ...(overrides.now ? { now: overrides.now } : {}),
       newSeed: () => fixedSeed ?? (overrides.newSeed ?? randomSeed)(),
+    });
+    const decisions = createDecisionService({
+      dao: createInMemoryDecisionDao(),
+      llm,
+      sessions,
+      catalog: () => repository.list(),
+      guidance: async (gameId, version) =>
+        (await repository.get(gameId, version)).speech.deciderGuidance ?? [],
+      ...(overrides.now ? { now: overrides.now } : {}),
     });
     return {
       decisions,
@@ -136,6 +162,7 @@ export async function createLocalProviders(
   const providers: LocalProviders = {
     settings,
     speechToText,
+    llm,
     get decisions() {
       return built.decisions;
     },
@@ -152,7 +179,7 @@ export async function createLocalProviders(
         available: true,
         detail: "State lasts until the server stops.",
       },
-      llm: notYet(settings.llm, "AD-14 (Claude API) and AD-2 to AD-5 (decider layers)"),
+      llm: { setting: settings.llm, provider: llm.name, ...(await llm.status()) },
       speechIn: {
         setting: settings.speechIn,
         provider: unavailable.name,

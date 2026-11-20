@@ -1,5 +1,5 @@
 import { DecisionSchema, type Decision } from "../../models/decision";
-import { DecisionExistsError, type DecisionDao } from "./decisionDao";
+import { DecisionExistsError, DecisionMissingError, type DecisionDao } from "./decisionDao";
 
 /** DecisionDao over a map; items pass the schema and reads return copies. */
 export function createInMemoryDecisionDao(): DecisionDao {
@@ -12,6 +12,11 @@ export function createInMemoryDecisionDao(): DecisionDao {
     create: (decision) =>
       run(() => {
         if (items.has(decision.decisionId)) throw new DecisionExistsError(decision.decisionId);
+        items.set(decision.decisionId, structuredClone(DecisionSchema.parse(decision)));
+      }),
+    update: (decision) =>
+      run(() => {
+        if (!items.has(decision.decisionId)) throw new DecisionMissingError(decision.decisionId);
         items.set(decision.decisionId, structuredClone(DecisionSchema.parse(decision)));
       }),
     get: (decisionId) =>

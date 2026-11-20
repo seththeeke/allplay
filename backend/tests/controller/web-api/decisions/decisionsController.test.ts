@@ -1,87 +1,115 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDecisionsHandler } from "../../../../src/controller/web-api/decisions/decisionsController";
 import { decisionsRoutes } from "../../../../src/controller/web-api/decisions/decisionsRoutes";
-import { jsonBody } from "../../../../src/controller/web-api/shared/httpEvent";
-import { resolveCaller } from "../../../../src/controller/web-api/shared/resolveCaller";
-import { createInMemoryDecisionDao } from "../../../../src/dao/decision/inMemoryDecisionDao";
 import { createLogger } from "../../../../src/logger";
-import { createDecisionService } from "../../../../src/service/decision/decisionService";
+import {
+  ask,
+  FIRST_MOVE,
+  heard,
+  numberOf,
+  PLAYER,
+  setupDecider,
+} from "../../../service/decision/decider";
+import { apiEvent } from "../apiEvent";
 
-const BODY = {
-  transcript: "deal",
-  transcriptSource: "TYPED",
-  context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingDecisionId: null },
-};
+const write = vi.fn();
 
-function event(options: {
-  body?: unknown;
-  identity?: string | null;
-  method?: string;
-  path?: string;
-  base64?: boolean;
-}) {
-  const body =
-    options.body === undefined
-      ? undefined
-      : typeof options.body === "string"
-        ? options.body
-        : JSON.stringify(options.body);
-  return {
-    rawPath: options.path ?? "/v1/decisions",
-    ...(body === undefined
-      ? {}
-      : {
-          body: options.base64 === true ? Buffer.from(body).toString("base64") : body,
-          isBase64Encoded: options.base64 === true,
-        }),
-    requestContext: {
-      requestId: "r1",
-      http: { method: options.method ?? "POST", path: options.path ?? "/v1/decisions" },
-      ...(options.identity === null
-        ? {}
-        : { authorizer: { iam: { cognitoIdentity: { identityId: options.identity ?? "id-1" } } } }),
-    },
-  };
+async function setup() {
+  const texts = new Map<string, string>();
+  const t = setupDecider({
+    classify: (request) =>
+      heard(request) === "deal"
+        ? { category: "GAME", response: null, optionNumber: null }
+        : { category: "UNRECOGNIZED", response: null, optionNumber: null },
+    select_actions: (request) => ({
+      selected: [numberOf(request, FIRST_MOVE, texts)],
+      confidence: "HIGH",
+    }),
+  });
+  const envelope = await t.sessions.start(PLAYER, { gameId: "spider-solitaire" });
+  for (const action of envelope.legalActions) texts.set(action.actionId, action.text);
+  const handler = createDecisionsHandler({ decisions: t.decider, logger: createLogger({ write }) });
+  return { handler, envelope };
 }
 
-const handler = createDecisionsHandler({
-  decisions: createDecisionService({ dao: createInMemoryDecisionDao() }),
-  logger: createLogger({ write: vi.fn() }),
+describe("decisions controller", () => {
+  it("decides for the IAM caller and resolves the decision", async () => {
+    const { handler, envelope } = await setup();
+    const body = ask("deal", { sessionId: envelope.session.sessionId, expectedVersion: 0 });
+    const decided = await handler(apiEvent("POST /v1/decisions", { body, identity: "p1" }));
+    expect(decided.statusCode).toBe(200);
+    const reply = JSON.parse(decided.body) as { decisionId: string; outcome: string };
+    expect(reply.outcome).toBe("PROPOSED");
+    const resolved = await handler(
+      apiEvent("POST /v1/decisions/{decisionId}/resolution", {
+        pathParameters: { decisionId: reply.decisionId },
+        body: {
+          resolution: "CONFIRMED",
+          optionNumber: null,
+          expectedVersion: 0,
+          clientLatencyMs: 10,
+        },
+      }),
+    );
+    expect(resolved.statusCode).toBe(200);
+    expect(
+      (JSON.parse(resolved.body) as { session: { session: { version: number } } }).session.session
+        .version,
+    ).toBe(1);
+    const again = await handler(
+      apiEvent("POST /v1/decisions/{decisionId}/resolution", {
+        pathParameters: { decisionId: reply.decisionId },
+        body: {
+          resolution: "CONFIRMED",
+          optionNumber: null,
+          expectedVersion: 1,
+          clientLatencyMs: 10,
+        },
+      }),
+    );
+    expect(again.statusCode).toBe(422);
+    expect(write).toHaveBeenCalled();
+  });
+
+  it("refuses unreadable bodies and unknown decisions", async () => {
+    const { handler } = await setup();
+    expect(
+      (await handler(apiEvent("POST /v1/decisions", { body: { transcript: "" } }))).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await handler(
+          apiEvent("POST /v1/decisions/{decisionId}/resolution", {
+            pathParameters: { decisionId: "x" },
+            body: {},
+          }),
+        )
+      ).statusCode,
+    ).toBe(400);
+    const missing = await handler(
+      apiEvent("POST /v1/decisions/{decisionId}/resolution", {
+        pathParameters: { decisionId: "x" },
+        body: {
+          resolution: "REJECTED",
+          optionNumber: null,
+          expectedVersion: null,
+          clientLatencyMs: 1,
+        },
+      }),
+    );
+    expect(missing.statusCode).toBe(404);
+    expect(decisionsRoutes).toHaveLength(2);
+  });
 });
 
-describe("decisions controller", () => {
-  it("records a decision for the IAM caller, from JSON or base64 bodies", async () => {
-    for (const base64 of [false, true]) {
-      const result = await handler(event({ body: BODY, base64 }));
-      expect(result.statusCode).toBe(200);
-      expect(JSON.parse(result.body)).toMatchObject({
-        outcome: "UNRECOGNIZED",
-        speech: "I heard deal.",
-      });
-    }
-  });
-
-  it("rejects malformed events, other routes, missing callers and bad bodies", async () => {
-    expect((await handler({})).statusCode).toBe(400);
-    expect((await handler(event({ body: BODY, method: "GET" }))).statusCode).toBe(404);
-    expect((await handler(event({ body: BODY, identity: null }))).statusCode).toBe(401);
-    expect((await handler(event({ body: "not json" }))).statusCode).toBe(400);
-    expect((await handler(event({}))).statusCode).toBe(400);
-    expect(
-      (await handler(event({ body: { ...BODY, transcriptSource: "GUESS" } }))).statusCode,
-    ).toBe(400);
-  });
-
-  it("declares the route list and helpers", () => {
-    expect(decisionsRoutes).toEqual([
-      { method: "POST", path: "/v1/decisions", auth: "IAM", minimumTier: "GUEST" },
-    ]);
-    expect(resolveCaller(event({ identity: null }) as never)).toBeNull();
-    expect(
-      jsonBody({
-        rawPath: "/",
-        requestContext: { requestId: "r", http: { method: "GET", path: "/" } },
-      }),
-    ).toBeUndefined();
+describe("request bodies", () => {
+  it("reads base64 bodies and treats non-JSON as missing", async () => {
+    const { handler } = await setup();
+    const body = Buffer.from(JSON.stringify(ask("hello", { screen: "HOME" }))).toString("base64");
+    const event = { ...apiEvent("POST /v1/decisions"), body, isBase64Encoded: true };
+    expect((await handler(event)).statusCode).toBe(200);
+    expect((await handler(apiEvent("POST /v1/decisions", { body: "{not json" }))).statusCode).toBe(
+      400,
+    );
   });
 });

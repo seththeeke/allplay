@@ -4,4 +4,10 @@
  */
 export const decisionsRoutes = [
   { method: "POST", path: "/v1/decisions", auth: "IAM", minimumTier: "GUEST" },
+  {
+    method: "POST",
+    path: "/v1/decisions/{decisionId}/resolution",
+    auth: "IAM",
+    minimumTier: "GUEST",
+  },
 ] as const;

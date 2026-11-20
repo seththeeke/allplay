@@ -8,8 +8,8 @@ import { errorResponse, jsonResponse, type HttpResult } from "./response";
 export interface RouteRequest {
   event: HttpEvent;
   caller: Caller;
-  param(name: string): string;
-  query(name: string): string | undefined;
+  param: (name: string) => string;
+  query: (name: string) => string | undefined;
 }
 
 /** A controller returns a status and body; a thrown GameSessionError becomes its error response. */

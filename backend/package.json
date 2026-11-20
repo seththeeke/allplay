@@ -19,6 +19,7 @@
     "dev:server": "tsx src/local/start.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.6.0",
     "zod": "4.6.7"
   },
   "devDependencies": {

@@ -5,6 +5,8 @@ import { DEFAULT_DEV_CALLER, devCaller, toHttpApiEvent } from "../../src/local/e
 import { createLocalProviders, type LocalProviders } from "../../src/local/providers";
 import { createLocalServer, matchRoute, MAX_BODY_BYTES } from "../../src/local/server";
 import { resolveSettings } from "../../src/local/settings";
+import { createFakeLlm } from "../../src/service/decision/llm/fakeLlm";
+import { numberOf } from "../service/decision/decider";
 import { fakeSpeech, silentWav } from "../service/speech/fakeSpeech";
 
 const logger = createLogger({ write: vi.fn() });
@@ -68,7 +70,7 @@ describe("local server", () => {
       provider: "whisper.cpp",
       available: true,
     });
-    expect(body.capabilities["llm"]).toMatchObject({ available: false });
+    expect(body.capabilities["llm"]).toMatchObject({ provider: "fake", available: true });
     expect(body.capabilities["storage"]).toMatchObject({ provider: "in-memory", available: true });
   });
 
@@ -175,6 +177,77 @@ describe("local server", () => {
     const failed = await fetch(`${base}/v1/health`);
     expect(failed.status).toBe(500);
     broken.mockRestore();
+  });
+
+  it("chooses the language model per setting", async () => {
+    const status = async (env: Record<string, string>) =>
+      (await (await createLocalProviders(resolveSettings(env), env, { logger })).status())["llm"];
+    expect(await status({ ALLPLAY_LLM: "bedrock" })).toMatchObject({
+      provider: "bedrock",
+      available: false,
+    });
+    expect(
+      await status({
+        ALLPLAY_LLM: "claude-api",
+        ANTHROPIC_API_KEY: "test-key",
+        ALLPLAY_CLAUDE_MODEL: "m",
+      }),
+    ).toMatchObject({ provider: "claude-api", available: true, detail: "Claude API, model m." });
+  });
+
+  it("plays a voice turn end to end: decide, then resolve", async () => {
+    const texts = new Map<string, string>();
+    const scripted = await createLocalProviders(
+      resolveSettings({ ALLPLAY_PRESET: "continuous-integration" }),
+      {},
+      {
+        logger,
+        newSeed: () => "00000000000000000000000000000001",
+        llm: createFakeLlm((request) =>
+          request.tool.name === "classify"
+            ? { category: "GAME", response: null, optionNumber: null }
+            : {
+                selected: [
+                  numberOf(request, "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6", texts),
+                ],
+                confidence: "HIGH",
+              },
+        ),
+      },
+    );
+    const http = createLocalServer(scripted);
+    await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
+    const url = `http://127.0.0.1:${String((http.address() as AddressInfo).port)}`;
+    const post = async (path: string, body: unknown) =>
+      (await fetch(`${url}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }).then((r) => r.json())) as Record<string, unknown> & { decisionId: string };
+    const envelope = (await post("/v1/sessions", { gameId: "spider-solitaire" })) as unknown as {
+      session: { sessionId: string };
+      legalActions: { actionId: string; text: string }[];
+    };
+    for (const action of envelope.legalActions) texts.set(action.actionId, action.text);
+    const decided = await post("/v1/decisions", {
+      transcript: "one to six",
+      transcriptSource: "TYPED",
+      context: {
+        screen: "GAME",
+        sessionId: envelope.session.sessionId,
+        expectedVersion: 0,
+        pendingDecisionId: null,
+      },
+    });
+    expect(decided["outcome"]).toBe("PROPOSED");
+    const resolved = await post(`/v1/decisions/${decided.decisionId}/resolution`, {
+      resolution: "CONFIRMED",
+      optionNumber: null,
+      expectedVersion: 0,
+      clientLatencyMs: 5,
+    });
+    expect(resolved).toMatchObject({ session: { session: { version: 1 } } });
+    http.close();
   });
 
   it("reports unavailable speech with 503", async () => {

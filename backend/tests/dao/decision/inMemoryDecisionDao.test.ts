@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DecisionExistsError } from "../../../src/dao/decision/decisionDao";
+import { DecisionExistsError, DecisionMissingError } from "../../../src/dao/decision/decisionDao";
 import { createInMemoryDecisionDao } from "../../../src/dao/decision/inMemoryDecisionDao";
 import type { Decision } from "../../../src/models/decision";
 
@@ -14,6 +14,7 @@ function decision(decisionId: string, playerId: string, createdAt: string): Deci
     outcome: "UNRECOGNIZED",
     failureClass: "HARD",
     serverLatencyMs: 1,
+    dayOutcomeKey: "2026-11-20#HARD",
     ttl: 1,
     entityVersion: 1,
     createdAt,
@@ -38,6 +39,11 @@ describe("InMemoryDecisionDao", () => {
     read.transcript = "changed";
     expect((await dao.get("A"))?.transcript).toBe("deal");
     expect(await dao.get("Z")).toBeNull();
+    await dao.update({ ...decision("A", "p1", "2026-11-20T12:00:00.000Z"), outcome: "EXPIRED" });
+    expect((await dao.get("A"))?.outcome).toBe("EXPIRED");
+    await expect(
+      dao.update(decision("Z", "p1", "2026-11-20T12:00:00.000Z")),
+    ).rejects.toBeInstanceOf(DecisionMissingError);
     await expect(dao.create({ ...decision("E", "p1", "bad date") })).rejects.toThrow();
   });
 });

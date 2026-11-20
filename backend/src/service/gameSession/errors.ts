@@ -31,3 +31,6 @@ export const versionConflict = (current: SessionEnvelope): GameSessionError =>
     "The game changed; showing the latest state",
     current,
   );
+/** A well-formed request that cannot apply in the current state, such as resolving a finished decision. */
+export const notApplicable = (message: string): GameSessionError =>
+  new GameSessionError(422, "VALIDATION_ERROR", message);
