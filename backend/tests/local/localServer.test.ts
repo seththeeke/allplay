@@ -6,6 +6,7 @@ import { createLocalProviders, type LocalProviders } from "../../src/local/provi
 import { createLocalServer, matchRoute, MAX_BODY_BYTES } from "../../src/local/server";
 import { resolveSettings } from "../../src/local/settings";
 import { createFakeLlm } from "../../src/service/decision/llm/fakeLlm";
+import { createUnavailableTts } from "../../src/service/speech/textToSpeech";
 import { numberOf } from "../service/decision/decider";
 import { fakeSpeech, silentWav } from "../service/speech/fakeSpeech";
 
@@ -179,6 +180,74 @@ describe("local server", () => {
     broken.mockRestore();
   });
 
+  it("speaks through the text to speech provider and lists what the recorder heard", async () => {
+    const post = (body: unknown) =>
+      fetch(`${base}/local/speech/synthesize`, {
+        method: "POST",
+        body: typeof body === "string" ? body : JSON.stringify(body),
+      });
+    const spoken = await post({ text: "Move nine to six.", rate: 1.2 });
+    expect(spoken.status).toBe(200);
+    expect(spoken.headers.get("content-type")).toBe("audio/wav");
+    expect(String.fromCharCode(...new Uint8Array(await spoken.arrayBuffer()).slice(0, 4))).toBe(
+      "RIFF",
+    );
+    expect((await post({ text: "Default rate." })).status).toBe(200);
+    for (const bad of [
+      { text: "" },
+      { text: "x".repeat(601) },
+      { text: "x", rate: 3 },
+      { text: "x", rate: "fast" },
+      "nope",
+    ])
+      expect((await post(bad)).status).toBe(400);
+    expect(await (await fetch(`${base}/local/speech/spoken`)).json()).toEqual({
+      spoken: ["Move nine to six.", "Default rate."],
+    });
+  });
+
+  it("answers 503 when speech output is not set up, and lists nothing spoken", async () => {
+    const off = await createLocalProviders(
+      resolveSettings({ ALLPLAY_PRESET: "continuous-integration" }),
+      {},
+      { logger, textToSpeech: createUnavailableTts("kokoro", "Run setup.") },
+    );
+    const http = createLocalServer(off);
+    await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
+    const url = `http://127.0.0.1:${String((http.address() as AddressInfo).port)}`;
+    const response = await fetch(`${url}/local/speech/synthesize`, {
+      method: "POST",
+      body: JSON.stringify({ text: "hello" }),
+    });
+    expect(response.status).toBe(503);
+    expect(await (await fetch(`${url}/local/speech/spoken`)).json()).toEqual({ spoken: [] });
+    const failing = await createLocalProviders(
+      resolveSettings({ ALLPLAY_PRESET: "continuous-integration" }),
+      {},
+      {
+        logger,
+        textToSpeech: {
+          name: "broken",
+          status: () => Promise.resolve({ available: true, detail: "" }),
+          synthesize: () => Promise.reject(new Error("bug")),
+        },
+      },
+    );
+    const broken = createLocalServer(failing);
+    await new Promise<void>((resolve) => broken.listen(0, "127.0.0.1", resolve));
+    const brokenUrl = `http://127.0.0.1:${String((broken.address() as AddressInfo).port)}`;
+    expect(
+      (
+        await fetch(`${brokenUrl}/local/speech/synthesize`, {
+          method: "POST",
+          body: '{"text":"x"}',
+        })
+      ).status,
+    ).toBe(500);
+    broken.close();
+    http.close();
+  });
+
   it("chooses the language model per setting", async () => {
     const status = async (env: Record<string, string>) =>
       (await (await createLocalProviders(resolveSettings(env), env, { logger })).status())["llm"];
@@ -188,6 +257,19 @@ describe("local server", () => {
         ALLPLAY_CLAUDE_BIN: "definitely-not-claude-allplay",
       }),
     ).toMatchObject({ provider: "claude-code", available: false });
+    const speechOut = async (env: Record<string, string>) =>
+      (await (await createLocalProviders(resolveSettings(env), env, { logger })).status())[
+        "speechOut"
+      ];
+    expect(await speechOut({ ALLPLAY_SPEECH_OUT: "polly" })).toMatchObject({
+      provider: "polly",
+      available: false,
+    });
+    expect(
+      await speechOut({ ALLPLAY_SPEECH_OUT: "kokoro", ALLPLAY_KOKORO_VOICE: "am_adam" }),
+    ).toMatchObject({
+      provider: "kokoro",
+    });
     expect(await status({ ALLPLAY_LLM: "bedrock" })).toMatchObject({
       provider: "bedrock",
       available: false,

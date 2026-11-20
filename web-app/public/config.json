@@ -3,5 +3,5 @@
   "dataMode": "LIVE",
   "apiUrl": "http://localhost:4000/",
   "speechInput": "LOCAL_SERVER",
-  "speechOutput": "BROWSER"
+  "speechOutput": "LOCAL_SERVER"
 }

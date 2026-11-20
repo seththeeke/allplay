@@ -10,7 +10,7 @@ import {
   type TranscriptSource,
 } from "../models/api";
 import type { SpeechCapture } from "./speechInput";
-import { createBrowserSpeechOutput, type SpeechOutput } from "./speechOutput";
+import type { SpeechOutput } from "./speechOutput";
 import { useAppActions } from "./useAppActions";
 import { useVoiceKeys } from "./useVoiceKeys";
 import {
@@ -42,10 +42,12 @@ export const MAX_CAPTURE_MS = 10_000;
  */
 export function VoiceProvider({
   children,
-  speech = createBrowserSpeechOutput(),
+  speech,
   now = () => performance.now(),
 }: VoiceProviderProps): React.JSX.Element {
-  const { decisions, speechInput } = useServices();
+  const services = useServices();
+  const { decisions, speechInput } = services;
+  const output = speech ?? services.speechOutput;
   const { preferences } = usePreferences();
   const { pathname } = useLocation();
   const [phase, setPhase] = useState<VoicePhase>("IDLE");
@@ -59,7 +61,7 @@ export function VoiceProvider({
 
   const say = (text: string, spoken: string = text, force = false): void => {
     setMessage(text);
-    if (force || preferences.voiceOutputEnabled) speech.speak(spoken, preferences.speechRate);
+    if (force || preferences.voiceOutputEnabled) output.speak(spoken, preferences.speechRate);
   };
   const latency = (): number => Math.max(0, Math.round(now() - captureEnded.current));
   const restingPhase = (current: DecisionResponse | null): VoicePhase => {

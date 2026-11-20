@@ -26,6 +26,7 @@ import type {
   PreferencesResponse,
 } from "../models/api";
 import type { SpeechInput } from "../voice/speechInput";
+import type { SpeechOutput } from "../voice/speechOutput";
 
 /** Preferences API (authn-authz.md section 5): every change is saved as it happens. */
 export interface PreferencesService {
@@ -109,6 +110,7 @@ export interface VoiceLabService {
 export interface Services {
   health: HealthService;
   speechInput: SpeechInput;
+  speechOutput: SpeechOutput;
   voiceLab: VoiceLabService;
   admin: AdminService;
   stats: StatsService;

@@ -4,6 +4,7 @@ import { gameRoutes } from "../controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../controller/web-api/health/healthRoutes";
 import { SEED_PATTERN } from "../game-engine";
 import { isWav, SpeechUnavailableError } from "../service/speech/speechToText";
+import { MAX_SPEECH_CHARS, SpeechOutputUnavailableError } from "../service/speech/textToSpeech";
 import { devCaller, toHttpApiEvent } from "./eventAdapter";
 import type { Handler, LocalProviders } from "./providers";
 
@@ -60,6 +61,20 @@ function readBody(request: IncomingMessage): Promise<Buffer> {
   });
 }
 
+/** `{ text, rate }` from a request body, or null when it is not a valid synthesis request. */
+function parseSynthesis(body: Buffer): { text: string; rate: number } | null {
+  try {
+    const value = JSON.parse(body.toString("utf8")) as { text?: unknown; rate?: unknown };
+    const text = typeof value.text === "string" ? value.text.trim() : "";
+    const rate = value.rate === undefined ? 1 : value.rate;
+    if (text === "" || text.length > MAX_SPEECH_CHARS) return null;
+    if (typeof rate !== "number" || rate < 0.5 || rate > 2) return null;
+    return { text, rate };
+  } catch {
+    return null;
+  }
+}
+
 /** `{ seed }` from a request body: a 32 digit hex seed, null to clear, or undefined when invalid. */
 function parseSeed(body: Buffer): string | null | undefined {
   try {
@@ -108,14 +123,16 @@ export function createLocalServer(providers: LocalProviders): Server {
       ...cors,
       ...headers,
     });
-    response.end(typeof body === "string" ? body : JSON.stringify(body));
+    response.end(
+      typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body),
+    );
   };
 
   const local = async (
     route: string,
     request: IncomingMessage,
     body: Buffer,
-  ): Promise<[number, unknown] | null> => {
+  ): Promise<[number, unknown, Record<string, string>?] | null> => {
     switch (route) {
       case "GET /local/status":
         return [200, { preset: providers.settings.preset, capabilities: await providers.status() }];
@@ -139,6 +156,35 @@ export function createLocalServer(providers: LocalProviders): Server {
             decisions: await providers.decisions.recent(`GUEST#${devCaller(request.headers)}`, 20),
           },
         ];
+      case "GET /local/speech/spoken":
+        return [
+          200,
+          {
+            spoken:
+              "spoken" in providers.textToSpeech
+                ? (providers.textToSpeech as { spoken: string[] }).spoken
+                : [],
+          },
+        ];
+      case "POST /local/speech/synthesize": {
+        const request = parseSynthesis(body);
+        if (request === null)
+          return [
+            400,
+            {
+              code: "VALIDATION_ERROR",
+              message: `Send { text, rate } with 1 to ${String(MAX_SPEECH_CHARS)} characters and a rate from 0.5 to 2.`,
+            },
+          ];
+        try {
+          const wav = await providers.textToSpeech.synthesize(request.text, request.rate);
+          return [200, wav, { "content-type": "audio/wav" }];
+        } catch (error) {
+          if (error instanceof SpeechOutputUnavailableError)
+            return [503, { code: "INTERNAL_ERROR", message: error.message }];
+          throw error;
+        }
+      }
       case "POST /local/speech/transcribe": {
         if (!isWav(body))
           return [400, { code: "VALIDATION_ERROR", message: "Send 16 kHz mono WAV audio." }];
@@ -194,7 +240,7 @@ export function createLocalServer(providers: LocalProviders): Server {
         }
         const answer = await local(route, request, body);
         if (answer === null) send(response, 404, { code: "NOT_FOUND", message: "No such route." });
-        else send(response, answer[0], answer[1]);
+        else send(response, answer[0], answer[1], answer[2]);
       } catch (error) {
         if (error instanceof TooLargeError)
           send(response, 413, { code: "VALIDATION_ERROR", message: "Request body too large." });

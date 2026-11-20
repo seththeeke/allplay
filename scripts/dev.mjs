@@ -14,7 +14,7 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 export const PORTS = [4000, 5173, 4173];
 
 /** Command lines that are All Play local processes, when they also run inside `root`. */
-const LOCAL_COMMAND = /(src\/local\/start\.ts|dev:server|\bvite\b)/;
+const LOCAL_COMMAND = /(src\/local\/start\.ts|dev:server|kokoro\/worker\.py|\bvite\b)/;
 
 /**
  * Picks the processes to stop from `ps -axo pid=,command=` output: local

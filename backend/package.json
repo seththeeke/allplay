@@ -16,7 +16,8 @@
     "build:cli": "esbuild src/cli/bin.ts --bundle --platform=node --format=esm --target=node22 --outfile=cli/dist/game-engine-cli.mjs --banner:js='#!/usr/bin/env node'",
     "setup:speech:macos": "sh src/local/macos-speech/build.sh",
     "setup:speech:whisper": "brew install whisper-cpp && mkdir -p .local/models && curl -L --fail -o .local/models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
-    "dev:server": "tsx src/local/start.ts"
+    "dev:server": "tsx src/local/start.ts",
+    "setup:speech:kokoro": "sh src/local/kokoro/setup.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

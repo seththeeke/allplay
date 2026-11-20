@@ -397,7 +397,7 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 | AD-1 | Done locally | Models, `LlmClient` interface and fake. The Bedrock Converse implementation follows with AD-15 |
 | AD-14 | Done | Claude Code `LlmClient` (the `local` default, `claude -p` with structured output, about 1.5 s per layer on `claude-haiku-5-5`) and Claude API `LlmClient` (optional, needs a pay-as-you-go key) |
 | AD-2 to AD-5 | Done locally | Classifier, game selector, application selector, orchestration, open decisions and the resolution route, on the in-memory `DecisionDao`. Rate limits (AD-6) and metric counters (DM-5) wait for the deployed stack. Verified 2026-11-20 by the voice playthrough: the seeded one-suit game won from the web app in 8.6 minutes, with every turn decided by Claude Code |
-| AD-13 | Open | Kokoro `TextToSpeech` and local playback; the game screen speaks through the browser until then |
+| AD-13 | Done | Kokoro `TextToSpeech` through a long-lived kokoro-onnx worker, the recording `TextToSpeech`, `POST /local/speech/synthesize`, and the web local server `SpeechOutput` with the browser voice as fallback |
 | AD-6 to AD-9, AD-15 | Open | Rate limits, Test stage tests, evaluation set, Bedrock, AWS speech and Transcribe capture |
 
 Local development legs LD-1 (local server) and LD-3 (development caller) are done; see `local-development.md`.

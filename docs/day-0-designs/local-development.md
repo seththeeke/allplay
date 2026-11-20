@@ -30,7 +30,8 @@ Local-only routes (never deployed):
 |---|---|
 | `GET /local/status` | The active preset, the implementation chosen for each capability, and whether each is available (for example "macOS speech helper not built") |
 | `POST /local/speech/transcribe` | WAV audio in (16 kHz mono PCM), `{ text, transcriptSource, provider, latencyMs }` out |
-| `POST /local/speech/synthesize` | `{ text, rate }` in, audio out (AD-13) |
+| `POST /local/speech/synthesize` | `{ text, rate }` in (1 to 600 characters, rate 0.5 to 2), `audio/wav` out; 503 when text to speech is not set up |
+| `GET /local/speech/spoken` | With the recording `TextToSpeech`, every text it was asked to speak, for automation that cannot listen |
 | `GET /local/decisions` | The most recent decisions recorded by the backend, newest first, for the Voice Lab |
 | `POST /local/reset` | Clears all in-memory state, for tests |
 | `POST /local/seed` | `{ seed }` (32 hex digits) or `{ seed: null }`. Every game started afterwards uses this seed until it is cleared or the state is reset, so tests and manual checks get a known deal |
@@ -71,7 +72,7 @@ Each provider has a setup script in `backend/`. Built binaries and models live i
 |---|---|---|
 | macOS speech helper | `npm run setup:speech:macos` compiles `src/local/macos-speech/transcribe.swift` with `swiftc` (Xcode command line tools). The first use asks for speech recognition permission | A small native binary; recognition runs on device |
 | whisper.cpp | `npm run setup:speech:whisper` runs `brew install whisper-cpp` and downloads `ggml-base.en.bin` | About 142 MB model, about 300 MB of memory while transcribing |
-| Kokoro | `npm run setup:speech:kokoro` creates a Python virtual environment in `backend/.local/kokoro` with `kokoro-onnx` and downloads the model (AD-13) | About 300 MB of model files |
+| Kokoro | `npm run setup:speech:kokoro` creates a Python virtual environment in `backend/.local/kokoro` with `kokoro-onnx` 0.6.1 and downloads `kokoro-v1.0.onnx` and `voices-v1.0.bin` (AD-13). The server keeps one Python worker (`src/local/kokoro/worker.py`) with the model loaded, starts it on the first request or at startup, and warms it at startup. Voice from `ALLPLAY_KOKORO_VOICE`, default `af_heart`. Measured: about 0.3 s for a short reply and 1 to 1.5 s for a long one, warm | About 350 MB of model files |
 | Claude Code | Claude Code installed and signed in on the developer's machine; the local server runs `claude -p` (AD-14). Without it the language model is reported unavailable and every turn is `UNRECOGNIZED` | None |
 | Claude API (optional, `ALLPLAY_LLM=claude-api`) | `ANTHROPIC_API_KEY` in the developer's shell, or the key alone in `backend/.local/anthropic-api-key` (AD-14). Without a key the language model is reported unavailable and every turn is `UNRECOGNIZED` | None |
 
@@ -79,7 +80,7 @@ A provider that is not set up is reported by `GET /local/status`, and the server
 
 ## 5. Web App
 
-1. The web app's `MEMORY` data mode remains the unit test harness. Locally, `web-app/public/config.json` sets `dataMode: LIVE` and points `apiUrl` at the local server, with `speechInput: LOCAL_SERVER` and `speechOutput: BROWSER` until AD-13 provides `LOCAL_SERVER`. In `LIVE` mode the game catalog, sessions, decisions and the Voice Lab call the API; preferences, the player, stats and admin stay in memory until their legs (`prototype-mocks.md`). Application actions such as zoom and theme run in the client, so they change the in-memory preferences.
+1. The web app's `MEMORY` data mode remains the unit test harness. Locally, `web-app/public/config.json` sets `dataMode: LIVE` and points `apiUrl` at the local server, with `speechInput: LOCAL_SERVER` and `speechOutput: LOCAL_SERVER`. The local server `SpeechOutput` caches audio by text and rate, stops a reply when a newer one starts, and speaks with the browser's voice when the server cannot. In `LIVE` mode the game catalog, sessions, decisions and the Voice Lab call the API; preferences, the player, stats and admin stay in memory until their legs (`prototype-mocks.md`). Application actions such as zoom and theme run in the client, so they change the in-memory preferences.
 2. The game screen captures speech when `speechInput` is `LOCAL_SERVER`: Space or the Talk button starts recording, shown by a pulsing dot and "Listening" with a moving ellipsis, Space again or Done stops it, and capture stops by itself after 10 seconds. The audio is transcribed by `POST /local/speech/transcribe` and the transcript is sent to `POST /v1/decisions` with its `transcriptSource`. The listening panel's text field stays available, and a typed command is sent as `TYPED`.
 3. The Voice Lab page, `/voice-lab`, is the manual test bench for the voice path. It shows each stage of a voice turn: the local server's status and providers, recording, the transcript with its provider and latency, the command sent to `POST /v1/decisions`, the backend's reply, and the backend's recent decisions from `GET /local/decisions`. It also accepts a typed command.
 4. `npm run dev` at the repository root (`scripts/dev.mjs`) first stops any All Play local process still running: a local server or Vite whose command line is in this checkout, or anything listening on ports 4000, 5173 or 4173 whose working directory is in it. It then starts the local server and Vite (with `--force`, so a stale dependency cache is rebuilt) from scratch, prefixes their output with `[api]` and `[web]`, and stops both on Ctrl-C or when either exits. `npm run dev -- --dry-run` lists what it would stop.
@@ -117,4 +118,5 @@ Status as of 2026-11-20.
 - LD-4 is done: `dataMode: LIVE` uses the local server for games, sessions and decisions, and `npm run dev` at the root restarts the whole local stack.
 - LD-7 is done: Space records on the game screen and the local server transcribes; `npm run test:voice` in `web-app/` won the seeded one-suit game through Claude Code (116 commands, 8.6 minutes, run against a `vite preview` build on port 4173 with `ALLPLAY_WEB_ORIGIN=http://localhost:4173` and `VOICE_BASE_URL=http://localhost:4173`).
 - The playthrough found three decider weaknesses, fixed in the prompts and candidates (`action-decision.md` Sections 5 and 6): number words as columns, dealing phrases classified as unrecognized, and units of different depth to an empty column.
-- Next: AD-13 (Kokoro voice output). Open: LD-5 (local integration tests in CI) and LD-6.
+- AD-13 is done: spoken replies use Kokoro through the local server when voice output is on.
+- Open: LD-5 (local integration tests in CI) and LD-6.

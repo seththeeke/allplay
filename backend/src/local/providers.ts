@@ -23,6 +23,12 @@ import { createHealthService } from "../service/healthService";
 import { createMacosSpeech } from "../service/speech/macosSpeech";
 import type { ProviderStatus, SpeechToText } from "../service/speech/speechToText";
 import { createTypedOnly } from "../service/speech/typedOnly";
+import { createKokoro } from "../service/speech/kokoro";
+import {
+  createRecordingTts,
+  createUnavailableTts,
+  type TextToSpeech,
+} from "../service/speech/textToSpeech";
 import { createWhisperCpp } from "../service/speech/whisperCpp";
 import type { LocalSettings } from "./settings";
 
@@ -39,6 +45,7 @@ export interface CapabilityStatus extends ProviderStatus {
 export interface LocalProviders {
   settings: LocalSettings;
   speechToText: SpeechToText;
+  textToSpeech: TextToSpeech;
   llm: LlmClient;
   decisions: DecisionService;
   sessions: GameSessionService;
@@ -54,12 +61,30 @@ export interface ProviderOverrides {
   speechCandidates?: SpeechToText[];
   logger?: Logger;
   llm?: LlmClient;
+  textToSpeech?: TextToSpeech;
   /** The seed of games started while no seed is fixed; random by default. */
   newSeed?: () => string;
   now?: () => Date;
 }
 
 const randomSeed = (): string => randomBytes(16).toString("hex");
+
+/** Text to speech for a setting (action-decision.md section 13). */
+function speechOutput(
+  settings: LocalSettings,
+  env: Readonly<Record<string, string | undefined>>,
+): TextToSpeech {
+  if (settings.speechOut === "recording") return createRecordingTts();
+  if (settings.speechOut === "polly")
+    return createUnavailableTts("polly", "Polly on the local server arrives with AD-15.");
+  return createKokoro({
+    python: `${LOCAL_DIR}kokoro/venv/bin/python`,
+    worker: fileURLToPath(new URL("./kokoro/worker.py", import.meta.url)),
+    model: `${LOCAL_DIR}kokoro/kokoro-v1.0.onnx`,
+    voices: `${LOCAL_DIR}kokoro/voices-v1.0.bin`,
+    voice: env["ALLPLAY_KOKORO_VOICE"] ?? "af_heart",
+  });
+}
 
 /** The language model for a setting (action-decision.md section 8). */
 function languageModel(
@@ -74,13 +99,6 @@ function languageModel(
     return createClaudeCodeLlm({ binary: env["ALLPLAY_CLAUDE_BIN"] ?? "claude", model });
   return createClaudeApiLlm({ apiKey: readApiKey(env, `${LOCAL_DIR}anthropic-api-key`), model });
 }
-
-const notYet = (setting: string, leg: string): CapabilityStatus => ({
-  setting,
-  provider: "none",
-  available: false,
-  detail: `Arrives with ${leg}.`,
-});
 
 /** The speech candidates for a setting, in preference order; `auto` tries macOS speech, then whisper.cpp. */
 function speechCandidates(
@@ -120,6 +138,10 @@ export async function createLocalProviders(
       ? (candidates[0] as SpeechToText)
       : speechToText;
   const llm = overrides.llm ?? languageModel(settings, env);
+  const textToSpeech = overrides.textToSpeech ?? speechOutput(settings, env);
+  /* Kokoro loads its model on first use; warm it now so the first reply is quick. */
+  if (textToSpeech.name === "kokoro" && (await textToSpeech.status()).available)
+    void textToSpeech.synthesize("Ready.", 1).catch(() => undefined);
   const repository = createBundledRulesRepository();
   let fixedSeed: string | null = null;
   const build = () => {
@@ -163,6 +185,7 @@ export async function createLocalProviders(
   const providers: LocalProviders = {
     settings,
     speechToText,
+    textToSpeech,
     llm,
     get decisions() {
       return built.decisions;
@@ -186,7 +209,11 @@ export async function createLocalProviders(
         provider: unavailable.name,
         ...(await unavailable.status()),
       },
-      speechOut: notYet(settings.speechOut, "AD-13"),
+      speechOut: {
+        setting: settings.speechOut,
+        provider: textToSpeech.name,
+        ...(await textToSpeech.status()),
+      },
     }),
     reset: () => {
       fixedSeed = null;

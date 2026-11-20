@@ -12,9 +12,10 @@ test("stops only this checkout's local server and Vite processes", () => {
     "  104 node /work/allplay/backend/node_modules/.bin/vitest run",
     "  105 node /work/allplay-copy/web-app/node_modules/.bin/vite",
     "  106 npm run dev:server /work/allplay",
+    "  107 /work/allplay/backend/.local/kokoro/venv/bin/python /work/allplay/backend/src/local/kokoro/worker.py m v",
     "garbage line",
   ];
-  assert.deepEqual(selectAllPlayProcesses({ psLines, root, self: 106 }), [101, 102]);
+  assert.deepEqual(selectAllPlayProcesses({ psLines, root, self: 106 }), [101, 102, 107]);
 });
 
 test("adds port listeners whose working directory is inside the checkout", () => {

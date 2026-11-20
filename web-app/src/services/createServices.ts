@@ -19,6 +19,21 @@ import { readStats } from "./memory/memoryStats";
 import { createMemoryStore, type MemoryStore } from "./memory/memoryStore";
 import type { Services } from "./types";
 import { createLocalServerSpeechInput, typedSpeechInput } from "../voice/speechInput";
+import {
+  createBrowserSpeechOutput,
+  createLocalServerSpeechOutput,
+  silentSpeechOutput,
+  type SpeechOutput,
+} from "../voice/speechOutput";
+
+/** Voice output from the stage config (action-decision.md section 16); Polly arrives with AD-9. */
+function speechOutputFor(config: AppConfig): SpeechOutput {
+  const browser = createBrowserSpeechOutput();
+  if (config.speechOutput === "OFF") return silentSpeechOutput;
+  if (config.speechOutput === "LOCAL_SERVER" && config.apiUrl !== undefined)
+    return createLocalServerSpeechOutput(config.apiUrl, browser);
+  return browser;
+}
 
 /**
  * Builds every service for the configured data mode. `LIVE` calls the API for
@@ -48,6 +63,7 @@ export function createServices(
       ? createMemoryVoiceLabService()
       : createLiveVoiceLabService(config.apiUrl);
   return {
+    speechOutput: speechOutputFor(config),
     speechInput:
       config.speechInput === "LOCAL_SERVER" && config.apiUrl !== undefined
         ? createLocalServerSpeechInput((wav) => voiceLab.transcribe(wav))
