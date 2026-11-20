@@ -6,6 +6,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "lint": "npm run check:docs && npm run check:aws-profile && npm run lint --prefix backend && npm run lint --prefix web-app && npm run lint --prefix cdk",
     "test": "npm run test:coverage --prefix backend && npm run test:coverage --prefix web-app && npm run test:coverage --prefix cdk",

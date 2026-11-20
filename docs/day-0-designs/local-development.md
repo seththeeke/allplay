@@ -82,7 +82,7 @@ A provider that is not set up is reported by `GET /local/status`, and the server
 1. The web app's `MEMORY` data mode remains the unit test harness. Locally, `web-app/public/config.json` sets `dataMode: LIVE` and points `apiUrl` at the local server, with `speechInput: LOCAL_SERVER` and `speechOutput: BROWSER` until AD-13 provides `LOCAL_SERVER`. In `LIVE` mode the game catalog, sessions, decisions and the Voice Lab call the API; preferences, the player, stats and admin stay in memory until their legs (`prototype-mocks.md`). Application actions such as zoom and theme run in the client, so they change the in-memory preferences.
 2. The game screen captures speech when `speechInput` is `LOCAL_SERVER`: Space or the Talk button starts recording, Space again or Done stops it, and capture stops by itself after 10 seconds. The audio is transcribed by `POST /local/speech/transcribe` and the transcript is sent to `POST /v1/decisions` with its `transcriptSource`. The listening panel's text field stays available, and a typed command is sent as `TYPED`.
 3. The Voice Lab page, `/voice-lab`, is the manual test bench for the voice path. It shows each stage of a voice turn: the local server's status and providers, recording, the transcript with its provider and latency, the command sent to `POST /v1/decisions`, the backend's reply, and the backend's recent decisions from `GET /local/decisions`. It also accepts a typed command.
-4. `npm run dev` at the repository root starts the local server and Vite together.
+4. `npm run dev` at the repository root (`scripts/dev.mjs`) first stops any All Play local process still running: a local server or Vite whose command line is in this checkout, or anything listening on ports 4000, 5173 or 4173 whose working directory is in it. It then starts the local server and Vite (with `--force`, so a stale dependency cache is rebuilt) from scratch, prefixes their output with `[api]` and `[web]`, and stops both on Ctrl-C or when either exits. `npm run dev -- --dry-run` lists what it would stop.
 
 ## 6. Testing on a Developer Machine
 
@@ -114,7 +114,7 @@ Status as of 2026-11-20.
 - `npm run setup:speech:macos` and `npm run setup:speech:whisper` work on this machine.
 - `web-app/public/config.json` points at the local server, and the Voice Lab is at `http://localhost:5173/voice-lab`.
 - LD-2 is done: game and session routes through the `game` bundle, `POST /local/seed`, and an in-memory SeatAssignment for the current session.
-- LD-4 is done except the root `npm run dev`: `dataMode: LIVE` uses the local server for games, sessions and decisions.
+- LD-4 is done: `dataMode: LIVE` uses the local server for games, sessions and decisions, and `npm run dev` at the root restarts the whole local stack.
 - LD-7 is done: Space records on the game screen and the local server transcribes; `npm run test:voice` in `web-app/` won the seeded one-suit game through Claude Code (116 commands, 8.6 minutes, run against a `vite preview` build on port 4173 with `ALLPLAY_WEB_ORIGIN=http://localhost:4173` and `VOICE_BASE_URL=http://localhost:4173`).
 - The playthrough found three decider weaknesses, fixed in the prompts and candidates (`action-decision.md` Sections 5 and 6): number words as columns, dealing phrases classified as unrecognized, and units of different depth to an empty column.
-- Next: AD-13 (Kokoro voice output). Open: the root `npm run dev`, LD-5 (local integration tests in CI) and LD-6.
+- Next: AD-13 (Kokoro voice output). Open: LD-5 (local integration tests in CI) and LD-6.
