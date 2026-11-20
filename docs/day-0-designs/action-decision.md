@@ -377,3 +377,18 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 2. Services receive providers as constructor dependencies. A service never imports an implementation, and a lint rule enforces that for `service/decision/` and `service/speech/`.
 3. Every implementation of an interface passes that interface's shared contract tests, as the session DAOs do.
 4. The web client's `SpeechInput` and `SpeechOutput` are chosen from the stage `config.json` fields `speechInput` (`TRANSCRIBE`, `LOCAL_SERVER`, `TYPED`) and `speechOutput` (`POLLY`, `LOCAL_SERVER`, `BROWSER`, `OFF`).
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-20. Verified by the owner in the Voice Lab.
+
+| Leg | Status | Notes |
+|---|---|---|
+| AD-10 | Done | `SpeechToText` in `backend/src/service/speech/` with macOS speech, whisper.cpp and typed-only implementations. The macOS helper runs as `AllPlaySpeech.app`, launched with `open`, because macOS kills a bare command-line binary that asks for speech permission. Measured: macOS speech under 1 s warm (about 8 s on the first run after a rebuild); whisper.cpp `ggml-base.en` 0.3 to 0.6 s warm |
+| AD-11 | Done | 16 kHz AudioWorklet capture and WAV encoding (`web-app/src/voice/`), the local server `VoiceLabService`, and the `/voice-lab` page. Checked end to end in Chrome with a fake microphone |
+| AD-12 | Done | `POST /v1/decisions` intake with an in-memory `DecisionDao`; it replies `UNRECOGNIZED` with the heard text until AD-2 to AD-5 |
+| AD-13 | Next | Kokoro `TextToSpeech` and local playback |
+| AD-14 | Open | Claude API `LlmClient` |
+| AD-1 to AD-9, AD-15 | Open | Decider layers, Bedrock, AWS speech and the game screen voice flow |
+
+Local development legs LD-1 (local server) and LD-3 (development caller) are done; see `local-development.md`.

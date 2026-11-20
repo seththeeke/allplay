@@ -97,3 +97,14 @@ A provider that is not set up is reported by `GET /local/status`, and the server
 | LD-6 | Fakes for sign-in and deployments as those features land |
 
 The voice legs (AD-10 to AD-15) are listed in `action-decision.md` Section 15. The first build order is LD-1, LD-3, AD-12, AD-10, then AD-11: speech to text, shown in the Voice Lab, reaching the backend as text.
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-20.
+
+- LD-1 is done: `npm run dev:server` in `backend/` starts the local server on port 4000, with presets, `/local/status`, `/local/reset`, `/local/decisions` and `/local/speech/transcribe`.
+- LD-3 is done: the `x-allplay-dev-caller` header is written into the IAM identity field.
+- `npm run setup:speech:macos` and `npm run setup:speech:whisper` work on this machine.
+- `web-app/public/config.json` points at the local server, and the Voice Lab is at `http://localhost:5173/voice-lab`.
+- Next: AD-13 (Kokoro) and AD-14 (Claude API).
+- Open: LD-2 (session routes), LD-4 (live services and root `npm run dev`), LD-5 (local integration tests in CI) and LD-6.
