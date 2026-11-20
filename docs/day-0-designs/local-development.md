@@ -113,5 +113,8 @@ Status as of 2026-11-20.
 - LD-3 is done: the `x-allplay-dev-caller` header is written into the IAM identity field.
 - `npm run setup:speech:macos` and `npm run setup:speech:whisper` work on this machine.
 - `web-app/public/config.json` points at the local server, and the Voice Lab is at `http://localhost:5173/voice-lab`.
-- Next: AD-13 (Kokoro) and AD-14 (Claude API).
-- Open: LD-2 (session routes), LD-4 (live services and root `npm run dev`), LD-5 (local integration tests in CI) and LD-6.
+- LD-2 is done: game and session routes through the `game` bundle, `POST /local/seed`, and an in-memory SeatAssignment for the current session.
+- LD-4 is done except the root `npm run dev`: `dataMode: LIVE` uses the local server for games, sessions and decisions.
+- LD-7 is done: Space records on the game screen and the local server transcribes; `npm run test:voice` in `web-app/` won the seeded one-suit game through Claude Code (116 commands, 8.6 minutes, run against a `vite preview` build on port 4173 with `ALLPLAY_WEB_ORIGIN=http://localhost:4173` and `VOICE_BASE_URL=http://localhost:4173`).
+- The playthrough found three decider weaknesses, fixed in the prompts and candidates (`action-decision.md` Sections 5 and 6): number words as columns, dealing phrases classified as unrecognized, and units of different depth to an empty column.
+- Next: AD-13 (Kokoro voice output). Open: the root `npm run dev`, LD-5 (local integration tests in CI) and LD-6.

@@ -33,6 +33,7 @@
     "test-data",
     "vite.config.ts",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "playwright.voice.config.ts"
   ]
 }

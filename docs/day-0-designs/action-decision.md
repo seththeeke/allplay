@@ -392,9 +392,9 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 | AD-10 | Done | `SpeechToText` in `backend/src/service/speech/` with macOS speech, whisper.cpp and typed-only implementations. The macOS helper runs as `AllPlaySpeech.app`, launched with `open`, because macOS kills a bare command-line binary that asks for speech permission. Measured: macOS speech under 1 s warm (about 8 s on the first run after a rebuild); whisper.cpp `ggml-base.en` 0.3 to 0.6 s warm |
 | AD-11 | Done | 16 kHz AudioWorklet capture and WAV encoding (`web-app/src/voice/`), the local server `VoiceLabService`, and the `/voice-lab` page. Checked end to end in Chrome with a fake microphone |
 | AD-12 | Done | `POST /v1/decisions` intake with an in-memory `DecisionDao`; it replies `UNRECOGNIZED` with the heard text until AD-2 to AD-5 |
-| AD-1 | In progress | Models, `LlmClient` interface and fake. The Bedrock Converse implementation follows with AD-15 |
-| AD-14 | In progress | Claude Code `LlmClient` (the `local` default) and Claude API `LlmClient` |
-| AD-2 to AD-5 | In progress | Classifier, game selector, application selector, orchestration and the resolution route, on the in-memory `DecisionDao`; metric counters wait for DM-5 |
+| AD-1 | Done locally | Models, `LlmClient` interface and fake. The Bedrock Converse implementation follows with AD-15 |
+| AD-14 | Done | Claude Code `LlmClient` (the `local` default, `claude -p` with structured output, about 1.5 s per layer on `claude-haiku-5-5`) and Claude API `LlmClient` (optional, needs a pay-as-you-go key) |
+| AD-2 to AD-5 | Done locally | Classifier, game selector, application selector, orchestration, open decisions and the resolution route, on the in-memory `DecisionDao`. Rate limits (AD-6) and metric counters (DM-5) wait for the deployed stack. Verified 2026-11-20 by the voice playthrough: the seeded one-suit game won from the web app in 8.6 minutes, with every turn decided by Claude Code |
 | AD-13 | Open | Kokoro `TextToSpeech` and local playback; the game screen speaks through the browser until then |
 | AD-6 to AD-9, AD-15 | Open | Rate limits, Test stage tests, evaluation set, Bedrock, AWS speech and Transcribe capture |
 

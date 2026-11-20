@@ -13,7 +13,8 @@
     "format": "eslint . --fix && prettier --write .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:smoke": "playwright test"
+    "test:smoke": "playwright test",
+    "test:voice": "playwright test -c playwright.voice.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.108.0",

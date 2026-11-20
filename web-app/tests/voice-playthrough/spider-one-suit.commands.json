@@ -1,0 +1,932 @@
+{
+  "seed": "00000000000000000000000000000001",
+  "options": {
+    "suits": 1,
+    "dealStyle": "MICROSOFT"
+  },
+  "steps": [
+    {
+      "say": "one to six",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 1 to column 2",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.2"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move one over to six",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "make the text bigger",
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_IN"
+      }
+    },
+    {
+      "say": "put the seven of spades on the eight of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "one to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 2 to column 7",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=2|to=tableau.7"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move three over to eight",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "two to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "two to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 3 to column 4",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=3|to=tableau.4"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "switch to dark mode",
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME",
+        "theme": "DARK"
+      }
+    },
+    {
+      "say": "move three over to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.10"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "five to nine",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.9"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "six to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=4|to=tableau.7"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 8 to column 5",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=2|to=tableau.5"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move ten over to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=3|to=tableau.7"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "what should I do next",
+      "expect": {
+        "kind": "HINT"
+      }
+    },
+    {
+      "say": "more cards please",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "DEAL_ROW"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "four to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.10"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 7 to column 3",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move eight over to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.10"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "eight to nine",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.9"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "eight to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.1"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 10 to column 2",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=3|to=tableau.2"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "next row",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "DEAL_ROW"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "put the nine of spades on the ten of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "one to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=2|to=tableau.7"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 2 to column 9",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=5|to=tableau.9"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "take that back",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "UNDO"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 2 to column 9",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=5|to=tableau.9"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move seven over to four",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=4|to=tableau.4"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "five to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.7"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "nine to four",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=6|to=tableau.4"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 9 to column 6",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=2|to=tableau.6"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move nine over to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=2|to=tableau.7"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "seven to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.3"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "two to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 2 to column 7",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move six over to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=3|to=tableau.3"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "more cards please",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "DEAL_ROW"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "one to eight",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 1 to column 6",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column three to the empty column one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.1"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "three to four",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=5|to=tableau.4"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "three to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=2|to=tableau.2"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 3 to column 8",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move three over to five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.5"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "one to eight",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "seven to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.2"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "zoom out a little",
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_OUT"
+      }
+    },
+    {
+      "say": "column 7 to column 3",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=3|to=tableau.3"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column seven to the empty column one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.1"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "four to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=6|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "four to five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=11|to=tableau.5"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 5 to column 10",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.10"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move three over to five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=10|to=tableau.5"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "five to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.10"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "four to five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=4|to=tableau.5"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 4 to column 5",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.5"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move five over to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=6|to=tableau.1"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "five to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column four to the empty column three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 4 to column 3",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move four over to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.1"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "eight to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=4|to=tableau.2"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "eight to nine",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.9"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column eight to the empty column five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.5"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move eight over to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.1"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column six to the empty column eight",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=2|to=tableau.8"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "deal",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "DEAL_ROW"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 1 to column 2",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.2"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move three over to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.1"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "three to seven",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=2|to=tableau.7"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "five to eight",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.8"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 4 to column 5",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.5"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "high contrast please",
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME",
+        "theme": "HIGH_CONTRAST"
+      }
+    },
+    {
+      "say": "move seven over to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=3|to=tableau.1"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column six to the empty column one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "six to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 6 to column 8",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.8"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move six over to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.10"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column six to the empty column three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.3"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "six to four",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.4"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column eight to the empty column six",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=3|to=tableau.6"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "next row",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "DEAL_ROW"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "put the ten of spades on the jack of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.7|depth=2|to=tableau.6"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "three to six",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.6"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 1 to column 3",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.3"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move one over to five",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=2|to=tableau.5"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "put the four of spades on the five of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.5"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "four to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 5 to column 6",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.5|depth=4|to=tableau.6"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "move six over to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=8|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "put the three of spades on the four of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.3"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "eight to three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.8|depth=2|to=tableau.3"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 10 to column 4",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.4"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column nine to the empty column one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.1"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column nine to the empty column two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.2"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column nine to the empty column three",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=2|to=tableau.3"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 9 to column 2",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.2"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move nine over to two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.2"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "nine to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.10"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "two to nine",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=3|to=tableau.9"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "column 9 to column 4",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.9|depth=4|to=tableau.4"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column ten to the empty column two",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=6|to=tableau.2"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "four to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.4|depth=7|to=tableau.10"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "make the font larger",
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_IN"
+      }
+    },
+    {
+      "say": "ten to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=8|to=tableau.1"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "column 10 to column 5",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.5"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "move ten over to six",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.6"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "ten to one",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.1"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "one to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.1|depth=10|to=tableau.10"
+      },
+      "confirm": "BUTTON"
+    },
+    {
+      "say": "column 2 to column 6",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.2|depth=6|to=tableau.6"
+      },
+      "confirm": "ENTER"
+    },
+    {
+      "say": "move three over to ten",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.3|depth=2|to=tableau.10"
+      },
+      "confirm": "YES"
+    },
+    {
+      "say": "put the ten of spades on the jack of spades",
+      "expect": {
+        "kind": "GAME",
+        "actionId": "MOVE_UNIT|from=tableau.6|depth=10|to=tableau.5"
+      },
+      "confirm": "BUTTON"
+    }
+  ]
+}
