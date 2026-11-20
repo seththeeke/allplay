@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Capability settings and presets (local-development.md section 2.1). */
 export const PRESETS = {
-  local: { storage: "memory", llm: "claude-api", speechIn: "auto", speechOut: "kokoro" },
+  local: { storage: "memory", llm: "claude-code", speechIn: "auto", speechOut: "kokoro" },
   "local-aws": { storage: "memory", llm: "bedrock", speechIn: "transcribe", speechOut: "polly" },
   "continuous-integration": {
     storage: "memory",
@@ -15,7 +15,7 @@ export const PRESETS = {
 const SettingsSchema = z.object({
   preset: z.enum(["local", "local-aws", "continuous-integration"]),
   storage: z.enum(["memory"]),
-  llm: z.enum(["claude-api", "bedrock", "fake"]),
+  llm: z.enum(["claude-code", "claude-api", "bedrock", "fake"]),
   speechIn: z.enum(["auto", "macos", "whisper", "transcribe", "typed"]),
   speechOut: z.enum(["kokoro", "polly", "recording"]),
   port: z.coerce.number().int().min(0).max(65535),

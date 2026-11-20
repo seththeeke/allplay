@@ -10,7 +10,7 @@ describe("local settings", () => {
   it("applies presets and lets explicit variables override them", () => {
     expect(resolveSettings({})).toMatchObject({
       preset: "local",
-      llm: "claude-api",
+      llm: "claude-code",
       speechIn: "auto",
       speechOut: "kokoro",
       port: 4000,

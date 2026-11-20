@@ -12,6 +12,7 @@ import { logger as rootLogger, type Logger } from "../logger";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
 import { readApiKey } from "../service/decision/llm/apiKey";
 import { createClaudeApiLlm, DEFAULT_CLAUDE_MODEL } from "../service/decision/llm/claudeApi";
+import { createClaudeCodeLlm } from "../service/decision/llm/claudeCode";
 import { createFakeLlm, createUnavailableLlm } from "../service/decision/llm/fakeLlm";
 import type { LlmClient } from "../service/decision/llm/llmClient";
 import {
@@ -68,10 +69,10 @@ function languageModel(
   if (settings.llm === "fake") return createFakeLlm();
   if (settings.llm === "bedrock")
     return createUnavailableLlm("bedrock", "Bedrock arrives with AD-15.");
-  return createClaudeApiLlm({
-    apiKey: readApiKey(env, `${LOCAL_DIR}anthropic-api-key`),
-    model: env["ALLPLAY_CLAUDE_MODEL"] ?? DEFAULT_CLAUDE_MODEL,
-  });
+  const model = env["ALLPLAY_CLAUDE_MODEL"] ?? DEFAULT_CLAUDE_MODEL;
+  if (settings.llm === "claude-code")
+    return createClaudeCodeLlm({ binary: env["ALLPLAY_CLAUDE_BIN"] ?? "claude", model });
+  return createClaudeApiLlm({ apiKey: readApiKey(env, `${LOCAL_DIR}anthropic-api-key`), model });
 }
 
 const notYet = (setting: string, leg: string): CapabilityStatus => ({

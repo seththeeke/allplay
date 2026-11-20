@@ -49,6 +49,13 @@ describe("speech helpers", () => {
     });
     expect((await runCommand("node", ["-e", "process.exit(3)"])).code).toBe(3);
     expect((await runCommand("definitely-not-a-command-allplay", [])).code).toBe(127);
+    expect(
+      (await runCommand("node", ["-e", "setTimeout(() => {}, 5000)"], { timeoutMs: 50 })).code,
+    ).toBe(124);
+    expect(
+      (await runCommand("node", ["-e", "process.stdout.write(process.cwd())"], { cwd: "/" }))
+        .stdout,
+    ).toBe("/");
     let kept = "";
     await withTempWav(wav, async (path) => {
       kept = path;

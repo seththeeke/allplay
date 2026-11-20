@@ -182,6 +182,12 @@ describe("local server", () => {
   it("chooses the language model per setting", async () => {
     const status = async (env: Record<string, string>) =>
       (await (await createLocalProviders(resolveSettings(env), env, { logger })).status())["llm"];
+    expect(
+      await status({
+        ALLPLAY_LLM: "claude-code",
+        ALLPLAY_CLAUDE_BIN: "definitely-not-claude-allplay",
+      }),
+    ).toMatchObject({ provider: "claude-code", available: false });
     expect(await status({ ALLPLAY_LLM: "bedrock" })).toMatchObject({
       provider: "bedrock",
       available: false,

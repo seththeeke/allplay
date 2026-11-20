@@ -265,7 +265,8 @@ Prompt structure: a cached system prompt listing every action with its parameter
 | Implementation | Use | Notes |
 |---|---|---|
 | Bedrock Converse | Deployed stages; locally in `local-aws` | As configured above |
-| Claude API | Local preset `local` | The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), Messages API with the same tool forced by `tool_choice`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`. Thinking is disabled, since a forced tool call cannot follow a thinking block, and no sampling parameters are sent, since Claude Haiku 5.5 accepts only their defaults. The static system blocks carry `cache_control`. Timeout 10,000 ms per call, because the call leaves the developer's machine for the public API. The key comes from `ANTHROPIC_API_KEY` in the developer's environment, or from the git-ignored file `backend/.local/anthropic-api-key`, and is never committed |
+| Claude Code | Local preset `local` | The developer's own Claude Code command line, so local turns use the developer's Claude Code plan rather than pay-as-you-go API billing. Each call is one `claude -p` run with `--output-format json`, the layer's tool input schema as `--json-schema`, the static blocks as `--system-prompt`, no tools, no MCP servers, no setting sources, no saved session, `--effort low`, and a working directory outside the repository so no project context loads. The tool input is read from `structured_output`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`; executable from `ALLPLAY_CLAUDE_BIN`, default `claude`. Timeout 30,000 ms per call. Measured about 1.5 s per layer |
+| Claude API | Local setting `ALLPLAY_LLM=claude-api` | The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), Messages API with the same tool forced by `tool_choice`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`. Thinking is disabled, since a forced tool call cannot follow a thinking block, and no sampling parameters are sent, since Claude Haiku 5.5 accepts only their defaults. The static system blocks carry `cache_control`. Timeout 10,000 ms per call, because the call leaves the developer's machine for the public API. The key comes from `ANTHROPIC_API_KEY` in the developer's environment, or from the git-ignored file `backend/.local/anthropic-api-key`, and is never committed |
 | Fixed-response fake | Unit tests, `continuous-integration`, Test stage integration tests (AD-7) | Deterministic answers keyed by transcript |
 
 All implementations take the same prompt blocks and tool schema and return the same parsed tool input, validated with zod. A provider's text never reaches the decider unvalidated.
@@ -336,7 +337,7 @@ backend/src/service/decision/
   gameSelector.ts          layer 2 game
   appSelector.ts           layer 2 application
   prompts/                 prompt builders and static prompt text
-  llm/                     LlmClient interface; Bedrock Converse, Claude API and fake implementations
+  llm/                     LlmClient interface; Bedrock Converse, Claude Code, Claude API and fake implementations
   outcomes.ts              outcome and failure classification
   rateLimiter.ts
 backend/src/service/speech/  SpeechToText and TextToSpeech interfaces and local implementations
@@ -362,7 +363,7 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 | AD-11 | Web client audio capture (16 kHz PCM, WAV encoding), `SpeechInput` local server implementation, and the Voice Lab page (`local-development.md` Section 5) that shows the transcript and what the backend received |
 | AD-12 | Decision intake: `POST /v1/decisions` parses the request, records a `Decision` through an in-memory `DecisionDao`, and replies `UNRECOGNIZED` with the heard text until the layers of AD-2 to AD-5 replace that reply |
 | AD-13 | `TextToSpeech` with Kokoro and recording implementations, `POST /local/speech/synthesize`, and the web `SpeechOutput` local server implementation |
-| AD-14 | Claude API `LlmClient` implementation and its contract tests shared with Bedrock and the fake |
+| AD-14 | Claude Code and Claude API `LlmClient` implementations and their tests |
 | AD-15 | Server-side Transcribe and Polly implementations for the `local-aws` preset |
 | AD-9 | Web client: Transcribe streaming capture, listening banner, proposal and choice UI, key handling, Polly playback (execution phase 7) |
 
@@ -370,7 +371,7 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 
 | Interface | Runtime | Implementations |
 |---|---|---|
-| `LlmClient` | Backend, `service/decision/llm/` | Bedrock Converse, Claude API, fixed-response fake |
+| `LlmClient` | Backend, `service/decision/llm/` | Bedrock Converse, Claude Code, Claude API, fixed-response fake |
 | `SpeechToText` | Local server, `service/speech/` | macOS speech helper, whisper.cpp, Transcribe, typed only (no audio accepted) |
 | `TextToSpeech` | Local server, `service/speech/` | Kokoro, Polly, recording |
 | `SpeechInput` | Web client, `web-app/src/voice/` | Transcribe streaming (deployed), local server upload, typed |
@@ -392,7 +393,7 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 | AD-11 | Done | 16 kHz AudioWorklet capture and WAV encoding (`web-app/src/voice/`), the local server `VoiceLabService`, and the `/voice-lab` page. Checked end to end in Chrome with a fake microphone |
 | AD-12 | Done | `POST /v1/decisions` intake with an in-memory `DecisionDao`; it replies `UNRECOGNIZED` with the heard text until AD-2 to AD-5 |
 | AD-1 | In progress | Models, `LlmClient` interface and fake. The Bedrock Converse implementation follows with AD-15 |
-| AD-14 | In progress | Claude API `LlmClient` |
+| AD-14 | In progress | Claude Code `LlmClient` (the `local` default) and Claude API `LlmClient` |
 | AD-2 to AD-5 | In progress | Classifier, game selector, application selector, orchestration and the resolution route, on the in-memory `DecisionDao`; metric counters wait for DM-5 |
 | AD-13 | Open | Kokoro `TextToSpeech` and local playback; the game screen speaks through the browser until then |
 | AD-6 to AD-9, AD-15 | Open | Rate limits, Test stage tests, evaluation set, Bedrock, AWS speech and Transcribe capture |

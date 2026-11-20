@@ -9,12 +9,33 @@ export interface CommandResult {
   stderr: string;
 }
 
-/** Runs a local program; injected so speech providers are testable without the binaries. */
-export type CommandRunner = (command: string, args: readonly string[]) => Promise<CommandResult>;
+export interface CommandOptions {
+  cwd?: string;
+  /** The program is killed after this long and the result has code 124. */
+  timeoutMs?: number;
+}
 
-export const runCommand: CommandRunner = (command, args) =>
+/** Runs a local program; injected so local providers are testable without the binaries. */
+export type CommandRunner = (
+  command: string,
+  args: readonly string[],
+  options?: CommandOptions,
+) => Promise<CommandResult>;
+
+export const runCommand: CommandRunner = (command, args, options = {}) =>
   new Promise((resolve) => {
-    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+    });
+    let timedOut = false;
+    const timer =
+      options.timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            timedOut = true;
+            child.kill();
+          }, options.timeoutMs);
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk: Buffer) => (stdout += chunk.toString("utf8")));
@@ -23,7 +44,8 @@ export const runCommand: CommandRunner = (command, args) =>
       resolve({ code: 127, stdout, stderr: error.message });
     });
     child.on("close", (code) => {
-      resolve({ code: code ?? 1, stdout, stderr });
+      clearTimeout(timer);
+      resolve({ code: timedOut ? 124 : (code ?? 1), stdout, stderr });
     });
   });
 
