@@ -4,9 +4,9 @@
  * spec forbid emojis and icons in code and docs; this script is the
  * enforcement, run by `npm run lint` at the repo root and in CI.
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { listRepoFiles } from "./repo-files.mjs";
 
 const CHECKED_EXTENSIONS = [
   ".md", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".css", ".html", ".swift", ".yml", ".yaml", ".txt",
@@ -31,10 +31,7 @@ export function isChecked(path) {
 }
 
 function trackedFiles() {
-  const output = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
-    encoding: "utf8",
-  });
-  return output.split("\n").filter((path) => path.length > 0 && isChecked(path));
+  return listRepoFiles().filter(isChecked);
 }
 
 function main() {

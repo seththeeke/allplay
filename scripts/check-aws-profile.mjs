@@ -5,7 +5,8 @@
  * that would call AWS without the allplays profile fails lint, not just a
  * Claude session.
  */
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
+import { listRepoFiles } from "./repo-files.mjs";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -36,13 +37,7 @@ export function commandsIn(path, text) {
 }
 
 function trackedFiles() {
-  const output = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
-    cwd: ROOT,
-    encoding: "utf8",
-  });
-  return output
-    .split("\n")
-    .filter((path) => /(^|\/)package\.json$/.test(path) || path.endsWith(".sh") || path.startsWith(".githooks/"));
+  return listRepoFiles(ROOT).filter((path) => /(^|\/)package\.json$/.test(path) || path.endsWith(".sh") || path.startsWith(".githooks/"));
 }
 
 function main() {
