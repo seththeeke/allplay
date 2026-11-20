@@ -261,10 +261,9 @@ describe("local server", () => {
       (await (await createLocalProviders(resolveSettings(env), env, { logger })).status())[
         "speechOut"
       ];
-    expect(await speechOut({ ALLPLAY_SPEECH_OUT: "polly" })).toMatchObject({
-      provider: "polly",
-      available: false,
-    });
+    expect(
+      await speechOut({ ALLPLAY_SPEECH_OUT: "polly", ALLPLAY_POLLY_VOICE: "Matthew" }),
+    ).toMatchObject({ provider: "polly" });
     expect(
       await speechOut({ ALLPLAY_SPEECH_OUT: "kokoro", ALLPLAY_KOKORO_VOICE: "am_adam" }),
     ).toMatchObject({

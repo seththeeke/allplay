@@ -30,11 +30,8 @@ import type { ProviderStatus, SpeechToText } from "../service/speech/speechToTex
 import { createTranscribe } from "../service/speech/transcribe";
 import { createTypedOnly } from "../service/speech/typedOnly";
 import { createKokoro } from "../service/speech/kokoro";
-import {
-  createRecordingTts,
-  createUnavailableTts,
-  type TextToSpeech,
-} from "../service/speech/textToSpeech";
+import { createPolly } from "../service/speech/polly";
+import { createRecordingTts, type TextToSpeech } from "../service/speech/textToSpeech";
 import { createWhisperCpp } from "../service/speech/whisperCpp";
 import type { LocalSettings } from "./settings";
 
@@ -82,7 +79,10 @@ function speechOutput(
 ): TextToSpeech {
   if (settings.speechOut === "recording") return createRecordingTts();
   if (settings.speechOut === "polly")
-    return createUnavailableTts("polly", "Polly on the local server arrives with AD-15.");
+    return createPolly({
+      region: env["ALLPLAY_AWS_REGION"] ?? DEFAULT_AWS_REGION,
+      voiceId: env["ALLPLAY_POLLY_VOICE"] ?? "Joanna",
+    });
   return createKokoro({
     python: `${LOCAL_DIR}kokoro/venv/bin/python`,
     worker: fileURLToPath(new URL("./kokoro/worker.py", import.meta.url)),
