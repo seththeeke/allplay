@@ -109,6 +109,8 @@ describe("expressions", () => {
     expect(run({ sub: [2, 3] })).toBe(-1);
     expect(run({ min: [2, 3] })).toBe(2);
     expect(run({ max: [2, 3] })).toBe(3);
+    expect(run({ div: [7, 2] })).toBe(3);
+    expect(run({ div: [7, 0] })).toBeNull();
     expect(run({ add: [null, 3] })).toBeNull();
     expect(run({ add: [1] })).toBeNull();
     expect(run({ lt: [1, 2] })).toBe(true);

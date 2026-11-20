@@ -61,6 +61,11 @@ export interface GameSessionService {
   ): Promise<SessionEnvelope>;
 }
 
+/** Display fields stored with the session: the game's vars and derived vars (data-model.md section 6). */
+function summaryOf(game: CompiledGame, state: GameState): Record<string, number> {
+  return { ...game.getView(state, SEAT).vars };
+}
+
 /** `name=value;name=value` sorted by name (game-engine.md section 4.1). */
 export function variantKeyOf(options: Readonly<Record<string, unknown>>): string {
   return Object.keys(options)
@@ -143,7 +148,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
     return updated;
   };
 
-  const fromResult = (result: ApplyResult): Partial<GameSession> => ({
+  const fromResult = (session: GameSession, result: ApplyResult): Partial<GameSession> => ({
     state: result.state,
     version: result.state.version,
     status:
@@ -152,7 +157,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         : result.state.status === "IN_PROGRESS"
           ? "IN_PROGRESS"
           : "ABANDONED",
-    summary: { ...result.state.vars },
+    summary: summaryOf(gameFor(session), result.state),
   });
 
   const engineCall = (call: () => ApplyResult): ApplyResult => {
@@ -190,7 +195,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         status: "IN_PROGRESS",
         version: state.version,
         state,
-        summary: { ...state.vars },
+        summary: summaryOf(game, state),
         startedAt: at,
         entityVersion: 1,
         createdAt: at,
@@ -206,7 +211,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         gameFor(session).applyAction(session.state, SEAT, input.actionId),
       );
       return envelope(
-        await save(playerId, session, fromResult(result), input.expectedVersion),
+        await save(playerId, session, fromResult(session, result), input.expectedVersion),
         result.events,
       );
     },
@@ -214,7 +219,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
       const session = await loadForWrite(playerId, sessionId, input.expectedVersion);
       const result = engineCall(() => gameFor(session).undo(session.state, SEAT));
       return envelope(
-        await save(playerId, session, fromResult(result), input.expectedVersion),
+        await save(playerId, session, fromResult(session, result), input.expectedVersion),
         result.events,
       );
     },

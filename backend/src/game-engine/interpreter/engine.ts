@@ -1,5 +1,5 @@
 import { EngineInvariantError } from "../errors";
-import type { EvalContext } from "../primitives/expressions";
+import { evaluate, type EvalContext } from "../primitives/expressions";
 import type { GameLayout } from "../primitives/layout";
 import type { ActionTemplate, RulesDocument } from "../rules/schema";
 import type { GameEvent, GameState } from "../types";
@@ -32,6 +32,17 @@ export function mutationContext(
   events: GameEvent[],
 ): MutationContext {
   return { ...evalContext(engine, state), events };
+}
+
+/** Read-only values computed from state (game-engine.md section 4.2); a non-number counts as 0. */
+export function derivedVars(engine: Engine, state: GameState): Record<string, number> {
+  const ctx = evalContext(engine, state);
+  return Object.fromEntries(
+    Object.entries(engine.rules.derived).map(([name, spec]) => {
+      const value = evaluate(spec.value, ctx);
+      return [name, typeof value === "number" ? value : 0];
+    }),
+  );
 }
 
 /** A deep copy; the engine never mutates a state it was given. */

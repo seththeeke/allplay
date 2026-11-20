@@ -99,6 +99,13 @@ describe("Spider moves", () => {
     expect(toEmpty[0]?.shortText).toBe("column 1 to empty column 3");
   });
 
+  it("counts the deals left in the stock for both deal styles", () => {
+    const dealsLeft = (state: GameState) => spider.getView(state, "S1").vars["stockDealsRemaining"];
+    expect(dealsLeft(start())).toBe(5);
+    expect(dealsLeft(start({ dealStyle: "HOYLE" }))).toBe(6);
+    expect(dealsLeft(spider.applyAction(start(), "S1", "DEAL_ROW").state)).toBe(4);
+  });
+
   it("costs a point per move and deal, and describes the deal", () => {
     const state = start();
     const deal = spider

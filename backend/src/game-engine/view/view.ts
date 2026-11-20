@@ -7,13 +7,18 @@ import type { CardView, GameState, GameStatusInfo, GameView, ZoneRef } from "../
  * The redacted view for a seat (game-engine.md section 10). Face-down cards
  * carry no id, suit or rank; COUNT_ONLY zones show only their size.
  */
-export function buildView(state: GameState, layout: GameLayout, status: GameStatusInfo): GameView {
+export function buildView(
+  state: GameState,
+  layout: GameLayout,
+  status: GameStatusInfo,
+  derived: Readonly<Record<string, number>>,
+): GameView {
   return {
     gameId: state.gameId,
     rulesVersion: state.rulesVersion,
     options: { ...state.options },
     status,
-    vars: { ...state.vars },
+    vars: { ...state.vars, ...derived },
     zones: layout.order.map((zoneId) => {
       const zoneRef = layout.refs.get(zoneId) as ZoneRef;
       const zoneType = layout.zoneTypes.get(zoneRef.type) as ZoneType;

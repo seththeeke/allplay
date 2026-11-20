@@ -141,6 +141,7 @@ function arithmetic(op: string, args: Value[]): Value {
   if (op === "add") return a + b;
   if (op === "sub") return a - b;
   if (op === "min") return Math.min(a, b);
+  if (op === "div") return b === 0 ? null : Math.floor(a / b);
   return Math.max(a, b);
 }
 
@@ -209,6 +210,7 @@ export function evaluate(expr: Expr, ctx: EvalContext): Value {
     case "sub":
     case "min":
     case "max":
+    case "div":
       return arithmetic(op, args());
     case "all":
       return list(arg).every((item) => truthy(evaluate(item, ctx)));

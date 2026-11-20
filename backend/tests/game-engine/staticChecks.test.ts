@@ -66,6 +66,17 @@ describe("validateRules", () => {
     ).toEqual(["cardSets.extra: unknown option colour"]);
   });
 
+  it("checks derived vars", () => {
+    expect(
+      issuesAfter((rules) => {
+        rules["derived"] = {
+          score: { value: 1, label: "s" },
+          other: { value: { var: "nope" }, label: "o" },
+        };
+      }),
+    ).toEqual(["derived.score: clashes with a var", "derived.other.var: unknown var nope"]);
+  });
+
   it("checks setup steps", () => {
     const issues = issuesAfter((rules) => {
       setup(rules).push(

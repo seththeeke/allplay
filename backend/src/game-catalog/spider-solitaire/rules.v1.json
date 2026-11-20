@@ -40,6 +40,24 @@
       "label": "completed runs"
     }
   },
+  "derived": {
+    "stockDealsRemaining": {
+      "value": {
+        "div": [
+          {
+            "add": [
+              {
+                "count": "stock.1"
+              },
+              9
+            ]
+          },
+          10
+        ]
+      },
+      "label": "deals left"
+    }
+  },
   "cardSets": [
     {
       "id": "main",

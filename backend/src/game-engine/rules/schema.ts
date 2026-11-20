@@ -137,6 +137,9 @@ export const RulesDocumentSchema = z.strictObject({
     }),
   ),
   vars: z.record(NameSchema, z.strictObject({ initial: ExprSchema, label: z.string().min(1) })),
+  derived: z
+    .record(NameSchema, z.strictObject({ value: ExprSchema, label: z.string().min(1) }))
+    .default({}),
   cardSets: z.array(z.strictObject({ id: z.string().min(1), copies: CopiesSchema })),
   zones: z.array(ZoneTypeSchema).min(1),
   setup: z.array(SetupStepSchema),

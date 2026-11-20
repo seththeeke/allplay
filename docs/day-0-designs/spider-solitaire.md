@@ -56,6 +56,10 @@ File: `backend/src/game-catalog/spider-solitaire/rules.v1.json`.
     "completedRuns": { "initial": 0, "label": "completed runs" }
   },
 
+  "derived": {
+    "stockDealsRemaining": { "value": { "div": [{ "add": [{ "count": "stock.1" }, 9] }, 10] }, "label": "deals left" }
+  },
+
   "cardSets": [{
     "id": "main",
     "copies": {

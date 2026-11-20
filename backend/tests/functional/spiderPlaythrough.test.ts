@@ -90,7 +90,12 @@ describe("Spider Solitaire playthroughs from fixed seeds", () => {
     expect(envelope.session.status).toBe("IN_PROGRESS");
     expect(envelope.view.status).toEqual({ status: "IN_PROGRESS", blocked: true, canUndo: true });
     expect(envelope.legalActions).toEqual([]);
-    expect(envelope.session.summary).toMatchObject({ completedRuns: 0, moveCount: 5, score: 495 });
+    expect(envelope.session.summary).toMatchObject({
+      completedRuns: 0,
+      moveCount: 5,
+      score: 495,
+      stockDealsRemaining: 0,
+    });
     expect(await service.hint(PLAYER, envelope.session.sessionId)).toEqual({
       action: null,
       text: "There are no moves left. Try undo or a new game.",

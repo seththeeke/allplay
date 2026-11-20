@@ -63,6 +63,7 @@ A rules document is JSON validated by the zod schema `RulesDocumentSchema` in `g
   "players": { "min": 1, "max": 1 },
   "options": {},
   "vars": {},
+  "derived": {},
   "cardSets": [],
   "zones": [],
   "setup": [],
@@ -102,6 +103,16 @@ Named numeric counters held in state. Every game automatically has `score`, `mov
 "vars": {
   "score": { "initial": 500, "label": "score" },
   "completedRuns": { "initial": 0, "label": "completed runs" }
+}
+```
+
+### 4.2.1 Derived Vars
+
+Derived vars are read-only numbers computed from state whenever a view is built. They appear in the view's `vars` and in the session `summary`, never in stored state. A name may not repeat a var. A value that is not a number reads as 0.
+
+```json
+"derived": {
+  "stockDealsRemaining": { "value": { "div": [{ "add": [{ "count": "stock.1" }, 9] }, 10] }, "label": "deals left" }
 }
 ```
 
@@ -158,6 +169,7 @@ Value expressions:
 | `{ "runLength": { "zone": <zone>, "rankStep": -1, "suit": "SAME", "faceUpOnly": true } }` | Length of the longest sequence at the top of the zone where each card is `rankStep` from the one beneath it, honoring the suit rule |
 | `{ "countZones": { "type": "tableau", "as": "z", "where": <predicate> } }` | Number of zone instances matching a predicate |
 | `{ "add": [a, b] }`, `{ "sub": [a, b] }`, `{ "min": [a, b] }`, `{ "max": [a, b] }` | Arithmetic |
+| `{ "div": [a, b] }` | Integer division rounded down; null when `b` is 0 |
 | `{ "switch": <value>, "cases": { ... }, "default": <value> }` | Branch on a value |
 
 Anywhere a zone is expected, a plain zone id string (`"stock.1"`) is accepted as shorthand for `{ "zone": "stock.1" }`.

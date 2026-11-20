@@ -26,6 +26,10 @@ export function toyRules(): Record<string, unknown> {
         label: "bonus",
       },
     },
+    derived: {
+      deckCards: { value: { count: "deck.1" }, label: "cards in the deck" },
+      notANumber: { value: "text", label: "not a number" },
+    },
     cardSets: [
       { id: "main", copies: [{ suits: ["SPADES", "HEARTS"], ranks: [1, 2, 3, 4, 5], times: 2 }] },
       {

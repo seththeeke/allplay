@@ -20,7 +20,7 @@ interface Checker {
 const UNARY = new Set(["rank", "suit", "color", "faceUp", "isNull", "not", "allFaceUp"]);
 const ZONE_ARG = new Set(["zone", "count", "isEmpty"]);
 const LISTS = new Set(["all", "any"]);
-const PAIRS = new Set(["add", "sub", "min", "max", "eq", "neq", "lt", "lte", "gt", "gte"]);
+const PAIRS = new Set(["add", "sub", "min", "max", "div", "eq", "neq", "lt", "lte", "gt", "gte"]);
 const ZONE_ITERATORS = new Set(["countZones", "forAll", "exists"]);
 
 type Obj = Record<string, Expr>;
@@ -165,6 +165,10 @@ function checkOptionsAndCards(c: Checker): void {
   }
   for (const [name, spec] of Object.entries(c.rules.vars))
     checkExpr(spec.initial, none, `vars.${name}`, c);
+  for (const [name, spec] of Object.entries(c.rules.derived)) {
+    if (c.vars.has(name)) c.issues.push(`derived.${name}: clashes with a var`);
+    checkExpr(spec.value, none, `derived.${name}`, c);
+  }
   c.rules.setup.forEach((step, i) => {
     const at = `setup[${String(i)}]`;
     if (step.when !== undefined) checkExpr(step.when, none, `${at}.when`, c);

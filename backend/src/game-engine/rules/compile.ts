@@ -1,7 +1,7 @@
 import { RulesValidationError } from "../errors";
 import { applyAction, statusOf, undo, validateAction } from "../interpreter/apply";
 import { createGame } from "../interpreter/create";
-import type { Engine } from "../interpreter/engine";
+import { derivedVars, type Engine } from "../interpreter/engine";
 import { listLegalActions } from "../interpreter/enumerate";
 import { getHint } from "../interpreter/hints";
 import { buildLayout } from "../primitives/layout";
@@ -64,7 +64,8 @@ export function compileRules(doc: unknown): CompiledGame {
     rulesVersion: rules.version,
     catalogEntry: catalogEntry(rules),
     createGame: (input) => createGame(engine, input),
-    getView: (state) => buildView(state, engine.layout, statusOf(engine, state)),
+    getView: (state) =>
+      buildView(state, engine.layout, statusOf(engine, state), derivedVars(engine, state)),
     listLegalActions: (state, seatId) =>
       seated(state, seatId) ? listLegalActions(engine, state) : [],
     validateAction: (state, seatId, actionId) => validateAction(engine, state, seatId, actionId),

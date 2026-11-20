@@ -418,6 +418,11 @@ describe("hints and views", () => {
     expect(view.status).toEqual({ status: "IN_PROGRESS", blocked: false, canUndo: false });
   });
 
+  it("adds derived vars to the view, counting non-numbers as zero", () => {
+    expect(game.getView(start(), "S1").vars).toMatchObject({ deckCards: 14, notANumber: 0 });
+    expect(start().vars).not.toHaveProperty("deckCards");
+  });
+
   it("exposes a catalog entry", () => {
     expect(game.catalogEntry).toMatchObject({
       gameId: "toy-game",
