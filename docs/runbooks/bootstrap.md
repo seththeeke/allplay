@@ -27,6 +27,14 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
    aws service-quotas request-service-quota-increase --service-code codebuild --quota-code L-5ED1D25B --desired-value 2 --profile allplays --region us-east-1
    ```
 
+6. Bedrock inference quotas (`transcribe-polly-bedrock.md` Section 7.1). A new account starts with every Bedrock inference quota applied at 0, so the first Converse call fails with `ThrottlingException: Too many tokens per day`. The daily token quota (`L-D2912E70` for Amazon Nova Micro) is not adjustable through Service Quotas; open a Support case (Service limit increase, Bedrock, `us-east-1`) asking for the default on-demand and cross-region inference quotas for Amazon Nova Micro and Anthropic Claude Haiku 5.5. Check the applied values with:
+
+   ```
+   aws service-quotas list-service-quotas --service-code bedrock --profile allplays --region us-east-1 --query "Quotas[?contains(QuotaName, 'Nova Micro')].[QuotaName,Value]" --output text
+   ```
+
+   Transcribe streaming and Polly need no request; they worked on the account's defaults.
+
 ## 2. First pipeline deploy
 
 1. Build the web app, because the stages publish `web-app/dist`:

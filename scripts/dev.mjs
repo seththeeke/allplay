@@ -86,9 +86,21 @@ async function stop(pids) {
   for (const pid of pids.filter(alive)) process.kill(pid, "SIGKILL");
 }
 
+/**
+ * The environment for the servers. `--preset <name>` selects a local-development.md
+ * section 2.1 preset; `local-aws` also selects the project's only AWS profile
+ * (CLAUDE.md section 4), whose credentials stay in the developer's ~/.aws.
+ */
+export function serverEnv(argv, env) {
+  const at = argv.indexOf("--preset");
+  const preset = at === -1 ? undefined : argv[at + 1];
+  if (preset === undefined) return { ...env };
+  return { ...env, ALLPLAY_PRESET: preset, ...(preset === "local-aws" ? { AWS_PROFILE: "allplays" } : {}) };
+}
+
 /** Starts one npm script with each output line prefixed. */
-function start(name, cwd, args) {
-  const child = spawn("npm", args, { cwd, stdio: ["ignore", "pipe", "pipe"], env: process.env });
+function start(name, cwd, args, env) {
+  const child = spawn("npm", args, { cwd, stdio: ["ignore", "pipe", "pipe"], env });
   const prefix = (stream, out) => {
     let buffer = "";
     stream.on("data", (chunk) => {
@@ -114,11 +126,14 @@ async function main() {
     process.stdout.write(`Stopping All Play processes: ${running.join(", ")}\n`);
     await stop(running);
   }
+  const env = serverEnv(process.argv, process.env);
   const children = [
-    start("api", join(ROOT, "backend"), ["run", "dev:server"]),
-    start("web", join(ROOT, "web-app"), ["run", "dev", "--", "--force"]),
+    start("api", join(ROOT, "backend"), ["run", "dev:server"], env),
+    start("web", join(ROOT, "web-app"), ["run", "dev", "--", "--force"], env),
   ];
-  process.stdout.write("All Play local stack: web http://localhost:5173, API http://localhost:4000\n");
+  process.stdout.write(
+    `All Play local stack (${env.ALLPLAY_PRESET ?? "local"}): web http://localhost:5173, API http://localhost:4000\n`,
+  );
   let stopping = false;
   const shutdown = (code) => {
     if (stopping) return;

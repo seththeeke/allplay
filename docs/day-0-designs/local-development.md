@@ -75,6 +75,7 @@ Each provider has a setup script in `backend/`. Built binaries and models live i
 | Kokoro | `npm run setup:speech:kokoro` creates a Python virtual environment in `backend/.local/kokoro` with `kokoro-onnx` 0.6.1 and downloads `kokoro-v1.0.onnx` and `voices-v1.0.bin` (AD-13). The server keeps one Python worker (`src/local/kokoro/worker.py`) with the model loaded, starts it on the first request or at startup, and warms it at startup. Voice from `ALLPLAY_KOKORO_VOICE`, default `af_heart`. Measured: about 0.3 s for a short reply and 1 to 1.5 s for a long one, warm | About 350 MB of model files |
 | Claude Code | Claude Code installed and signed in on the developer's machine; the local server runs `claude -p` (AD-14). Without it the language model is reported unavailable and every turn is `UNRECOGNIZED` | None |
 | Claude API (optional, `ALLPLAY_LLM=claude-api`) | `ANTHROPIC_API_KEY` in the developer's shell, or the key alone in `backend/.local/anthropic-api-key` (AD-14). Without a key the language model is reported unavailable and every turn is `UNRECOGNIZED` | None |
+| Bedrock, Transcribe and Polly (`local-aws`, `transcribe-polly-bedrock.md`) | `npm run dev:aws` at the repository root, which runs the servers with the `allplays` profile; credentials stay in the developer's `~/.aws`. Bedrock needs the account's inference quotas raised once (`docs/runbooks/bootstrap.md` step 6) | None |
 
 A provider that is not set up is reported by `GET /local/status`, and the server falls back as Section 2.1 states rather than failing to start.
 

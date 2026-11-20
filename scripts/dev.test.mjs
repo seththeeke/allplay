@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { selectAllPlayProcesses } from "./dev.mjs";
+import { selectAllPlayProcesses, serverEnv } from "./dev.mjs";
+
+test("passes the preset to the servers, with the allplays profile for local-aws", () => {
+  assert.deepEqual(serverEnv(["node", "dev.mjs"], { HOME: "/h" }), { HOME: "/h" });
+  assert.deepEqual(serverEnv(["node", "dev.mjs", "--preset", "continuous-integration"], {}), {
+    ALLPLAY_PRESET: "continuous-integration",
+  });
+  assert.equal(serverEnv(["node", "dev.mjs", "--preset", "local-aws"], {}).AWS_PROFILE, "allplays");
+});
 
 const root = "/work/allplay";
 
