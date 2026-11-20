@@ -41,7 +41,7 @@ Player presses Space (or the on-screen Talk button)
 
 1. The client obtains AWS credentials from the Cognito Identity Pool through Amplify (guest or signed in). The Identity Pool roles allow `transcribe:StartStreamTranscriptionWebSocket` only.
 2. On Space, the client opens a Transcribe streaming WebSocket (`en-US`, PCM 16 kHz mono, partial results stabilization `high`, the stage's custom vocabulary). Credentials and microphone permission are obtained when the game screen loads, and audio captured between the key press and the socket opening is buffered and sent first, so the first word is never lost. No socket is held open while idle, because Transcribe bills streamed audio.
-3. Partial transcripts are shown live in the listening banner.
+3. Partial transcripts are shown live in the listening banner. While the microphone is open, the banner shows a pulsing dot and "Listening" with a moving ellipsis, so it is always clear whether the app is listening; with reduced motion both hold still.
 4. Listening ends on the first of:
    - silence for `listenTimeoutMs` (preference, default 1200 ms) after at least one final transcript segment;
    - the player pressing Space again;
@@ -216,7 +216,8 @@ Prompt structure:
 ```json
 {
   "selected": "array of 0 to 4 candidate numbers",
-  "confidence": "HIGH | LOW"
+  "confidence": "HIGH | LOW",
+  "requested": "with no selection, the move the player asked for in a few words, else null"
 }
 ```
 
@@ -224,11 +225,12 @@ Post-processing:
 
 1. Numbers not in the list are discarded.
 2. Each selected action is verified with `validateAction` against the session at `expectedVersion`. Any that fail are discarded and counted as `INVALID`; if none remain, the outcome is `UNRECOGNIZED` with `outcome` recorded as `INVALID`.
-3. One action remains: `PROPOSED`, or `AUTO_APPLIED` when the player's `autoConfirm` is on and `confidence` is `HIGH`. `HINT` is always applied without confirmation: the outcome is `RESOLVED` and `displayText` and `speech` carry the hint text. `UNDO` follows the same confirmation rule as moves. The meta candidates use the action ids `UNDO` and `HINT`.
+3. One action remains: `PROPOSED`, or `AUTO_APPLIED` when the player's `autoConfirm` is on and `confidence` is `HIGH`. `HINT` is proposed like a move: the engine's hint action becomes the `PROPOSED` action, highlighted on the board, with the text "Hint: <move>. Confirm to make this move." and made on confirmation. With no move left, the outcome is `RESOLVED` with "There are no moves left. Try undo or a new game." `UNDO` follows the same confirmation rule as moves. The meta candidates use the action ids `UNDO` and `HINT`.
 
 Preferences: the decider reads `autoConfirm` through a preference reader. Until the Preference DAO exists (DM-1), the reader returns the defaults of `data-model.md` Section 5, so `autoConfirm` is off and every single match is `PROPOSED`.
 4. Two to four remain: `CHOICES`.
-5. Zero remain, or the model returned more than four: `UNRECOGNIZED` with the prompt "I'm not sure which move you mean. Try naming the column numbers, like three to seven."
+5. Zero remain and the model described the move it understood (`requested`): `UNRECOGNIZED` with "That move is not allowed right now: <requested>. Say hint if you'd like a suggestion." The description is shown and spoken only, never acted on, and is cut to plain words of at most 100 characters.
+6. Zero remain with no description, or the model returned more than four: `UNRECOGNIZED` with "I'm not sure which move you mean. Try naming the column numbers, like three to seven, or say hint for a suggestion."
 
 ## 7. Layer 2: Application Selection
 

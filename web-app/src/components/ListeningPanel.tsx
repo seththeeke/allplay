@@ -39,8 +39,17 @@ export function ListeningPanel({
     >
       {recording ? (
         <>
-          <p role="status" className="w-full text-2xl font-bold">
-            Recording. Speak now, then press Space.
+          <p role="status" className="flex w-full items-center gap-3 text-2xl font-bold">
+            <span
+              aria-hidden="true"
+              data-testid="recording-indicator"
+              className="ap-listening-pulse inline-block size-5 rounded-full border-2 border-ink bg-accent"
+            />
+            <span>
+              Listening
+              <span aria-hidden="true" className="ap-listening-dots" />
+            </span>
+            <span className="font-semibold">Speak now, then press Space.</span>
           </p>
           <Button ref={stop} type="button" onClick={onStop}>
             Stop (Space)

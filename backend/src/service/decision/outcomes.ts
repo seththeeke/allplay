@@ -72,7 +72,11 @@ export const TEXT = {
   noSuchChoice: "There is no choice with that number.",
   noGame: "There is no game in progress. Say new game to start one.",
   whichMove:
-    "I'm not sure which move you mean. Try naming the column numbers, like three to seven.",
+    "I'm not sure which move you mean. Try naming the column numbers, like three to seven, or say hint for a suggestion.",
+  notAllowed: (move: string) =>
+    `That move is not allowed right now: ${move}. Say hint if you'd like a suggestion.`,
+  hint: (move: string) => `Hint: ${move}. Confirm to make this move.`,
+  noHint: "There are no moves left. Try undo or a new game.",
   unrecognized: "I didn't understand that. Try a move like three to seven, or say help.",
   choices: (count: number) => `There are ${String(count)} matching moves.`,
   modelUnavailable: (detail: string) => `I can't understand commands right now: ${detail}`,

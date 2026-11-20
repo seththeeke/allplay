@@ -195,15 +195,49 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
     };
     const text = new Map(selection.candidates.map((c) => [c.actionId, c.text]));
     const ids = selection.selectedIds;
-    if (ids.length === 0 || ids.length > 4) {
+    if (ids.length === 0) {
+      const said = selection.requested;
+      return {
+        outcome: "UNRECOGNIZED",
+        response: reply("UNRECOGNIZED", said === null ? TEXT.whichMove : TEXT.notAllowed(said)),
+        record,
+      };
+    }
+    if (ids.length > 4) {
       return { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.whichMove), record };
     }
     const sessionId = envelope.session.sessionId;
     const version = envelope.session.version;
     const [only] = ids;
-    if (ids.length === 1 && only === HINT_ID) {
-      const hint = await deps.sessions.hint(playerId, sessionId);
-      return { outcome: "RESOLVED", response: reply("RESOLVED", hint.text), record };
+    /* A hint is proposed like a move: highlighted, then made on confirmation (section 6). */
+    const hinted =
+      ids.length === 1 && only === HINT_ID
+        ? (await deps.sessions.hint(playerId, sessionId)).action
+        : undefined;
+    if (hinted === null) {
+      return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.noHint), record };
+    }
+    if (hinted !== undefined) {
+      const shown = TEXT.hint(hinted.text);
+      return {
+        outcome: "PROPOSED",
+        response: {
+          ...reply("PROPOSED", shown, {
+            proposal: { actionId: hinted.actionId, text: hinted.text },
+          }),
+          speech: `${TEXT.hint(hinted.text)} Say yes to make it, or no to cancel.`,
+        },
+        record: {
+          ...record,
+          proposal: {
+            kind: "PROPOSED",
+            text: shown,
+            actionIds: [hinted.actionId],
+            appAction: null,
+            choices: null,
+          },
+        },
+      };
     }
     if (ids.length > 1) {
       const choices: Choice[] = ids.map((actionId, index) => ({

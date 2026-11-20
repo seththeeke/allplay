@@ -235,3 +235,37 @@ describe("candidates", () => {
     ]);
   });
 });
+
+describe("refused move descriptions", () => {
+  it("keeps the model's description to plain words and drops empty ones", async () => {
+    const { createInMemoryGameSessionDao } =
+      await import("../../../src/dao/gameSession/inMemoryGameSessionDao");
+    const { createInMemorySeatAssignmentDao } =
+      await import("../../../src/dao/seatAssignment/inMemorySeatAssignmentDao");
+    const { createGameSessionService } =
+      await import("../../../src/service/gameSession/gameSessionService");
+    const { selectGameActions } = await import("../../../src/service/decision/gameSelector");
+    const repository = createBundledRulesRepository();
+    const envelope = await createGameSessionService({
+      dao: createInMemoryGameSessionDao(),
+      seats: createInMemorySeatAssignmentDao(),
+      games: (gameId, version) => repository.compiled(gameId, version),
+    }).start("p", { gameId: "spider-solitaire" });
+    const requested = async (value: unknown) =>
+      (
+        await selectGameActions(
+          createFakeLlm(() => ({ selected: [], confidence: "LOW", requested: value })),
+          {
+            gameName: "Spider",
+            guidance: [],
+            envelope,
+            transcript: "x",
+            alternatives: [],
+          },
+        )
+      ).requested;
+    expect(await requested("<b>column 3 to 5</b>!")).toBe("bcolumn 3 to 5b");
+    expect(await requested("  ")).toBeNull();
+    expect(await requested(null)).toBeNull();
+  });
+});

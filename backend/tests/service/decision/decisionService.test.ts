@@ -33,6 +33,7 @@ function model(envelope: () => SessionEnvelope, picks: Record<string, string[]>)
     select_actions: (request) => ({
       selected: (picks[heard(request)] ?? []).map((id) => numberOf(request, id, texts(envelope()))),
       confidence: "HIGH",
+      requested: heard(request) === "ten to one" ? "column ten to column one" : null,
     }),
     select_app_action: (request) => {
       const t = heard(request);
@@ -237,15 +238,40 @@ describe("action decider: game turns", () => {
     expect(stale.outcome).toBe("UNRECOGNIZED");
   });
 
-  it("answers hints directly and refuses empty or over-broad selections", async () => {
+  it("proposes the hinted move, says why a move is refused, and refuses over-broad selections", async () => {
     const t = await started();
     const hint = await t.decider.decide(PLAYER, ask("hint", t.inGame()));
-    expect(hint.outcome).toBe("RESOLVED");
-    expect(hint.displayText).toMatch(/^Move /);
+    expect(hint).toMatchObject({
+      outcome: "PROPOSED",
+      displayText: expect.stringMatching(/^Hint: Move .+\. Confirm to make this move\.$/) as string,
+      speech: expect.stringContaining("Say yes to make it") as string,
+    });
+    const hinted = hint.proposal?.actionId;
+    expect(t.current().legalActions.map((a) => a.actionId)).toContain(hinted);
+    const made = await t.decider.decide(
+      PLAYER,
+      ask("yes", { ...t.inGame(), pendingDecisionId: hint.decisionId }),
+    );
+    expect(made.session?.session.version).toBe(1);
+    await t.refresh();
+    const refused = await t.decider.decide(PLAYER, ask("ten to one", t.inGame()));
+    expect(refused.displayText).toBe(
+      "That move is not allowed right now: column ten to column one. Say hint if you'd like a suggestion.",
+    );
+    const fresh = await started();
     for (const words of ["nothing", "everything"]) {
-      const reply = await t.decider.decide(PLAYER, ask(words, t.inGame()));
+      const reply = await fresh.decider.decide(PLAYER, ask(words, fresh.inGame()));
       expect(reply.displayText).toContain("which move");
+      expect(reply.displayText).toContain("say hint");
     }
+    const stuck = setupDecider(model(t.current, { hint: ["HINT"] }), {
+      sessions: { ...t.sessions, hint: () => Promise.resolve({ action: null, text: "none" }) },
+    });
+    const none = await stuck.decider.decide(PLAYER, ask("hint", t.inGame()));
+    expect(none).toMatchObject({
+      outcome: "RESOLVED",
+      displayText: "There are no moves left. Try undo or a new game.",
+    });
     const gibberish = await t.decider.decide(PLAYER, ask("gibberish", t.inGame()));
     expect(gibberish.displayText).toContain("didn't understand");
   });

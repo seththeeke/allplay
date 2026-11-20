@@ -52,8 +52,11 @@ describe("voice turns from the microphone", () => {
     fireEvent.keyDown(document.body, { key: " " });
     const stop = await screen.findByRole("button", { name: "Stop (Space)" });
     expect(stop).toHaveFocus();
-    expect(screen.getByRole("status")).toHaveTextContent("Recording. Speak now");
+    expect(screen.getByRole("status")).toHaveTextContent("Listening");
+    expect(screen.getByRole("status")).toHaveTextContent("Speak now, then press Space.");
+    expect(screen.getByTestId("recording-indicator")).toHaveClass("ap-listening-pulse");
     await user.click(stop);
+    expect(screen.queryByTestId("recording-indicator")).not.toBeInTheDocument();
     expect(await within(voiceBar()).findByText("Deal a new row of cards")).toBeInTheDocument();
     expect(decide).toHaveBeenCalledWith(
       expect.objectContaining({ transcript: "deal", transcriptSource: "MACOS_SPEECH" }),

@@ -66,18 +66,31 @@ export const candidateLines = (candidates: readonly Candidate[]): string =>
     .map((candidate) => `${String(candidate.number)} | ${candidate.shortText} | ${candidate.text}`)
     .join("\n");
 
+/** The model's short description of a refused move, kept to plain words and a sentence's length. */
+function requestedText(value: string | null): string | null {
+  const text =
+    value
+      ?.replace(/[^A-Za-z0-9 ,'-]/g, "")
+      .trim()
+      .slice(0, 100) ?? "";
+  return text === "" ? null : text;
+}
+
 export interface GameSelection {
   candidates: Candidate[];
   digest: string;
   /** Selected action ids in the model's order, limited to listed candidates; more than four means too broad. */
   selectedIds: string[];
   confidence: "HIGH" | "LOW";
+  /** With no selection: the move the player asked for in a few words, or null when unclear. */
+  requested: string | null;
   call: Omit<LlmResult, "input">;
 }
 
 const SelectOutputSchema = z.object({
   selected: z.array(z.number().int()),
   confidence: z.enum(["HIGH", "LOW"]).default("LOW"),
+  requested: z.string().nullable().default(null),
 });
 
 /** Layer 2 game selection (action-decision.md section 6). */
@@ -114,6 +127,7 @@ export async function selectGameActions(
     digest: createHash("sha256").update(lines).digest("hex"),
     selectedIds,
     confidence: parsed.success ? parsed.data.confidence : "LOW",
+    requested: parsed.success ? requestedText(parsed.data.requested) : null,
     call,
   };
 }
