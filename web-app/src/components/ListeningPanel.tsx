@@ -4,29 +4,51 @@ import { Button } from "./Button";
 export interface ListeningPanelProps {
   onSubmit: (transcript: string) => void;
   onCancel: () => void;
+  /** The microphone is capturing (local-development.md section 5). */
+  recording?: boolean;
+  onStop?: () => void;
 }
 
 /**
- * Prototype stand-in for microphone capture: the player types what they would
- * say. Live mode streams speech to Amazon Transcribe (action-decision.md section 3).
+ * The listening state. With a microphone the player speaks and presses Space
+ * (the focused Stop button) or Done; a typed command is always accepted, and
+ * is the only input when no microphone is configured.
  */
-export function ListeningPanel({ onSubmit, onCancel }: ListeningPanelProps): React.JSX.Element {
+export function ListeningPanel({
+  onSubmit,
+  onCancel,
+  recording = false,
+  onStop,
+}: ListeningPanelProps): React.JSX.Element {
   const [text, setText] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  /* Listening starts on purpose (Space or Talk), so the field takes focus right away. */
+  const stop = useRef<HTMLButtonElement>(null);
+  /* Listening starts on purpose (Space or Talk), so the active control takes focus right away. */
   useEffect(() => {
-    input.current?.focus();
-  }, []);
+    if (recording) stop.current?.focus();
+    else input.current?.focus();
+  }, [recording]);
   return (
     <form
       className="flex flex-wrap items-center gap-3"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(text);
+        if (recording && text.trim() === "") onStop?.();
+        else onSubmit(text);
       }}
     >
+      {recording ? (
+        <>
+          <p role="status" className="w-full text-2xl font-bold">
+            Recording. Speak now, then press Space.
+          </p>
+          <Button ref={stop} type="button" onClick={onStop}>
+            Stop (Space)
+          </Button>
+        </>
+      ) : null}
       <label htmlFor="voice-input" className="text-2xl font-bold">
-        Listening. Say what you want to do:
+        {recording ? "Or type it:" : "Listening. Say what you want to do:"}
       </label>
       <input
         id="voice-input"

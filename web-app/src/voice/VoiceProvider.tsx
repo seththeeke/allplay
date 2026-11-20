@@ -7,7 +7,9 @@ import {
   type DecisionResponse,
   type ResolutionRequest,
   type Screen,
+  type TranscriptSource,
 } from "../models/api";
+import type { SpeechCapture } from "./speechInput";
 import { createBrowserSpeechOutput, type SpeechOutput } from "./speechOutput";
 import { useAppActions } from "./useAppActions";
 import { useVoiceKeys } from "./useVoiceKeys";
@@ -31,6 +33,9 @@ export interface VoiceProviderProps {
   now?: () => number;
 }
 
+/** Capture stops by itself after this long (action-decision.md section 3.1). */
+export const MAX_CAPTURE_MS = 10_000;
+
 /**
  * The voice turn state machine (action-decision.md section 2): listen, decide,
  * then propose, offer choices, confirm an application action, or act.
@@ -40,7 +45,7 @@ export function VoiceProvider({
   speech = createBrowserSpeechOutput(),
   now = () => performance.now(),
 }: VoiceProviderProps): React.JSX.Element {
-  const { decisions } = useServices();
+  const { decisions, speechInput } = useServices();
   const { preferences } = usePreferences();
   const { pathname } = useLocation();
   const [phase, setPhase] = useState<VoicePhase>("IDLE");
@@ -48,6 +53,9 @@ export function VoiceProvider({
   const [message, setMessage] = useState<string | null>(null);
   const target = useRef<VoiceGameTarget | null>(null);
   const captureEnded = useRef(0);
+  const capture = useRef<SpeechCapture | null>(null);
+  const captureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [recording, setRecording] = useState(false);
 
   const say = (text: string, spoken: string = text, force = false): void => {
     setMessage(text);
@@ -116,7 +124,46 @@ export function VoiceProvider({
     }
   };
 
-  const submit = (transcript: string): void => {
+  const endCapture = (): SpeechCapture | null => {
+    const current = capture.current;
+    capture.current = null;
+    if (captureTimer.current !== null) clearTimeout(captureTimer.current);
+    captureTimer.current = null;
+    setRecording(false);
+    return current;
+  };
+
+  const stopRecording = (): void => {
+    const current = endCapture();
+    if (current === null) return;
+    captureEnded.current = now();
+    setPhase("DECIDING");
+    void current
+      .stop()
+      .then((heard) => {
+        submit(heard.text, heard.transcriptSource);
+      })
+      .catch(() => {
+        setPhase(restingPhase(decision));
+        say("I couldn't hear that. Please try again, or type the command.");
+      });
+  };
+
+  const startCapture = (): void => {
+    if (speechInput.start === null) return;
+    void speechInput
+      .start()
+      .then((started) => {
+        capture.current = started;
+        setRecording(true);
+        captureTimer.current = setTimeout(stopRecording, MAX_CAPTURE_MS);
+      })
+      .catch(() => {
+        say("The microphone is not available. Type the command instead.");
+      });
+  };
+
+  const submit = (transcript: string, transcriptSource: TranscriptSource = "TYPED"): void => {
     const text = transcript.trim();
     if (text.length === 0) {
       say("I didn't hear anything.");
@@ -128,7 +175,7 @@ export function VoiceProvider({
     void decisions
       .decide({
         transcript: text,
-        transcriptSource: "TRANSCRIBE",
+        transcriptSource,
         context: {
           screen: SCREENS[pathname] ?? (target.current === null ? "HOME" : "GAME"),
           sessionId: target.current?.sessionId ?? null,
@@ -150,14 +197,22 @@ export function VoiceProvider({
     message,
     proposedActionId: phase === "PROPOSAL" ? (decision?.proposal?.actionId ?? null) : null,
     choices: phase === "CHOICES" ? (decision?.choices ?? []) : [],
+    recording,
+    canRecord: speechInput.start !== null,
     startListening: () => {
       setPhase("LISTENING");
+      startCapture();
     },
-    submit,
+    stopRecording,
+    submit: (transcript) => {
+      endCapture()?.cancel();
+      submit(transcript);
+    },
     confirm: () => {
       if (phase === "PROPOSAL" || phase === "CONFIRM_APP") finish("CONFIRMED");
     },
     cancel: () => {
+      endCapture()?.cancel();
       if (decision !== null && phase !== "LISTENING") {
         finish("REJECTED");
         say("Cancelled.");

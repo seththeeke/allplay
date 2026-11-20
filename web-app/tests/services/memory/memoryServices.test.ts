@@ -60,16 +60,29 @@ const SERVICE_NAMES = [
   "player",
   "preferences",
   "sessions",
+  "speechInput",
   "stats",
   "voiceLab",
 ];
 
 describe("createServices", () => {
-  it("builds memory services and refuses live mode until it exists", () => {
-    expect(Object.keys(createServices({ stage: "LOCAL", dataMode: "MEMORY" })).sort()).toEqual(
-      SERVICE_NAMES,
-    );
-    expect(() => createServices({ stage: "TEST", dataMode: "LIVE" })).toThrow(/Live services/);
+  it("builds memory services, and live game services only with an API URL", async () => {
+    const memory = createServices({ stage: "LOCAL", dataMode: "MEMORY" });
+    expect(Object.keys(memory).sort()).toEqual(SERVICE_NAMES);
+    expect(memory.speechInput.kind).toBe("TYPED");
+    expect(() => createServices({ stage: "TEST", dataMode: "LIVE" })).toThrow(/needs an apiUrl/);
+    const fetchSpy = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ games: [] }))));
+    vi.stubGlobal("fetch", fetchSpy);
+    const live = createServices({
+      stage: "LOCAL",
+      dataMode: "LIVE",
+      apiUrl: "http://localhost:4000/",
+      speechInput: "LOCAL_SERVER",
+    });
+    expect(live.speechInput.kind).toBe("LOCAL_SERVER");
+    await expect(live.games.list()).resolves.toEqual({ games: [] });
+    expect(fetchSpy).toHaveBeenCalledWith("http://localhost:4000/v1/games", undefined);
+    vi.unstubAllGlobals();
   });
 
   it("checks health live when the stage config has an API URL", async () => {

@@ -18,10 +18,16 @@ export interface VoiceState {
   message: string | null;
   proposedActionId: string | null;
   choices: Choice[];
+  /** The microphone is capturing. */
+  recording: boolean;
+  /** Speech input can capture audio, not only typed commands. */
+  canRecord: boolean;
 }
 
 export interface VoiceControls extends VoiceState {
   startListening: () => void;
+  /** Stops capture and sends what was heard. */
+  stopRecording: () => void;
   submit: (transcript: string) => void;
   confirm: () => void;
   cancel: () => void;

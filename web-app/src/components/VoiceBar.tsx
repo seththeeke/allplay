@@ -26,7 +26,12 @@ export function VoiceBar(): React.JSX.Element {
           {phase === "DECIDING" ? "Thinking..." : voice.message}
         </p>
         {phase === "LISTENING" ? (
-          <ListeningPanel onSubmit={voice.submit} onCancel={voice.cancel} />
+          <ListeningPanel
+            onSubmit={voice.submit}
+            onCancel={voice.cancel}
+            recording={voice.recording}
+            onStop={voice.stopRecording}
+          />
         ) : null}
         {phase === "PROPOSAL" || phase === "CONFIRM_APP" ? (
           <div className="flex flex-wrap items-center gap-3">
