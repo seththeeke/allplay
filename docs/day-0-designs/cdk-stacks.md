@@ -251,6 +251,8 @@ Shared ESLint rules (the `local/comment-format` rule and the boundary rule) live
 
 ## 13. Local Emulator Testing
 
+Superseded on 2026-11-20 by `local-development.md`: the AWS Emulator is not used, and local testing runs the whole stack in memory. The text below is kept for the record.
+
 The AWS Emulator (`github.com/aws/aws-emulator`, launched 2026-11-11) runs AWS APIs locally at `https://127.0.0.1:9297` with no AWS account. On macOS it runs in Docker from an image built with the project's documented Dockerfile. State lives in memory and is lost when the emulator stops; IAM policies are not evaluated.
 
 All Play uses the emulator for the parts of the backend whose AWS behavior it reproduces, and keeps everything else on fakes in unit tests and on the Test stage in integration tests.
@@ -286,6 +288,6 @@ Tooling:
 | CDK-9 | 6. Action Decider | `DecisionApi` wiring, Bedrock grants, `TranscribeVocabulary`, `ScheduledJob` for the rollup, alarms |
 | CDK-10 | 7. Web app polishing | Playwright smoke step and Prod verification step |
 | CDK-11 | After a domain is registered | Domain props, certificates, aliases, SES email |
-| CDK-12 | 4. Authentication | Emulator Dockerfile and run script, `test:emulator` setup, first emulator tests for the `Players` and `Preferences` DAOs |
+| CDK-12 | Superseded by `local-development.md` | Emulator Dockerfile and run script, `test:emulator` setup, first emulator tests for the `Players` and `Preferences` DAOs |
 
 Authentication, data and engine resources are added by the legs of their own specs (`AA-*`, `DM-*`, `GE-*`, `AD-*`), using these constructs.

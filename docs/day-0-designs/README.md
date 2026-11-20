@@ -11,6 +11,7 @@ This folder holds the day 0 specification of All Play. Read the documents in thi
 | `game-engine.md` | Data-driven engine, rules document format, public interface, session API |
 | `spider-solitaire.md` | The Spider Solitaire rules document, vocabulary and test plan |
 | `prototype-mocks.md` | Every mock in the web prototype and the leg that replaces it |
+| `local-development.md` | The whole system running locally in memory: local server, fakes, local integration tests |
 | `action-decision.md` | Speech capture, the two-layer LLM decision, confirmation, turn records |
 | `authn-authz.md` | Guests, accounts, roles, Cognito, IAM route authorization, guest merge |
 | `cdk-stacks.md` | Stacks, constructs, pipeline, cost and telemetry, codebase layout and tooling |

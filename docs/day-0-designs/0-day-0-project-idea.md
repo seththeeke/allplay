@@ -197,3 +197,5 @@ Each document WILL not:
 21. Pipeline walking skeleton: after the web app prototype and before authentication, the pipeline is built and running end to end with a lean sample web app, backend route, CDK resource, unit tests and integration tests (phase 3a in `README.md`). No application feature phase starts until a full pipeline run has deployed through Prod.
 
 21a. Skeleton scope: the walking skeleton serves the web prototype through CloudFront, deploys through the CDK pipeline connected to GitHub, and exposes a health check as a dedicated Lambda behind the HTTP API's default URL. It is done when the site loads at its CloudFront URL and its `/health` page shows a `200` from `GET /v1/health`. Mocks still in the prototype are tracked in `prototype-mocks.md`.
+
+21b. Local development: the entire stack runs on a developer's machine in memory through a local Node.js server that wraps the Lambda handlers, before any DynamoDB table is built. The AWS Emulator is not used (`local-development.md`).
