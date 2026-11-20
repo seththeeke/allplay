@@ -56,7 +56,7 @@ Before any phase builds application features (authentication onward), the delive
 | SK-2 | Integration tests for `GET /v1/health` and a smoke test of the stage's CloudFront URL, run by the pipeline against Test before Prod deploys, then the same read-only check against Prod |
 | SK-3 | A recorded green pipeline run from a push through Prod, with the runbook updated from what was learned |
 
-Status (2026-11-19): every phase 3a leg is built and the `AllPlayPipeline` stack is deployed, but SK-3 (a green run through Prod) is pending two AWS Support cases on the `allplays` account: CloudFront account verification (distribution creation returns `403 AccessDenied`, "Your account must be verified before you can add new CloudFront resources"), and the CodeBuild quota `L-5ED1D25B` (Concurrently running builds for ARM/Small environment), which a new account starts at 0. Phase 5 (Game Engine) proceeds in parallel by the owner's direction; phase 4 follows it.
+Status (2026-11-20): phase 3a is complete. AWS Support cleared CloudFront verification, and the CodeBuild ARM/Small quota `L-5ED1D25B` went from 0 to 15. Pipeline execution `16c934e5-b26e-47e0-891a-d5a42d5b6044` ran green from source through Prod, including `VerifyTest` and `VerifyProd`. Phase 5 (Game Engine) proceeds ahead of phase 4 by the owner's direction.
 
 The health Lambda, route and page stay as the stage health check. The skeleton has no table and no Identity Pool; DM-1 and AA-4 add them. Playwright smoke tests arrive with CDK-10. Every mock the prototype still relies on is listed in `prototype-mocks.md`.
 

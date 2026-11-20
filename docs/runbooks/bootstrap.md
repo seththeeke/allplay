@@ -64,3 +64,19 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
   ```
   aws cloudformation delete-stack --stack-name AllPlayApp-Test --profile allplays --region us-east-1
   ```
+
+## 4. Recorded green run (SK-3)
+
+On 2026-11-20, pipeline execution `16c934e5-b26e-47e0-891a-d5a42d5b6044` passed every stage: Source, Build, UpdatePipeline, Assets, Test (with `VerifyTest`) and Prod (with `VerifyProd`). On both stages, `/health` reports a 200 from `GET /v1/health`.
+
+| Stage | Web | API |
+|---|---|---|
+| Test | https://d1ylknv7q5yxkl.cloudfront.net | https://pdxqi22s34.execute-api.us-east-1.amazonaws.com/ |
+| Prod | https://d1tiopw128rbb6.cloudfront.net | https://6w0ay61gug.execute-api.us-east-1.amazonaws.com/ |
+
+What the first runs taught:
+
+1. A new account cannot create CloudFront distributions until AWS Support verifies it (step 1.4). Adding MFA to the root user does not count as verification.
+2. A new account starts with 0 concurrent CodeBuild builds (step 1.5). The increase was applied while its Support case was still open.
+3. The CodeConnections source is a zip without `.git`, so repository checks must not depend on git. `scripts/repo-files.mjs` falls back to walking the tree.
+4. A stack that fails on first create is left in `ROLLBACK_COMPLETE` and must be deleted before the next deploy.
