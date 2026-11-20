@@ -34,7 +34,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 
 | Mock | Location | Real system | Replaced by |
 |---|---|---|---|
-| Speech capture | `components/ListeningPanel.tsx`: the player types what they would say | Microphone audio streamed to Amazon Transcribe with the stage's custom vocabulary | AD-9, WP-2 |
+| Speech capture in the game screen | `components/ListeningPanel.tsx`: the player types what they would say. The Voice Lab (`/voice-lab`) already captures real audio and transcribes it on the local server (AD-10, AD-11) | Microphone audio through `SpeechInput`: Transcribe deployed, the local server locally | AD-9, WP-2 |
 | Action decider | `services/memory/memoryDecisionService.ts`, `test-data/decider.ts` (`mockDecide`, keyword rules) | `POST /v1/decisions`: Bedrock Nova Micro classify and select layers (`action-decision.md`) | AD-1 to AD-5, WP-2 |
 | Decision records and failure classes | Not recorded | `Decisions` table with HARD, SOFT, NONE and PENDING classes | DM-4, AD-5 |
 | Speech output | `voice/speechOutput.ts`: browser `speechSynthesis` | Amazon Polly audio | AD-9, WP-2 |

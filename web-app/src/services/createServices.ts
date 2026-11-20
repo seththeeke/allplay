@@ -1,9 +1,11 @@
 import type { AppConfig } from "../config";
 import { createLiveHealthService } from "./live/liveHealthService";
+import { createLiveVoiceLabService } from "./live/liveVoiceLabService";
 import { createMemoryAdminService } from "./memory/memoryAdminService";
 import { createMemoryDecisionService } from "./memory/memoryDecisionService";
 import { createMemoryGameService } from "./memory/memoryGameService";
 import { memoryHealthService } from "./memory/memoryHealthService";
+import { createMemoryVoiceLabService } from "./memory/memoryVoiceLabService";
 import { createMemoryPlayerService } from "./memory/memoryPlayerService";
 import { createMemorySessionService } from "./memory/memorySessionService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
@@ -29,6 +31,10 @@ export function createServices(
   return {
     health:
       config.apiUrl === undefined ? memoryHealthService : createLiveHealthService(config.apiUrl),
+    voiceLab:
+      config.apiUrl === undefined
+        ? createMemoryVoiceLabService()
+        : createLiveVoiceLabService(config.apiUrl),
     admin: createMemoryAdminService(),
     games: createMemoryGameService(),
     sessions,

@@ -12,6 +12,10 @@ import type {
   GameOptions,
   GamesResponse,
   HealthResponse,
+  LocalStatus,
+  RecordedDecision,
+  TranscriptionResponse,
+  TranscriptSource,
   HintResponse,
   SessionEnvelope,
   StatsResponse,
@@ -93,8 +97,17 @@ export interface HealthService {
   check(): Promise<HealthCheck>;
 }
 
+/** The local server's voice routes, for the Voice Lab (local-development.md section 5). */
+export interface VoiceLabService {
+  status(): Promise<LocalStatus>;
+  transcribe(wav: Uint8Array<ArrayBuffer>): Promise<TranscriptionResponse>;
+  send(transcript: string, transcriptSource: TranscriptSource): Promise<DecisionResponse>;
+  recent(): Promise<RecordedDecision[]>;
+}
+
 export interface Services {
   health: HealthService;
+  voiceLab: VoiceLabService;
   admin: AdminService;
   stats: StatsService;
   decisions: DecisionService;

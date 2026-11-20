@@ -14,6 +14,9 @@ export const AppConfigSchema = z.object({
   identityPoolId: z.string().min(1).optional(),
   oauthDomain: z.string().min(1).optional(),
   transcribeVocabularyName: z.string().min(1).optional(),
+  /* Voice providers (action-decision.md section 16); absent means the in-memory prototype path. */
+  speechInput: z.enum(["TRANSCRIBE", "LOCAL_SERVER", "TYPED"]).optional(),
+  speechOutput: z.enum(["POLLY", "LOCAL_SERVER", "BROWSER", "OFF"]).optional(),
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;

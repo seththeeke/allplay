@@ -10,6 +10,7 @@ import { SettingsPage } from "../pages/SettingsPage";
 import { SignInPage } from "../pages/SignInPage";
 import { SignUpPage } from "../pages/SignUpPage";
 import { StatsPage } from "../pages/StatsPage";
+import { VoiceLabPage } from "../pages/VoiceLabPage";
 import { GameRoute } from "./GameRoute";
 import { RequireTier } from "./RequireTier";
 
@@ -23,6 +24,7 @@ export function AppRoutes(): React.JSX.Element {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<HelpPage />} />
         <Route path="health" element={<HealthPage />} />
+        <Route path="voice-lab" element={<VoiceLabPage />} />
         <Route path="sign-in" element={<SignInPage />} />
         <Route path="sign-up" element={<SignUpPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />

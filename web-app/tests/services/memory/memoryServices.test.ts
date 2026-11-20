@@ -61,6 +61,7 @@ const SERVICE_NAMES = [
   "preferences",
   "sessions",
   "stats",
+  "voiceLab",
 ];
 
 describe("createServices", () => {

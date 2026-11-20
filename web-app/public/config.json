@@ -1,4 +1,7 @@
 {
   "stage": "LOCAL",
-  "dataMode": "MEMORY"
+  "dataMode": "MEMORY",
+  "apiUrl": "http://localhost:4000/",
+  "speechInput": "LOCAL_SERVER",
+  "speechOutput": "BROWSER"
 }
