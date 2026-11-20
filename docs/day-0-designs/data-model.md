@@ -355,7 +355,7 @@ Attributes:
 | `decisionId` | String | ULID |
 | `playerId`, `sessionId`, `gameId` | String | `sessionId` and `gameId` are absent for turns outside a game |
 | `sessionVersion` | Number | Session version the candidates were computed from |
-| `transcriptSource` | String | `TRANSCRIBE` (web) or `APPLE_SPEECH` (iOS) |
+| `transcriptSource` | String | `TRANSCRIBE` (web), `APPLE_SPEECH` (iOS), or locally `MACOS_SPEECH`, `WHISPER` or `TYPED` (`action-decision.md` Section 3.4) |
 | `transcript` | String | Final transcript text |
 | `alternatives` | List of Map | Optional alternative transcripts with confidence |
 | `uiContext` | Map | Screen and pending prompt at the time of the turn |

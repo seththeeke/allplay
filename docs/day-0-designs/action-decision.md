@@ -10,9 +10,10 @@ Related specs: `game-engine.md` (legal actions), `data-model.md` (`Decision`, `R
 
 1. The LLM selects; the engine executes. The LLM only ever chooses from a numbered list of candidates the server built. Its output is validated, and anything outside the list is discarded.
 2. At most two LLM calls per turn: layer 1 classifies, layer 2 selects.
-3. The decider's input is transcript text. The web client transcribes with Amazon Transcribe; the iOS client transcribes on-device with Apple's Speech framework. Both call the same API.
+3. The decider's input is transcript text. Deployed, the web client transcribes with Amazon Transcribe and the iOS client on-device with Apple's Speech framework; locally, the local server transcribes (Section 3.4). Every source calls the same API.
 4. Every turn is recorded (`Decision`, 30 day TTL). Audio is never stored or sent to the backend.
 5. The transcript is untrusted input. It is placed in the prompt as quoted data, and because the model can only return candidate numbers, a transcript cannot cause any action outside the legal set.
+6. Every external capability sits behind an interface (Section 16): the language model, speech to text and text to speech. Business logic never names a vendor. Each runtime chooses implementations in one composition root, and each capability is chosen independently, so any mix (for example in-memory storage with Bedrock, Transcribe and Polly) runs the same logic.
 
 ## 2. Turn Flow
 
@@ -64,6 +65,19 @@ The iOS client uses `SFSpeechRecognizer` with on-device recognition required, `c
 | 1 to 4 | | | Pick a numbered choice |
 
 On touch devices, a large Talk button replaces Space, and Confirm, Cancel and each choice are large buttons.
+
+### 3.4 Local Speech to Text
+
+Locally (`local-development.md`), the web client does not call Transcribe. It captures the same 16 kHz mono PCM audio, encodes it as WAV when listening ends, and posts it to the local server's `POST /local/speech/transcribe`. The server passes it to its `SpeechToText` implementation (Section 16) and returns the transcript. The client then sends the transcript to `POST /v1/decisions` exactly as in Section 2. Audio is held in memory for the one request and never stored.
+
+| `SpeechToText` implementation | Where | `transcriptSource` |
+|---|---|---|
+| macOS speech: a Swift helper (`backend/src/local/macos-speech/`) using Apple's `SFSpeechRecognizer` with on-device recognition and the vocabulary as contextual strings | Local, macOS | `MACOS_SPEECH` |
+| whisper.cpp: the `whisper-cli` binary with the `ggml-base.en` model | Local, any OS | `WHISPER` |
+| Amazon Transcribe called from the local server with the developer's AWS profile | Local `local-aws` preset | `TRANSCRIBE` |
+| Typed: the listening panel's text field, no audio | Any, including tests | `TYPED` |
+
+The local server's `auto` choice uses macOS speech when the helper is built, else whisper.cpp when its binary and model are present, else typed input only.
 
 ## 4. Decision API
 
@@ -242,6 +256,16 @@ Prompt structure: a cached system prompt listing every action with its parameter
 | Caching | `cachePoint` after the static system blocks |
 | Timeout | 2,500 ms per call, one retry on throttling or 5xx with 100 ms jittered backoff |
 
+`LlmClient` implementations:
+
+| Implementation | Use | Notes |
+|---|---|---|
+| Bedrock Converse | Deployed stages; locally in `local-aws` | As configured above |
+| Claude API | Local preset `local` | The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), Messages API with the same tool forced by `tool_choice`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`. The key comes from `ANTHROPIC_API_KEY` in the developer's environment and is never committed |
+| Fixed-response fake | Unit tests, `continuous-integration`, Test stage integration tests (AD-7) | Deterministic answers keyed by transcript |
+
+All implementations take the same prompt blocks and tool schema and return the same parsed tool input, validated with zod. A provider's text never reaches the decider unvalidated.
+
 The model id, `maxTokens` and timeout are configuration per layer (`DECIDER_L1_MODEL_ID`, `DECIDER_L2_MODEL_ID`, and so on), set as Lambda environment variables from CDK context. All Bedrock access goes through one `LlmClient` interface in `service/decision/llm/`, so changing provider or model changes one implementation and the configuration, never the decider logic.
 
 A model change is accepted only when it passes the offline evaluation (Section 12) at or above the current model's accuracy.
@@ -294,6 +318,8 @@ Unit tests (run in CI, no Bedrock calls) cover prompt building, candidate number
 
 ## 13. Voice Output (Polly)
 
+Text to speech sits behind `SpeechOutput` in the web client and `TextToSpeech` on the local server (Section 16). Deployed, `SpeechOutput` is Polly as described below. Locally, the client posts text to `POST /local/speech/synthesize` and plays the returned audio. The local server's `TextToSpeech` is Kokoro (the open-source Kokoro-82M model through `kokoro-onnx`), or Polly with the developer's AWS profile in the `local-aws` preset. Tests use a recording implementation that keeps the text it was asked to speak and plays nothing.
+
 When `voiceOutputEnabled` is on, the client speaks the response `speech` field (and event speech text from the session envelope) by calling Amazon Polly `SynthesizeSpeech` directly with Identity Pool credentials (neural engine, the player's `voiceId`, SSML `prosody rate` from `speechRate`). The Identity Pool roles allow `polly:SynthesizeSpeech` only. The client caches synthesized audio by text for the session. Spoken text uses words, never symbols ("seven of spades", "column two").
 
 ## 14. Code Layout
@@ -306,9 +332,11 @@ backend/src/service/decision/
   gameSelector.ts          layer 2 game
   appSelector.ts           layer 2 application
   prompts/                 prompt builders and static prompt text
-  llm/                     LlmClient interface and Bedrock Converse implementation
+  llm/                     LlmClient interface; Bedrock Converse, Claude API and fake implementations
   outcomes.ts              outcome and failure classification
   rateLimiter.ts
+backend/src/service/speech/  SpeechToText and TextToSpeech interfaces and local implementations
+backend/src/local/            local server, composition root, macOS speech helper source
 backend/src/models/decision.ts, appAction.ts
 ```
 
@@ -326,4 +354,26 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 | AD-6 | Rate limiter and API throttling; Bedrock and Transcribe IAM grants; Transcribe custom vocabulary custom resource |
 | AD-7 | API integration tests for the decision routes against the Test stage, using a test-only fixed-response mode of `LlmClient` enabled by an environment variable in Test only |
 | AD-8 | Offline evaluation set and `eval:decider` script for Spider Solitaire |
+| AD-10 | `SpeechToText` interface with the macOS speech helper, whisper.cpp and typed implementations; `POST /local/speech/transcribe` on the local server |
+| AD-11 | Web client audio capture (16 kHz PCM, WAV encoding), `SpeechInput` local server implementation, and the Voice Lab page (`local-development.md` Section 5) that shows the transcript and what the backend received |
+| AD-12 | Decision intake: `POST /v1/decisions` parses the request, records a `Decision` through an in-memory `DecisionDao`, and replies `UNRECOGNIZED` with the heard text until the layers of AD-2 to AD-5 replace that reply |
+| AD-13 | `TextToSpeech` with Kokoro and recording implementations, `POST /local/speech/synthesize`, and the web `SpeechOutput` local server implementation |
+| AD-14 | Claude API `LlmClient` implementation and its contract tests shared with Bedrock and the fake |
+| AD-15 | Server-side Transcribe and Polly implementations for the `local-aws` preset |
 | AD-9 | Web client: Transcribe streaming capture, listening banner, proposal and choice UI, key handling, Polly playback (execution phase 7) |
+
+## 16. Provider Interfaces
+
+| Interface | Runtime | Implementations |
+|---|---|---|
+| `LlmClient` | Backend, `service/decision/llm/` | Bedrock Converse, Claude API, fixed-response fake |
+| `SpeechToText` | Local server, `service/speech/` | macOS speech helper, whisper.cpp, Transcribe, typed only (no audio accepted) |
+| `TextToSpeech` | Local server, `service/speech/` | Kokoro, Polly, recording |
+| `SpeechInput` | Web client, `web-app/src/voice/` | Transcribe streaming (deployed), local server upload, typed |
+| `SpeechOutput` | Web client, `web-app/src/voice/` | Polly (deployed), local server playback, browser speech synthesis, recording |
+| DAOs | Backend, `dao/` | DynamoDB, in-memory (`local-development.md`) |
+
+1. Each runtime has one composition root: the Lambda bootstraps for deployed stages and `backend/src/local/providers.ts` for the local server. It reads the configuration (`local-development.md` Section 2.1) and builds every implementation. Nothing else constructs a provider.
+2. Services receive providers as constructor dependencies. A service never imports an implementation, and a lint rule enforces that for `service/decision/` and `service/speech/`.
+3. Every implementation of an interface passes that interface's shared contract tests, as the session DAOs do.
+4. The web client's `SpeechInput` and `SpeechOutput` are chosen from the stage `config.json` fields `speechInput` (`TRANSCRIBE`, `LOCAL_SERVER`, `TYPED`) and `speechOutput` (`POLLY`, `LOCAL_SERVER`, `BROWSER`, `OFF`).

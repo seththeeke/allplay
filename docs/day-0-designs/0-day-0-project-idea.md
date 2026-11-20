@@ -199,3 +199,5 @@ Each document WILL not:
 21a. Skeleton scope: the walking skeleton serves the web prototype through CloudFront, deploys through the CDK pipeline connected to GitHub, and exposes a health check as a dedicated Lambda behind the HTTP API's default URL. It is done when the site loads at its CloudFront URL and its `/health` page shows a `200` from `GET /v1/health`. Mocks still in the prototype are tracked in `prototype-mocks.md`.
 
 21b. Local development: the entire stack runs on a developer's machine in memory through a local Node.js server that wraps the Lambda handlers, before any DynamoDB table is built. The AWS Emulator is not used (`local-development.md`).
+
+21c. Swappable providers: the language model, speech to text and text to speech each sit behind an interface and are chosen per runtime and per capability. Locally: the Claude API (with a developer key) for the model, the macOS speech helper with whisper.cpp as fallback for speech to text, and Kokoro for text to speech. Presets `local`, `local-aws` and `continuous-integration` (`local-development.md` Section 2.1, `action-decision.md` Section 16).
