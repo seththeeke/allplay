@@ -12,7 +12,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 
 | Mock | Location | Real system | Replaced by |
 |---|---|---|---|
-| Live mode refused | `services/createServices.ts` | Live API clients selected by `dataMode` `LIVE` | WP-1 |
+| Live mode partial | `services/createServices.ts`: `LIVE` builds live games, sessions, decisions and Voice Lab services (used locally against the local server); preferences, player, stats and admin stay in memory | Live API clients for every service | WP-1 |
 | State persistence in localStorage | `services/memory/memoryStore.ts` | DynamoDB tables (`data-model.md`) behind the HTTP API | WP-1 |
 | Game catalog | `services/memory/memoryGameService.ts`, `test-data/games.ts` | `GET /v1/games` from the bundled rules documents (`game-engine.md` Section 13) | GE-9, GE-10, WP-1 |
 | Game sessions: create, apply, undo, hint, abandon | `services/memory/memorySessionService.ts` | `/v1/sessions*` over the server engine and `GameSessions` table | GE-10, WP-1 |
@@ -34,8 +34,8 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 
 | Mock | Location | Real system | Replaced by |
 |---|---|---|---|
-| Speech capture in the game screen | `components/ListeningPanel.tsx`: the player types what they would say. The Voice Lab (`/voice-lab`) already captures real audio and transcribes it on the local server (AD-10, AD-11) | Microphone audio through `SpeechInput`: Transcribe deployed, the local server locally | AD-9, WP-2 |
-| Action decider | `services/memory/memoryDecisionService.ts`, `test-data/decider.ts` (`mockDecide`, keyword rules) | `POST /v1/decisions`: Bedrock Nova Micro classify and select layers (`action-decision.md`) | AD-1 to AD-5, WP-2 |
+| Speech capture in the game screen | `components/ListeningPanel.tsx`: in `MEMORY` mode the player types what they would say. Locally the microphone is captured and transcribed by the local server (LD-7) | Microphone audio through `SpeechInput`: Transcribe deployed, the local server locally | AD-9, WP-2 |
+| Action decider | `services/memory/memoryDecisionService.ts`, `test-data/decider.ts` (`mockDecide`, keyword rules), in `MEMORY` mode only; locally `LIVE` mode calls the real decider | `POST /v1/decisions`: Bedrock Nova Micro classify and select layers (`action-decision.md`) | AD-1 to AD-5, WP-2 |
 | Decision records and failure classes | Not recorded | `Decisions` table with HARD, SOFT, NONE and PENDING classes | DM-4, AD-5 |
 | Speech output | `voice/speechOutput.ts`: browser `speechSynthesis` | Amazon Polly audio | AD-9, WP-2 |
 

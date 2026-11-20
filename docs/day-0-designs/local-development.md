@@ -33,6 +33,7 @@ Local-only routes (never deployed):
 | `POST /local/speech/synthesize` | `{ text, rate }` in, audio out (AD-13) |
 | `GET /local/decisions` | The most recent decisions recorded by the backend, newest first, for the Voice Lab |
 | `POST /local/reset` | Clears all in-memory state, for tests |
+| `POST /local/seed` | `{ seed }` (32 hex digits) or `{ seed: null }`. Every game started afterwards uses this seed until it is cleared or the state is reset, so tests and manual checks get a known deal |
 
 ### 2.1 Presets and Capability Settings
 
@@ -52,6 +53,8 @@ Each capability is chosen by an environment variable. A preset sets all of them,
 | `local-aws` | memory | `bedrock` | `transcribe` | `polly` |
 | `continuous-integration` | memory | `fake` | `typed` | `recording` |
 
+`ALLPLAY_CLAUDE_MODEL` overrides the Claude API model (`action-decision.md` Section 8).
+
 `local-aws` calls AWS with the `allplays` profile (CLAUDE.md Section 4). `continuous-integration` needs nothing installed beyond Node.js and is what GitHub Actions runs.
 
 ## 3. Identity
@@ -69,32 +72,35 @@ Each provider has a setup script in `backend/`. Built binaries and models live i
 | macOS speech helper | `npm run setup:speech:macos` compiles `src/local/macos-speech/transcribe.swift` with `swiftc` (Xcode command line tools). The first use asks for speech recognition permission | A small native binary; recognition runs on device |
 | whisper.cpp | `npm run setup:speech:whisper` runs `brew install whisper-cpp` and downloads `ggml-base.en.bin` | About 142 MB model, about 300 MB of memory while transcribing |
 | Kokoro | `npm run setup:speech:kokoro` creates a Python virtual environment in `backend/.local/kokoro` with `kokoro-onnx` and downloads the model (AD-13) | About 300 MB of model files |
-| Claude API | `ANTHROPIC_API_KEY` in the developer's shell (AD-14) | None |
+| Claude API | `ANTHROPIC_API_KEY` in the developer's shell, or the key alone in `backend/.local/anthropic-api-key` (AD-14). Without a key the language model is reported unavailable and every turn is `UNRECOGNIZED` | None |
 
 A provider that is not set up is reported by `GET /local/status`, and the server falls back as Section 2.1 states rather than failing to start.
 
 ## 5. Web App
 
-1. The web app's `MEMORY` data mode remains the unit test harness. Locally, `web-app/public/config.json` points `apiUrl` at the local server, with `speechInput: LOCAL_SERVER` and `speechOutput: LOCAL_SERVER`.
-2. The Voice Lab page, `/voice-lab`, is the manual test bench for the voice path. It shows each stage of a voice turn: the local server's status and providers, recording, the transcript with its provider and latency, the command sent to `POST /v1/decisions`, the backend's reply, and the backend's recent decisions from `GET /local/decisions`. It also accepts a typed command.
-3. `npm run dev` at the repository root starts the local server and Vite together.
+1. The web app's `MEMORY` data mode remains the unit test harness. Locally, `web-app/public/config.json` sets `dataMode: LIVE` and points `apiUrl` at the local server, with `speechInput: LOCAL_SERVER` and `speechOutput: BROWSER` until AD-13 provides `LOCAL_SERVER`. In `LIVE` mode the game catalog, sessions, decisions and the Voice Lab call the API; preferences, the player, stats and admin stay in memory until their legs (`prototype-mocks.md`). Application actions such as zoom and theme run in the client, so they change the in-memory preferences.
+2. The game screen captures speech when `speechInput` is `LOCAL_SERVER`: Space or the Talk button starts recording, Space again or Done stops it, and capture stops by itself after 10 seconds. The audio is transcribed by `POST /local/speech/transcribe` and the transcript is sent to `POST /v1/decisions` with its `transcriptSource`. The listening panel's text field stays available, and a typed command is sent as `TYPED`.
+3. The Voice Lab page, `/voice-lab`, is the manual test bench for the voice path. It shows each stage of a voice turn: the local server's status and providers, recording, the transcript with its provider and latency, the command sent to `POST /v1/decisions`, the backend's reply, and the backend's recent decisions from `GET /local/decisions`. It also accepts a typed command.
+4. `npm run dev` at the repository root starts the local server and Vite together.
 
 ## 6. Testing on a Developer Machine
 
 1. Local integration tests: `backend/tests/integration/` takes its target from `API_URL`. A local run starts the server with the `continuous-integration` preset, resets it, runs the suite and stops it. GitHub Actions runs this on every push.
 2. Audio fixtures: `say -o <file>.wav --data-format=LEI16@16000 "<words>"` produces 16 kHz WAV files of spoken commands. Tests post them to `POST /local/speech/transcribe` to exercise the real speech-to-text implementation end to end.
-3. Claude Code testing: Claude Code can start the local stack and drive the web app on the same machine, through browser automation, computer use or Playwright. Because automation cannot speak into a microphone, it uses typed commands or the audio fixtures. Because it cannot listen, it uses the recording `TextToSpeech` and checks the text that would have been spoken.
+3. Voice playthrough: `npm run test:voice` in `web-app/` drives the web app in Playwright against a running local stack with the Claude API language model. It sets the seed of `backend/tests/game-engine/golden/spider-one-suit.json`, then plays the whole game by typing the hard-coded commands in `web-app/tests/voice-playthrough/spider-one-suit.commands.json` into the listening panel, confirming each proposal with Enter or a spoken "yes", and mixing in application commands (zoom and theme). It checks that each turn proposes the expected action, that the game ends `WON`, and through `GET /local/decisions` that every turn was classified by a Claude model. It spends API credits, so it runs on demand and never in CI.
+4. Claude Code testing: Claude Code can start the local stack and drive the web app on the same machine, through browser automation, computer use or Playwright. Because automation cannot speak into a microphone, it uses typed commands or the audio fixtures. Because it cannot listen, it uses the recording `TextToSpeech` and checks the text that would have been spoken.
 
 ## 7. Legs
 
 | Leg | Scope |
 |---|---|
 | LD-1 | Local server skeleton: event adapter, route table from the route lists, the health route, `GET /local/status`, `POST /local/reset`, `dev:server` script, composition root with Section 2.1 settings |
-| LD-2 | Session and game routes on the local server with the in-memory session DAO |
+| LD-2 | Session and game routes on the local server with the in-memory session DAO, path parameters in the local route table, and `POST /local/seed` |
 | LD-3 | Local caller identity header written into the IAM identity fields |
 | LD-4 | Web app `LIVE` services against the local server, and a root `npm run dev` |
 | LD-5 | Local integration test run in GitHub Actions with the `continuous-integration` preset |
 | LD-6 | Fakes for sign-in and deployments as those features land |
+| LD-7 | Game screen microphone capture through the local server, and the voice playthrough test (Section 6) |
 
 The voice legs (AD-10 to AD-15) are listed in `action-decision.md` Section 15. The first build order is LD-1, LD-3, AD-12, AD-10, then AD-11: speech to text, shown in the Voice Lab, reaching the backend as text.
 

@@ -154,6 +154,8 @@ The client sends exactly one resolution per decision it received, except for `RE
 
 A resolution for a game action whose session version has moved on returns `409 VERSION_CONFLICT` with the current envelope, and the decision is recorded as `EXPIRED`.
 
+Open decisions: a `PROPOSED`, `CHOICES` or `APP_ACTION` decision keeps what was shown in its `proposal` field (`data-model.md` Section 9): the kind, the candidate action ids in choice order, and the application action. A resolution or a `RESPONSE` turn reads the decision through the `DecisionDao`, accepts it only from the player who owns it and only while its outcome is still open, and writes the final outcome and failure class back. A resolution for an unknown decision returns `404 NOT_FOUND`; one for a decision that is already final returns `422 VALIDATION_ERROR`.
+
 ## 5. Layer 1: Classification
 
 Purpose: decide what kind of request the transcript is.
@@ -222,7 +224,9 @@ Post-processing:
 
 1. Numbers not in the list are discarded.
 2. Each selected action is verified with `validateAction` against the session at `expectedVersion`. Any that fail are discarded and counted as `INVALID`; if none remain, the outcome is `UNRECOGNIZED` with `outcome` recorded as `INVALID`.
-3. One action remains: `PROPOSED`, or `AUTO_APPLIED` when the player's `autoConfirm` is on and `confidence` is `HIGH`. `HINT` is always applied without confirmation and returns the hint text; `UNDO` follows the same confirmation rule as moves.
+3. One action remains: `PROPOSED`, or `AUTO_APPLIED` when the player's `autoConfirm` is on and `confidence` is `HIGH`. `HINT` is always applied without confirmation: the outcome is `RESOLVED` and `displayText` and `speech` carry the hint text. `UNDO` follows the same confirmation rule as moves. The meta candidates use the action ids `UNDO` and `HINT`.
+
+Preferences: the decider reads `autoConfirm` through a preference reader. Until the Preference DAO exists (DM-1), the reader returns the defaults of `data-model.md` Section 5, so `autoConfirm` is off and every single match is `PROPOSED`.
 4. Two to four remain: `CHOICES`.
 5. Zero remain, or the model returned more than four: `UNRECOGNIZED` with the prompt "I'm not sure which move you mean. Try naming the column numbers, like three to seven."
 
@@ -261,7 +265,7 @@ Prompt structure: a cached system prompt listing every action with its parameter
 | Implementation | Use | Notes |
 |---|---|---|
 | Bedrock Converse | Deployed stages; locally in `local-aws` | As configured above |
-| Claude API | Local preset `local` | The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), Messages API with the same tool forced by `tool_choice`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`. The key comes from `ANTHROPIC_API_KEY` in the developer's environment and is never committed |
+| Claude API | Local preset `local` | The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), Messages API with the same tool forced by `tool_choice`. Model from `ALLPLAY_CLAUDE_MODEL`, default `claude-haiku-5-5`. Thinking is disabled, since a forced tool call cannot follow a thinking block, and no sampling parameters are sent, since Claude Haiku 5.5 accepts only their defaults. The static system blocks carry `cache_control`. Timeout 10,000 ms per call, because the call leaves the developer's machine for the public API. The key comes from `ANTHROPIC_API_KEY` in the developer's environment, or from the git-ignored file `backend/.local/anthropic-api-key`, and is never committed |
 | Fixed-response fake | Unit tests, `continuous-integration`, Test stage integration tests (AD-7) | Deterministic answers keyed by transcript |
 
 All implementations take the same prompt blocks and tool schema and return the same parsed tool input, validated with zod. A provider's text never reaches the decider unvalidated.
@@ -387,8 +391,10 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 | AD-10 | Done | `SpeechToText` in `backend/src/service/speech/` with macOS speech, whisper.cpp and typed-only implementations. The macOS helper runs as `AllPlaySpeech.app`, launched with `open`, because macOS kills a bare command-line binary that asks for speech permission. Measured: macOS speech under 1 s warm (about 8 s on the first run after a rebuild); whisper.cpp `ggml-base.en` 0.3 to 0.6 s warm |
 | AD-11 | Done | 16 kHz AudioWorklet capture and WAV encoding (`web-app/src/voice/`), the local server `VoiceLabService`, and the `/voice-lab` page. Checked end to end in Chrome with a fake microphone |
 | AD-12 | Done | `POST /v1/decisions` intake with an in-memory `DecisionDao`; it replies `UNRECOGNIZED` with the heard text until AD-2 to AD-5 |
-| AD-13 | Next | Kokoro `TextToSpeech` and local playback |
-| AD-14 | Open | Claude API `LlmClient` |
-| AD-1 to AD-9, AD-15 | Open | Decider layers, Bedrock, AWS speech and the game screen voice flow |
+| AD-1 | In progress | Models, `LlmClient` interface and fake. The Bedrock Converse implementation follows with AD-15 |
+| AD-14 | In progress | Claude API `LlmClient` |
+| AD-2 to AD-5 | In progress | Classifier, game selector, application selector, orchestration and the resolution route, on the in-memory `DecisionDao`; metric counters wait for DM-5 |
+| AD-13 | Open | Kokoro `TextToSpeech` and local playback; the game screen speaks through the browser until then |
+| AD-6 to AD-9, AD-15 | Open | Rate limits, Test stage tests, evaluation set, Bedrock, AWS speech and Transcribe capture |
 
 Local development legs LD-1 (local server) and LD-3 (development caller) are done; see `local-development.md`.
