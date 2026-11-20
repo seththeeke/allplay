@@ -7,7 +7,8 @@ import {
   createGameSessionService,
   type GameSessionService,
 } from "../../src/service/gameSession/gameSessionService";
-import { loadScenario, type Scenario } from "./scenarios";
+import { readFileSync } from "node:fs";
+import { loadScenario, ScenarioSchema, type Scenario } from "./scenarios";
 
 const PLAYER = "GUEST#us-east-1:functional-player";
 const repository = createBundledRulesRepository();
@@ -138,6 +139,23 @@ describe("Spider Solitaire playthroughs from fixed seeds", () => {
       current: { session: { version: 1 } },
     });
   });
+
+  for (const [file, suits] of [
+    ["spider-two-suits.json", 2],
+    ["spider-four-suits.json", 4],
+  ] as const) {
+    it(`wins a ${String(suits)}-suit game through the service`, async () => {
+      const golden = ScenarioSchema.parse(
+        JSON.parse(readFileSync(new URL(`../game-engine/golden/${file}`, import.meta.url), "utf8")),
+      );
+      const { envelope } = await play(golden);
+      expect(envelope.session).toMatchObject({
+        status: "WON",
+        options: { suits },
+        summary: { completedRuns: 8, score: 500 - golden.actions.length + 800 },
+      });
+    });
+  }
 
   it("deals the Hoyle stock in five rows of ten and a last row of four", async () => {
     const scenario: Scenario = {

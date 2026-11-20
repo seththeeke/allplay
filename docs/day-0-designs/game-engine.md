@@ -583,7 +583,7 @@ The client never decides legality; it only matches against the server's list.
 
 ## 13. Rules Validation
 
-`validateRules` runs three stages and returns a report listing every problem:
+`validateRules` runs three stages and returns a report listing every problem. Stages 1 and 2 always run; stage 3 runs when requested with `validateRules(doc, { simulate })`, because it takes minutes:
 
 1. Schema: the zod `RulesDocumentSchema`.
 2. Static checks: every referenced zone type, param, var, option, card set, event and speech placeholder exists; parameter domains reference only earlier parameters; option `switch` cases cover every option value.
@@ -653,30 +653,34 @@ Spider Solitaire itself lands in the legs of `spider-solitaire.md`.
 
 ## Appendix: Implementation Progress
 
-Status as of 2026-11-20. Built ahead of phase 4 by the owner's direction.
+Status as of 2026-11-20. The in-memory game engine is complete. Built ahead of phase 4 by the owner's direction.
 
 | Leg | Status | Notes |
 |---|---|---|
 | GE-1 | Done | Public types, errors (adds `InvalidGameInputError`), xoshiro128** and Fisher-Yates shuffle, isolation lint rules |
-| GE-2 | Done | `RulesDocumentSchema` (zod) and static checks, including missing zones and speech placeholders |
-| GE-3 | Done | Every expression and predicate primitive in Section 4.5 |
+| GE-2 | Done | `RulesDocumentSchema` (zod) and static checks, including missing zones, speech placeholders and derived vars |
+| GE-3 | Done | Every expression and predicate primitive in Section 4.5, plus `div` |
 | GE-4 | Done | Setup steps, `createGame`, triggers to a fixed point with the pass limit, end conditions, card conservation |
 | GE-5 | Done | Enumeration with prune, action ids, `validateAction`, `applyAction` |
 | GE-6 | Done | Undo by replay with `scoreCarry`, hints with `reversesLastAction`, equivalence keys |
-| GE-7 | Done | Views with redaction, descriptors, speech templates and card names |
-| GE-8 | Open | Simulation validator (Section 13 stage 3) and property tests |
-| GE-9 | Done | `createBundledRulesRepository` in `game-catalog/`; the toy game lives in `backend/tests/game-engine/toyRules.ts` and uses every primitive |
-| GE-10 | Done | `createGameSessionService` on `GameSessionDao`, `createInMemoryGameSessionDao`, gzip state codec, ULIDs, and the shared DAO contract tests |
-| GE-11 | Open | Needs the session routes and a deployed Test stage |
-| GE-12 | Done | `backend/tests/functional/`: win from seed `...0001` (108 recorded actions, score 1192), dead-end loss from seed `...00d9` (five early deals, then abandon), undo out of the dead end, a stale version conflict, and the Hoyle final deal |
-| GE-13 | Open | Session routes and controllers, `SeatAssignment` and `PlayerStats` writes |
+| GE-7 | Done | Views with redaction and derived vars (Section 4.2.1), descriptors, speech templates and card names |
+| GE-8 | Done | `validateRules(doc, { simulate })` runs stage 3 (`rules/simulate.ts`). Property tests (fast-check): listed actions validate, every other Spider id is rejected, undo restores the view, and nothing hidden leaks. The full-size run (50 seeds, 500 actions, every option combination, about 3.5 minutes) is `npm run test:simulation` in GitHub Actions |
+| GE-9 | Done | `createBundledRulesRepository` in `game-catalog/`; the toy game in `backend/tests/game-engine/toyRules.ts` uses every primitive |
+| GE-10 | Done | `createGameSessionService` on `GameSessionDao`, `createInMemoryGameSessionDao`, gzip state codec, ULIDs, shared DAO contract tests; the summary holds vars and derived vars |
+| GE-11 | Open | Needs GE-13; runs against the local server (`local-development.md`) and the Test stage |
+| GE-12 | Done | `backend/tests/functional/`: one-suit win, dead-end loss and abandon, undo out of the dead end, stale version conflict, Hoyle final deal, and the two- and four-suit golden wins through the session service |
+| GE-13 | Open | Session routes and controllers, `SeatAssignment` and `PlayerStats` writes; delivered with LD-2 and the guest Identity Pool part of AA-4 |
 
-Spider legs: SP-1 to SP-3 are done (`game-catalog/spider-solitaire/rules.v1.json`, deal, move, run and scoring tests); SP-4 hint tests are partly done; SP-5 golden games are open. DM-3 (`DynamoGameSessionDao`) is open and must pass `backend/tests/dao/gameSession/gameSessionDaoContract.ts`.
+Spider legs SP-1 to SP-5 are done:
 
-Known gaps:
+- `rules.v1.json` adds the derived var `stockDealsRemaining`.
+- Hint and speech tests are in place, along with golden games for one, two and four suits in `backend/tests/game-engine/golden/`. Each golden game is replayed and its final state hash checked.
+- The simulation covers every option combination.
 
-1. The session `summary` holds the game's vars only; `stockDealsRemaining` (`data-model.md` Section 6) is not computed yet.
-2. Engine `LOST` maps to session status `ABANDONED`, since the session status set has no `LOST`.
-3. The test-only solver (`tests/functional/solver.ts`) follows hints; it wins seed `...0001` but not every seed. Scenarios replay recorded lines, regenerated with `npx tsx tests/functional/recordScenarios.ts`.
+The golden lines are found by test-only solvers (`tests/functional/solver.ts`): hint following, depth-first search, and a deal-by-deal best-first search. `npx tsx tests/functional/recordScenarios.ts` regenerates them.
 
-Coverage at this point: 151 backend tests, 99.9% lines and 99.7% branches.
+Remaining outside the in-memory engine: DM-3 (`DynamoGameSessionDao`, which must pass `backend/tests/dao/gameSession/gameSessionDaoContract.ts`), GE-13 and GE-11.
+
+Known gap: engine `LOST` maps to session status `ABANDONED`, since the session status set has no `LOST`. No core game reaches `LOST` today.
+
+Coverage at this point: 171 backend tests, 99.8% lines and 99.4% branches.

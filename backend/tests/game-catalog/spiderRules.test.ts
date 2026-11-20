@@ -175,6 +175,28 @@ describe("Spider hints", () => {
   });
 });
 
+describe("Spider speech", () => {
+  it("carries the five decider guidance items and the zone aliases", async () => {
+    const rules = await repository.latest("spider-solitaire");
+    expect(rules.speech.deciderGuidance).toHaveLength(5);
+    expect(rules.speech.deciderGuidance?.[0]).toMatch(/^Columns are numbered 1 to 10/);
+    expect(rules.speech.deciderGuidance?.[3]).toContain("DEAL_ROW");
+    expect(rules.speech.zoneAliases).toEqual({
+      tableau: ["column", "pile", "stack", "row"],
+      stock: ["stock", "deck"],
+    });
+  });
+
+  it("names cards and columns in move text", () => {
+    const state = table({ 1: [down(9), up(12, "HEARTS")], 2: [up(13)] });
+    const move = spider
+      .listLegalActions(state, "S1")
+      .find((a) => a.actionId === "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.2");
+    expect(move?.text).toBe("Move queen of hearts from column 1 to column 2");
+    expect(move?.descriptor).toMatchObject({ to: { topCard: { name: "king of spades" } } });
+  });
+});
+
 describe("Spider view and catalog", () => {
   it("shows only the stock size and hides face-down cards", () => {
     const view = spider.getView(start(), "S1");

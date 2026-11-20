@@ -8,13 +8,22 @@ import { buildLayout } from "../primitives/layout";
 import type { CompiledGame, GameCatalogEntry, OptionValue } from "../types";
 import { buildView } from "../view/view";
 import { RulesDocumentSchema, type RulesDocument } from "./schema";
+import { simulateRules, type SimulationOptions } from "./simulate";
 import { staticChecks } from "./staticChecks";
 
 export type RulesValidationResult =
   { valid: true; rules: RulesDocument } | { valid: false; issues: string[] };
 
-/** validateRules (game-engine.md section 13): the schema, then the static checks. */
-export function validateRules(doc: unknown): RulesValidationResult {
+export interface ValidateOptions {
+  /** Runs stage 3, the simulation, with these settings; omitted, only stages 1 and 2 run. */
+  simulate?: SimulationOptions;
+}
+
+/**
+ * validateRules (game-engine.md section 13): the schema, the static checks,
+ * and, when asked, the simulation. Later stages run only if earlier ones pass.
+ */
+export function validateRules(doc: unknown, options: ValidateOptions = {}): RulesValidationResult {
   const parsed = RulesDocumentSchema.safeParse(doc);
   if (!parsed.success) {
     return {
@@ -25,6 +34,9 @@ export function validateRules(doc: unknown): RulesValidationResult {
     };
   }
   const issues = staticChecks(parsed.data);
+  if (issues.length === 0 && options.simulate !== undefined) {
+    issues.push(...simulateRules(parsed.data, options.simulate).issues);
+  }
   return issues.length === 0 ? { valid: true, rules: parsed.data } : { valid: false, issues };
 }
 
