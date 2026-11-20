@@ -13,7 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:simulation": "vitest run --config vitest.simulation.config.ts",
-    "build:cli": "esbuild src/cli/bin.ts --bundle --platform=node --format=esm --target=node22 --outfile=cli/dist/game-engine-cli.mjs --banner:js='#!/usr/bin/env node'"
+    "build:cli": "esbuild src/cli/bin.ts --bundle --platform=node --format=esm --target=node22 --outfile=cli/dist/game-engine-cli.mjs --banner:js='#!/usr/bin/env node'",
+    "setup:speech:macos": "sh src/local/macos-speech/build.sh",
+    "setup:speech:whisper": "brew install whisper-cpp && mkdir -p .local/models && curl -L --fail -o .local/models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
+    "dev:server": "tsx src/local/start.ts"
   },
   "dependencies": {
     "zod": "4.6.7"
@@ -27,6 +30,7 @@
     "fast-check": "4.10.2",
     "globals": "17.14.0",
     "prettier": "3.10.1",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.73.0",
     "vitest": "5.1.0"

@@ -46,6 +46,16 @@ export const CONFIRMED_APP_ACTIONS: ReadonlySet<AppAction["action"]> = new Set([
   "SIGN_OUT",
 ]);
 
+/** Where a transcript came from (action-decision.md sections 3.1, 3.2 and 3.4). */
+export const TranscriptSourceSchema = z.enum([
+  "TRANSCRIBE",
+  "APPLE_SPEECH",
+  "MACOS_SPEECH",
+  "WHISPER",
+  "TYPED",
+]);
+export type TranscriptSource = z.infer<typeof TranscriptSourceSchema>;
+
 export const DecisionRequestSchema = z.object({
   transcript: z.string().min(1).max(500),
   alternatives: z
@@ -54,7 +64,7 @@ export const DecisionRequestSchema = z.object({
     )
     .max(2)
     .default([]),
-  transcriptSource: z.enum(["TRANSCRIBE", "APPLE_SPEECH"]),
+  transcriptSource: TranscriptSourceSchema,
   context: z.object({
     screen: ScreenSchema,
     sessionId: z.string().min(1).nullable(),
