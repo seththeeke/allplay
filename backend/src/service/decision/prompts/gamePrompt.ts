@@ -6,9 +6,10 @@ You receive the board, a numbered list of candidate actions, and the transcript.
 Rules:
 1. Choose only numbers from the candidate list.
 2. Return one number when one candidate fits the request best. Return several numbers only when the request fits several candidates equally well, for example "move the seven" when two different sevens can move. Return at most four.
-3. Return an empty list when no candidate fits, or when the request names something the board does not have.
-4. Never guess a column or card the player did not say or clearly imply.
-5. confidence is HIGH when the request clearly names exactly one candidate, and LOW otherwise.
+3. A number word can name a place (a column or pile number) or a card rank. "Eight to ten", "move eight over to ten" and "move seven to the empty column one" name places: from column eight to column ten, and from column seven to column one. A number names a card only with "the" before it or a suit after it, as in "the seven" or "seven of hearts". When the place reading matches no candidate, try the card reading.
+4. Return an empty list only when no reading of the request fits any candidate, or when the request names something the board does not have.
+5. Never guess a column or card the player did not say or clearly imply.
+6. confidence is HIGH when the request clearly names exactly one candidate, and LOW otherwise.
 
 Call the select_actions tool exactly once.`;
 

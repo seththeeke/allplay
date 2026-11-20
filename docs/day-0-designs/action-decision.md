@@ -171,7 +171,7 @@ Categories offered to the model depend on context:
 
 Prompt structure (Bedrock Converse):
 
-1. System prompt (static per stage, cached with a `cachePoint`): the role, each category's definition with examples, the list of application action names with one-line descriptions, and the output contract.
+1. System prompt (static per stage, cached with a `cachePoint`): the role, each category's definition with examples, the list of application action names with one-line descriptions, the rule that a plausible game command is `GAME` rather than `UNRECOGNIZED` whenever `GAME` is offered (layer 2 still returns nothing when no move fits), and the output contract.
 2. User message: the transcript and alternatives inside `<transcript>` tags, the offered categories, and when a prompt is pending, its kind (`CONFIRMATION` or `CHOICES`) and number of choices.
 3. Tool `classify`, which the model is required to call (`toolChoice: { tool: { name: "classify" } }`):
 
@@ -194,7 +194,7 @@ Candidates are built by the game session service from the session state loaded i
 1. Every legal action from the engine, with equivalence groups collapsed to their first member (`game-engine.md` Section 9.3).
 2. Meta actions `UNDO` (when available) and `HINT`.
 
-Each candidate is one numbered line with its engine text and short text:
+Each candidate is one numbered line with its engine text and short text. A move of more than one card ends with the card count, for example "(3 cards)", so units of different depth between the same zones can be told apart:
 
 ```
 1 | UNDO | undo the last move
@@ -208,7 +208,7 @@ Each candidate is one numbered line with its engine text and short text:
 
 Prompt structure:
 
-1. System prompt (static, cached): the role, the selection rules (choose only listed numbers; return several numbers only when the request genuinely fits several; return none when nothing fits; never guess a column the player did not imply), and the output contract.
+1. System prompt (static, cached): the role, the selection rules (choose only listed numbers; return several numbers only when the request genuinely fits several; a bare number word names a place, such as a column, and names a card only with "the" before it or a suit after it, and the card reading is tried only when the place reading matches nothing; return none when no reading fits; never guess a column the player did not imply), and the output contract.
 2. Second system block (static per game and rules version, cached): the game's `speech.deciderGuidance`.
 3. User message: a board summary (each zone's label and its face-up cards in plain words, face-down cards as a count), the numbered candidates, and the transcript inside `<transcript>` tags.
 4. Tool `select_actions`, required:

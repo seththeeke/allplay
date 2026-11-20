@@ -33,7 +33,13 @@ export function buildCandidates(envelope: SessionEnvelope): Candidate[] {
       if (seen.has(action.equivalenceKey)) continue;
       seen.add(action.equivalenceKey);
     }
-    entries.push({ actionId: action.actionId, shortText: action.shortText, text: action.text });
+    /* The card count tells units of different depth apart, as in "the largest movable unit". */
+    const count = action.descriptor.kind === "MOVE_CARDS" ? action.descriptor.cards.length : 1;
+    entries.push({
+      actionId: action.actionId,
+      shortText: action.shortText,
+      text: count > 1 ? `${action.text} (${String(count)} cards)` : action.text,
+    });
   }
   return entries.map((entry, index) => ({ number: index + 1, ...entry }));
 }
