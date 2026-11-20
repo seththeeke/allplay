@@ -55,15 +55,18 @@ describe("local settings", () => {
       provider: "whisper.cpp",
       available: false,
     });
-    for (const [setting, expected] of [
-      ["typed", "typed"],
-      ["transcribe", "typed"],
+    expect((await pick({ ALLPLAY_SPEECH_IN: "typed" })).speechToText.name).toBe("typed");
+    /* Transcribe's availability depends on the machine's AWS credentials, so only the provider is asserted. */
+    for (const env of [
+      { ALLPLAY_SPEECH_IN: "transcribe" },
+      {
+        ALLPLAY_SPEECH_IN: "transcribe",
+        ALLPLAY_TRANSCRIBE_VOCABULARY: "allplay-vocabulary-local",
+      },
     ]) {
-      const providers = await pick({ ALLPLAY_SPEECH_IN: setting as string });
-      expect(providers.speechToText.name).toBe(expected);
+      const transcribe = await pick(env);
+      expect((await transcribe.status())["speechIn"]?.provider).toBe("transcribe");
     }
-    const transcribe = await pick({ ALLPLAY_SPEECH_IN: "transcribe" });
-    expect((await transcribe.status())["speechIn"]?.detail).toMatch(/AD-15/);
     const fallback = await pick({
       ALLPLAY_SPEECH_IN: "macos",
       ALLPLAY_WHISPER_BIN: "nope-whisper",

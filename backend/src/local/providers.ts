@@ -27,6 +27,7 @@ import {
 import { createHealthService } from "../service/healthService";
 import { createMacosSpeech } from "../service/speech/macosSpeech";
 import type { ProviderStatus, SpeechToText } from "../service/speech/speechToText";
+import { createTranscribe } from "../service/speech/transcribe";
 import { createTypedOnly } from "../service/speech/typedOnly";
 import { createKokoro } from "../service/speech/kokoro";
 import {
@@ -121,8 +122,15 @@ function speechCandidates(
   if (settings.speechIn === "auto") return [macos, whisper];
   if (settings.speechIn === "macos") return [macos];
   if (settings.speechIn === "whisper") return [whisper];
-  if (settings.speechIn === "transcribe")
-    return [createTypedOnly("Server-side Transcribe arrives with AD-15.")];
+  if (settings.speechIn === "transcribe") {
+    const vocabularyName = env["ALLPLAY_TRANSCRIBE_VOCABULARY"];
+    return [
+      createTranscribe({
+        region: env["ALLPLAY_AWS_REGION"] ?? DEFAULT_AWS_REGION,
+        ...(vocabularyName === undefined ? {} : { vocabularyName }),
+      }),
+    ];
+  }
   return [createTypedOnly()];
 }
 

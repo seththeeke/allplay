@@ -270,9 +270,9 @@ describe("local server", () => {
     ).toMatchObject({
       provider: "kokoro",
     });
-    expect(await status({ ALLPLAY_LLM: "bedrock" })).toMatchObject({
+    /* Availability depends on the machine's AWS credentials, so only the provider is asserted. */
+    expect(await status({ ALLPLAY_LLM: "bedrock", ALLPLAY_BEDROCK_MODEL: "m" })).toMatchObject({
       provider: "bedrock",
-      available: false,
     });
     expect(
       await status({
