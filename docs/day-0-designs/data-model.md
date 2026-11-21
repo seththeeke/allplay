@@ -17,6 +17,7 @@ Related specs: `game-engine.md` (game state shape and rules documents), `action-
 7. Items that expire carry a numeric `ttl` attribute (epoch seconds) and the table's TTL is configured on that attribute.
 8. Every read path in the API is a `GetItem` or a `Query`. `Scan` is used only by the daily metrics rollup job (Section 12).
 9. Optimistic concurrency: entities mutated by concurrent requests carry an integer `version` and every write uses a condition expression on it.
+10. Guest retention: every item owned only by a guest (`Player`, `Preference`, `SeatAssignment`, `PlayerStats`, and a `GameSession` whose only seat is a guest's) carries `ttl` = the guest's last activity + 90 days. The ttl moves forward whenever the guest's `lastActiveAt` does (at most once per hour) and whenever the item is written, so an active guest never expires and an abandoned guest's data disappears 90 days after its last visit. Account items never carry `ttl`; a merge copies guest items to the account without it. The Cognito guest identity is not deleted; it costs nothing, and a guest returning after expiry starts fresh.
 
 ## 2. Player Identity
 
@@ -33,11 +34,11 @@ A guest who signs up or signs in has their data merged into the account player (
 
 | Entity | Table | Purpose | Expires |
 |---|---|---|---|
-| Player | `AllPlay-Players-<Stage>` | One item per guest or account | No |
-| Preference | `AllPlay-Preferences-<Stage>` | Layered preferences: application scope and per-game scope | No |
-| GameSession | `AllPlay-GameSessions-<Stage>` | One game being played: rules reference, engine state, status | No |
-| SeatAssignment | `AllPlay-SeatAssignments-<Stage>` | Links a player to a session seat; the social layer | No |
-| PlayerStats | `AllPlay-PlayerStats-<Stage>` | Win/loss statistics per player, game and variant | No |
+| Player | `AllPlay-Players-<Stage>` | One item per guest or account | Guests: 90 days after last activity |
+| Preference | `AllPlay-Preferences-<Stage>` | Layered preferences: application scope and per-game scope | Guests: 90 days after last activity |
+| GameSession | `AllPlay-GameSessions-<Stage>` | One game being played: rules reference, engine state, status | Guest-only sessions: 90 days after last activity |
+| SeatAssignment | `AllPlay-SeatAssignments-<Stage>` | Links a player to a session seat; the social layer | Guests: 90 days after last activity |
+| PlayerStats | `AllPlay-PlayerStats-<Stage>` | Win/loss statistics per player, game and variant | Guests: 90 days after last activity |
 | Decision | `AllPlay-Decisions-<Stage>` | One voice turn: transcript, candidates, LLM selections, outcome | 30 days |
 | MergeToken | `AllPlay-MergeTokens-<Stage>` | Single-use proof that a caller owned a guest identity | 10 minutes |
 | RateLimitCounter | `AllPlay-RateLimits-<Stage>` | Per-player request counters for the decision endpoint | 2 days |
@@ -83,6 +84,7 @@ Attributes:
 | `relayEmailEnabled` | Boolean | `ACCOUNT` with an Apple private relay email only: false after Apple's `email-disabled` notification |
 | `firstSeenAt` | String | ISO timestamp |
 | `lastActiveAt` | String | Updated at most once per hour per player (conditional write on the stored value) |
+| `ttl` | Number | `GUEST` only: last activity + 90 days, epoch seconds (Section 1, principle 10). The table's TTL attribute |
 | `entityVersion`, `createdAt`, `updatedAt` | | Section 1 |
 
 Sample guest:
@@ -133,7 +135,7 @@ Table `AllPlay-Preferences-<Stage>`. Preferences are layered: the `APP` scope ho
 
 No GSIs.
 
-Preferences are saved automatically as the player changes them (there is no settings "save" button). Writes are `UpdateItem` with `SET` on only the changed fields, so concurrent changes to different fields never overwrite each other.
+Preferences are saved automatically as the player changes them (there is no settings "save" button). A guest's preference items carry `ttl` (Section 1, principle 10), refreshed on every write, and the table's TTL attribute is `ttl`. Writes are `UpdateItem` with `SET` on only the changed fields, so concurrent changes to different fields never overwrite each other.
 
 `APP` scope attributes:
 
