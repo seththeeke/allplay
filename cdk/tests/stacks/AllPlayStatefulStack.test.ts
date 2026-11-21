@@ -88,10 +88,11 @@ describe("AllPlayStatefulStack", () => {
       (grant) =>
         scope.resolve(grant(scope).toStatementJson()) as { Resource: string[]; Action: string[] },
     );
-    expect(statements).toHaveLength(1);
-    expect(statements[0]?.Action).toContain("dynamodb:PutItem");
+    expect(statements).toHaveLength(2);
+    const tables = statements.find((statement) => statement.Action.includes("dynamodb:PutItem"));
+    const assume = statements.find((statement) => String(statement.Action) === "sts:AssumeRole");
     /* ARNs carry the partition as a CloudFormation reference; compare the rest. */
-    const arns = JSON.stringify(statements[0]?.Resource);
+    const arns = JSON.stringify(tables?.Resource);
     for (const suffix of [
       ':dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test"',
       ':dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test/index/ByEmail"',
@@ -99,6 +100,24 @@ describe("AllPlayStatefulStack", () => {
     ])
       expect(arns).toContain(suffix);
     expect(arns).not.toContain("*");
+    expect(arns).toContain(':dynamodb:us-east-1:111111111111:table/AllPlay-MergeTokens-Test"');
+    /* Test accounts are managed through one named role, assumed without a wildcard. */
+    expect(JSON.stringify(assume?.Resource)).toContain(
+      ":iam::111111111111:role/AllPlay-IntegrationAccounts-Test",
+    );
     expect(synth("Prod").stage.verifyGrants).toEqual([]);
+  });
+
+  it("keeps the integration accounts role to Test, scoped to its pool's account calls", () => {
+    const { template } = synth("Test");
+    template.hasResourceProperties("AWS::IAM::Role", {
+      RoleName: "AllPlay-IntegrationAccounts-Test",
+    });
+    const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
+    expect(policies).toContain(
+      '"cognito-idp:AdminAddUserToGroup","cognito-idp:AdminCreateUser","cognito-idp:AdminDeleteUser","cognito-idp:AdminSetUserPassword"',
+    );
+    expect(Object.keys(template.findOutputs("*"))).toContain("UserPoolId");
+    expect(JSON.stringify(synth("Prod").template.toJSON())).not.toContain("IntegrationAccounts");
   });
 });

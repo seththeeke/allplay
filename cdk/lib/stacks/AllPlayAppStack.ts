@@ -35,6 +35,7 @@ export class AllPlayAppStack extends Stack {
   readonly api: AllPlayApi;
   readonly apiUrl: CfnOutput;
   readonly webUrl: CfnOutput;
+  readonly webClientId: CfnOutput;
   /** The stage's config.json content (cdk-stacks.md section 6). */
   readonly webConfig: Record<string, unknown>;
   readonly webClient: UserPoolClient;
@@ -211,5 +212,8 @@ export class AllPlayAppStack extends Stack {
     this.web.publish(this.webConfig);
     this.apiUrl = new CfnOutput(this, "ApiUrl", { value: this.api.url });
     this.webUrl = new CfnOutput(this, "WebUrl", { value: this.web.origin });
+    this.webClientId = new CfnOutput(this, "WebClientId", {
+      value: this.webClient.userPoolClientId,
+    });
   }
 }

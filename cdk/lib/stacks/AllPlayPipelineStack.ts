@@ -17,7 +17,7 @@ import {
 } from "aws-cdk-lib/pipelines";
 import type { Construct } from "constructs";
 import { acknowledgeGenerated } from "../nag";
-import { PROJECT_NAME, STAGE_NAMES, type StageName } from "../config";
+import { PROJECT_NAME, resourceName, STAGE_NAMES, type StageName } from "../config";
 import { AllPlayStage } from "../stage";
 
 export interface AllPlayPipelineStackProps extends StackProps {
@@ -201,11 +201,16 @@ export class AllPlayPipelineStack extends Stack {
             PLAYERS_TABLE: stage.stateful.playersTableName,
             PREFERENCES_TABLE: stage.stateful.preferencesTableName,
             MERGE_TOKENS_TABLE: stage.stateful.mergeTokensTableName,
+            USER_POOL_ID: stage.stateful.userPoolId,
+            USER_POOL_CLIENT_ID: stage.app.webClientId,
             IDENTITY_POOL_ID: stage.app.identity.identityPoolIdOutput,
           },
           /* Tests that write data run only against Test; Prod gets the read-only checks. */
           env: {
             EXPECTED_STAGE: stageName,
+            ...(stageName === "Test"
+              ? { INTEGRATION_ACCOUNTS_ROLE: resourceName("IntegrationAccounts", stageName) }
+              : {}),
             INTEGRATION_SCOPE: stageName === "Test" ? "stage" : "readonly",
           },
           rolePolicyStatements: stage.verifyGrants.map((grant) => grant(this)),

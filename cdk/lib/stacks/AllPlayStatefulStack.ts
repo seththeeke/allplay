@@ -1,6 +1,7 @@
 import { CfnOutput, Stack, type StackProps } from "aws-cdk-lib";
+import { AccountRootPrincipal, PolicyStatement, Role } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { isProd, type StageName } from "../config";
+import { isProd, resourceName, type StageName } from "../config";
 import { AllPlayTable } from "../constructs/AllPlayTable";
 import { AllPlayUserPool } from "../constructs/AllPlayUserPool";
 import { FederationSecret } from "../constructs/FederationSecret";
@@ -29,6 +30,7 @@ export class AllPlayStatefulStack extends Stack {
   readonly playersTableName: CfnOutput;
   readonly preferencesTableName: CfnOutput;
   readonly mergeTokensTableName: CfnOutput;
+  readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
@@ -78,5 +80,29 @@ export class AllPlayStatefulStack extends Stack {
     this.mergeTokensTableName = new CfnOutput(this, "MergeTokensTableName", {
       value: this.mergeTokens.table.tableName,
     });
+    this.userPoolId = new CfnOutput(this, "UserPoolId", { value: this.users.userPool.userPoolId });
+    if (props.stage === "Test") {
+      /*
+       * Test's verification creates throwaway accounts (authn-authz.md section
+       * 10). It assumes this role by its fixed name, so the pipeline's policy
+       * needs neither a wildcard nor a reference into this stack.
+       */
+      const role = new Role(this, "IntegrationAccounts", {
+        roleName: resourceName("IntegrationAccounts", props.stage),
+        assumedBy: new AccountRootPrincipal(),
+        description: "Test stage integration tests: create, group and delete test accounts.",
+      });
+      role.addToPolicy(
+        new PolicyStatement({
+          actions: [
+            "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminSetUserPassword",
+            "cognito-idp:AdminAddUserToGroup",
+            "cognito-idp:AdminDeleteUser",
+          ],
+          resources: [this.users.userPool.userPoolArn],
+        }),
+      );
+    }
   }
 }

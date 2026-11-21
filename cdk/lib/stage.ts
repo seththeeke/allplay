@@ -54,6 +54,21 @@ export class AllPlayStage extends Stage {
         [resourceName("Preferences", stage), []],
         [resourceName("MergeTokens", stage), []],
       ];
+      /* The Test-only role that manages integration test accounts (AllPlayStatefulStack). */
+      this.verifyGrants.push(
+        (pipeline) =>
+          new PolicyStatement({
+            actions: ["sts:AssumeRole"],
+            resources: [
+              pipeline.formatArn({
+                service: "iam",
+                region: "",
+                resource: "role",
+                resourceName: resourceName("IntegrationAccounts", stage),
+              }),
+            ],
+          }),
+      );
       this.verifyGrants.push(
         (pipeline) =>
           new PolicyStatement({

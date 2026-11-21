@@ -195,9 +195,9 @@ Admins are added by hand with `scripts/grant-admin.sh <Test|Prod> <email>`, whic
 2. Integration tests against the Test stage:
    - A guest obtains Identity Pool credentials (`GetId`, `GetCredentialsForIdentity`) and calls a guest route.
    - A guest is denied (403) on `POST /v1/players/me/merge` and every admin route.
-   - A test account created by the test setup (`AdminCreateUser` with a permanent password, deleted in teardown) signs in with SRP, calls account routes, and is denied on admin routes.
-   - A test admin account calls `GET /v1/admin/metrics`.
-   - The full merge flow moves a guest's in-progress session to the account.
+   - A test account created by the test setup (`AdminCreateUser` with a permanent password, deleted in teardown) signs in with SRP through Amplify JS, calls account routes, and is denied on admin routes.
+   - A test admin account calls `GET /v1/admin/deployments` and `GET /v1/admin/players/duplicates`; `GET /v1/admin/metrics` joins when it exists (DM-5).
+   - The full merge flow moves a guest's preferences to the account, and a guest is refused the redemption; the guest's in-progress session joins with DM-3.
 
 ## 11. Local Authentication
 
@@ -269,4 +269,5 @@ Status as of 2026-11-21.
 | DM-2 | Done | See `data-model.md` |
 | AA-6 | Done | `POST /v1/players/me/merge-tokens` (GUEST) and `POST /v1/players/me/merge` (PLAYER, `{ token, keep? }`, answering `{ primaryPlayerId, mergedPlayerId }`) in the player bundle, on the local server too. The web app's Amplify player service is wrapped by `withGuestMerge`: a guest about to sign in, sign up or leave for Google or Apple gets a token kept in `sessionStorage`; once the caller is an account, the token is redeemed, and every caller-owned query reloads. A token that fails on the network is retried on the next load while valid; a refused one is dropped. Preferences move today; seats and stats with DM-3 |
 | AA-12 | Done | The merge service's Cognito step (`IdentityService.mergeUsers`): the duplicate's user is deleted, then each Google or Apple identity it held is linked to the primary's user; both the player Lambda (account linking) and the admin Lambda hold `AdminLinkProviderForUser`. `GET /v1/admin/players/duplicates` scans `ByEmail` (the admin Lambda's only Scan grant) and groups `ACTIVE` accounts by email; `POST /v1/admin/players/merge` and `scripts/merge-accounts.sh` fold the duplicate into the primary. The admin page lists duplicates and merges a newer account into the oldest after a confirmation. The Account page links a second sign-in method: the link token is kept with `keep: SOURCE`, redeemed by the next sign-in, after which the device signs out and the player signs in again. A merge retried after the duplicate's user was deleted cannot relink its identities, because their ids are read from that user |
-| Next | | AA-10, then the rest of AA-8. AA-3 waits on the Google and Apple keys |
+| AA-10 | Done | `tests/integration/tiers.integration.test.ts` in Test's verification: a player and an admin created for the run through `AllPlay-IntegrationAccounts-Test`, signed in with SRP (Amplify JS 6, in-memory tokens), exchanged for Identity Pool credentials and calling signed routes; the player is refused admin routes, the admin reaches them, and a guest's preferences merge into the player. Accounts and their items are deleted after the file. Guests and Prod keep the read-only checks of `admin.integration.test.ts` and `players.integration.test.ts` |
+| Phase 4 | Done except AA-3 and part of AA-8 | AA-3 waits on the Google and Apple keys; the metrics and decisions routes of AA-8 wait on their tables (DM-4, DM-5) |
