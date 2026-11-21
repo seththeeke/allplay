@@ -31,9 +31,6 @@ export class AllPlayStatefulStack extends Stack {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
     this.stage = props.stage;
     this.federation = new FederationSecret(this, "Federation", { stage: props.stage });
-    const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
-    if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
-    this.users = new AllPlayUserPool(this, "Users", { stage: props.stage, domainSuffix });
     this.players = new AllPlayTable(this, "Players", {
       stage: props.stage,
       entity: "Players",
@@ -54,6 +51,13 @@ export class AllPlayStatefulStack extends Stack {
       partitionKey: { name: "playerId" },
       sortKey: { name: "scope" },
       timeToLiveAttribute: "ttl",
+    });
+    const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
+    if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
+    this.users = new AllPlayUserPool(this, "Users", {
+      stage: props.stage,
+      domainSuffix,
+      players: this.players.table,
     });
     /* Table names for the pipeline's integration tests (cdk-stacks.md section 7). */
     this.playersTableName = new CfnOutput(this, "PlayersTableName", {

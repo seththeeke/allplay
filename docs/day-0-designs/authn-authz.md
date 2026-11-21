@@ -77,8 +77,8 @@ Both providers are offered on web and iOS. Offering Sign in with Apple alongside
 
 | Trigger | Behavior |
 |---|---|
-| Pre sign-up | Federated sign-up: if a user with the same verified email exists, link the new provider identity to that user (`AdminLinkProviderForUser`) so one person has one account; otherwise auto-confirm and mark the email verified. Native sign-up: if a federated-only user with that email exists, reject with a stable message token (`ALLPLAY_USE_SOCIAL_SIGN_IN`) that clients turn into "This email signs in with Google or Apple" |
-| Post confirmation | Add the user to `PLAYER`; create the `ACCOUNT` `Player` item (`ACCT#<sub>`) with `email` and `signInProviders` |
+| Pre sign-up | Federated sign-up: auto-confirm, and mark the email verified when the provider verified it. If another user with the same verified email exists and lacks this provider, link the new identity to it (`AdminLinkProviderForUser`, preferring a verified, then the oldest, user) and refuse this sign-up with the token `ALLPLAY_ACCOUNT_LINKED`: Cognito would otherwise still create a separate user for this first sign-in, which is how duplicates arise. The web and iOS clients repeat the sign-in at once on that token, and it reaches the linked user. A link that fails is logged with the `DUPLICATE_ACCOUNT` metric and the sign-up continues; the account merge (Section 6.2) repairs it. Native sign-up: if any user with that email exists, reject with `ALLPLAY_USE_SOCIAL_SIGN_IN`, which clients turn into "This email signs in with Google or Apple" |
+| Post confirmation | Add the user to `PLAYER`; create the `ACCOUNT` `Player` item (`ACCT#<sub>`) with `email`, `emailKey` and `signInProviders`. Failures are logged, not thrown, so confirmation is never blocked; post authentication creates a missing account |
 | Post authentication | Update `Player.lastActiveAt` and `signInProviders`. If another `ACTIVE` account `Player` has the same normalized email (`ByEmail`, `data-model.md` Section 4), record a `DUPLICATE_ACCOUNT` metric and log both `playerId`s for the duplicate merge (Section 6.2); sign-in is never blocked |
 | Custom message | Render the HTML email templates for sign-up code, resend code, forgot password code and attribute verification from `backend/src/controller/cognito/templates/` (large type, plain layout, the code in 32 px text) |
 
@@ -258,4 +258,5 @@ Status as of 2026-11-21.
 | AA-11 | Done | `resolveCaller` resolves guests and accounts with the tier of their role; the router enforces each route's `minimumTier` (403 `FORBIDDEN`); the local server writes guest, player and admin identities from `x-allplay-dev-caller`; the web app sends the mock-signed-in player as that header in local `LIVE` mode |
 | DM-1 | Done | See `data-model.md` |
 | AA-1 | Done | `AllPlay-Users-<Stage>` with the groups, the managed login domain `allplay-<stage>-jbus19`, the custom message trigger and its large-type templates; the web and iOS clients; the pool, web client and domain in `config.json` |
-| Next | | AA-2 (pre sign-up, post confirmation and post authentication triggers). AA-3 waits on the Google and Apple keys |
+| AA-2 | Done | The three triggers behind an identity service and the account service, so trigger controllers call no DAO; the User Pool adapter in `dao/userPool/`; per-trigger permissions with no wildcards |
+| Next | | AA-4 (Identity Pool, roles, role mapping, IAM route policies) and CDK-7. AA-3 waits on the Google and Apple keys |

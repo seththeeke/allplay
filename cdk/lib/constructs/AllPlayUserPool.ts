@@ -1,4 +1,6 @@
 import { Duration, RemovalPolicy, Validations } from "aws-cdk-lib";
+import type { TableV2 } from "aws-cdk-lib/aws-dynamodb";
+import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import {
   AccountRecovery,
   CfnUserPoolGroup,
@@ -26,6 +28,8 @@ export interface AllPlayUserPoolProps {
   stage: StageName;
   /** Fixed random suffix of the managed login domain, from CDK context, so URLs never carry the account id. */
   domainSuffix: string;
+  /** The Players table the confirmation and authentication triggers write (data-model.md section 4). */
+  players: TableV2;
 }
 
 export interface AppClientProps {
@@ -44,6 +48,9 @@ export class AllPlayUserPool extends Construct {
   readonly userPool: UserPool;
   readonly domain: UserPoolDomain;
   readonly customMessage: AllPlayFunction;
+  readonly preSignUp: AllPlayFunction;
+  readonly postConfirmation: AllPlayFunction;
+  readonly postAuthentication: AllPlayFunction;
 
   constructor(scope: Construct, id: string, props: AllPlayUserPoolProps) {
     super(scope, id);
@@ -55,6 +62,27 @@ export class AllPlayUserPool extends Construct {
       memorySize: 256,
       timeout: Duration.seconds(5),
     });
+    const trigger = (id: string, name: string, handler: string): AllPlayFunction =>
+      new AllPlayFunction(this, id, {
+        stage: props.stage,
+        name,
+        entry: "controller/cognito/accountTriggerHandlers.ts",
+        handler,
+        memorySize: 256,
+        timeout: Duration.seconds(5),
+        environment: { PLAYERS_TABLE: props.players.tableName },
+      });
+    this.preSignUp = trigger("PreSignUp", "CognitoPreSignUp", "preSignUp");
+    this.postConfirmation = trigger(
+      "PostConfirmation",
+      "CognitoPostConfirmation",
+      "postConfirmation",
+    );
+    this.postAuthentication = trigger(
+      "PostAuthentication",
+      "CognitoPostAuthentication",
+      "postAuthentication",
+    );
     this.userPool = new UserPool(this, "UserPool", {
       userPoolName: resourceName("Users", props.stage),
       featurePlan: FeaturePlan.ESSENTIALS,
@@ -74,8 +102,14 @@ export class AllPlayUserPool extends Construct {
       accountRecovery: AccountRecovery.EMAIL_ONLY,
       deletionProtection: prod,
       removalPolicy: RemovalPolicy.RETAIN,
-      lambdaTriggers: { customMessage: this.customMessage.function },
+      lambdaTriggers: {
+        customMessage: this.customMessage.function,
+        preSignUp: this.preSignUp.function,
+        postConfirmation: this.postConfirmation.function,
+        postAuthentication: this.postAuthentication.function,
+      },
     });
+    this.grantTriggers(props.players);
     for (const [groupName, precedence] of USER_GROUPS) {
       new CfnUserPoolGroup(this, `Group${groupName}`, {
         userPoolId: this.userPool.userPoolId,
@@ -109,6 +143,32 @@ export class AllPlayUserPool extends Construct {
     ] as const) {
       Validations.of(this.userPool).acknowledge({ id, reason });
     }
+  }
+
+  /**
+   * The triggers' permissions, each limited to what it calls (authn-authz.md
+   * section 3.2). The User Pool grants sit in separate policies: the pool
+   * refers to the functions, so a grant on their default policies would make
+   * a dependency cycle.
+   */
+  private grantTriggers(players: TableV2): void {
+    const playerTable = new PolicyStatement({
+      actions: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"],
+      resources: [players.tableArn, `${players.tableArn}/index/ByEmail`],
+    });
+    this.postConfirmation.function.addToRolePolicy(playerTable);
+    this.postAuthentication.function.addToRolePolicy(playerTable);
+    const pool = (id: string, fn: AllPlayFunction, actions: string[]) =>
+      fn.function.role?.attachInlinePolicy(
+        new Policy(this, id, {
+          statements: [new PolicyStatement({ actions, resources: [this.userPool.userPoolArn] })],
+        }),
+      );
+    pool("PreSignUpPoolAccess", this.preSignUp, [
+      "cognito-idp:ListUsers",
+      "cognito-idp:AdminLinkProviderForUser",
+    ]);
+    pool("PostConfirmationPoolAccess", this.postConfirmation, ["cognito-idp:AdminAddUserToGroup"]);
   }
 
   /**

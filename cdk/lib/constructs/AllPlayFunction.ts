@@ -12,8 +12,10 @@ export interface AllPlayFunctionProps {
   stage: StageName;
   /** Lambda name from cdk-stacks.md section 4 without prefix or stage, for example `HealthApi`. */
   name: string;
-  /** Entry file relative to `backend/src`, exporting `handler`. */
+  /** Entry file relative to `backend/src`, exporting `handler` (or the export named by `handler`). */
   entry: string;
+  /** The entry file's export to run; defaults to `handler`. */
+  handler?: string;
   memorySize: number;
   timeout: Duration;
   environment?: Record<string, string>;
@@ -52,7 +54,7 @@ export class AllPlayFunction extends Construct {
     this.function = new NodejsFunction(this, "Function", {
       functionName,
       entry: join(BACKEND_DIR, "src", props.entry),
-      handler: "handler",
+      handler: props.handler ?? "handler",
       projectRoot: BACKEND_DIR,
       depsLockFilePath: join(BACKEND_DIR, "package-lock.json"),
       runtime: Runtime.NODEJS_22_X,

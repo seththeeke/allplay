@@ -50,6 +50,40 @@ describe("User Pool", () => {
     ).not.toEqual({});
   });
 
+  it("runs the sign-in triggers with only the access each needs", () => {
+    const { stateful } = synth("Test");
+    stateful.hasResourceProperties("AWS::Cognito::UserPool", {
+      LambdaConfig: {
+        CustomMessage: Match.anyValue(),
+        PreSignUp: Match.anyValue(),
+        PostConfirmation: Match.anyValue(),
+        PostAuthentication: Match.anyValue(),
+      },
+    });
+    for (const [FunctionName, Handler] of [
+      ["AllPlay-CognitoPreSignUp-Test", "index.preSignUp"],
+      ["AllPlay-CognitoPostConfirmation-Test", "index.postConfirmation"],
+      ["AllPlay-CognitoPostAuthentication-Test", "index.postAuthentication"],
+    ]) {
+      stateful.hasResourceProperties("AWS::Lambda::Function", {
+        FunctionName,
+        Handler,
+        Environment: { Variables: Match.objectLike({ PLAYERS_TABLE: Match.anyValue() }) },
+      });
+    }
+    const policies = JSON.stringify(stateful.findResources("AWS::IAM::Policy"));
+    for (const action of [
+      "cognito-idp:ListUsers",
+      "cognito-idp:AdminLinkProviderForUser",
+      "cognito-idp:AdminAddUserToGroup",
+      "dynamodb:PutItem",
+    ])
+      expect(policies).toContain(action);
+    expect(policies).toContain("/index/ByEmail");
+    expect(policies).not.toContain("cognito-idp:*");
+    expect(policies).not.toContain("dynamodb:Scan");
+  });
+
   it("has the three groups by precedence and a managed login domain with the random suffix", () => {
     const { stateful } = synth("Test");
     for (const [GroupName, Precedence] of [
