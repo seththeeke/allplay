@@ -5,7 +5,10 @@ import type { Construct } from "constructs";
 import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
 import { gameRoutes } from "../../../backend/src/controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../../../backend/src/controller/web-api/health/healthRoutes";
-import { playersRoutes } from "../../../backend/src/controller/web-api/players/playersRoutes";
+import {
+  appleNotificationsRoute,
+  playersRoutes,
+} from "../../../backend/src/controller/web-api/players/playersRoutes";
 import { resourceName, type StageName } from "../config";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
@@ -87,6 +90,7 @@ export class AllPlayAppStack extends Stack {
         PREFERENCES_TABLE: preferences.table.tableName,
         IDENTITY_POOL_ID: this.identity.identityPool.ref,
         USER_POOL_ID: users.userPool.userPoolId,
+        FEDERATION_SECRET_ID: props.stateful.federation.secret.secretName,
       },
     });
     playerApi.function.addToRolePolicy(
@@ -104,10 +108,23 @@ export class AllPlayAppStack extends Stack {
     /* Account deletion finds the user by sub and deletes it (authn-authz.md section 8). */
     playerApi.function.addToRolePolicy(
       new PolicyStatement({
-        actions: ["cognito-idp:ListUsers", "cognito-idp:AdminDeleteUser"],
+        actions: [
+          "cognito-idp:ListUsers",
+          "cognito-idp:AdminDeleteUser",
+          "cognito-idp:AdminUserGlobalSignOut",
+          "cognito-idp:AdminGetUser",
+        ],
         resources: [users.userPool.userPoolArn],
       }),
     );
+    /* Apple token revocation and notifications read the Sign in with Apple key (authn-authz.md section 12). */
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [props.stateful.federation.secret.secretArn],
+      }),
+    );
+    this.api.addPublicRoute("AppleNotifications", appleNotificationsRoute, playerApi.function);
     this.api.addBundle("Players", playersRoutes, playerApi.function);
     this.webConfig = {
       stage: props.stage.toUpperCase(),

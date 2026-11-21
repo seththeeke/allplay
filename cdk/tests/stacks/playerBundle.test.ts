@@ -25,6 +25,7 @@ describe("player bundle", () => {
           PREFERENCES_TABLE: Match.anyValue(),
           IDENTITY_POOL_ID: Match.anyValue(),
           USER_POOL_ID: Match.anyValue(),
+          FEDERATION_SECRET_ID: Match.anyValue(),
         }),
       },
     });
@@ -33,6 +34,7 @@ describe("player bundle", () => {
       "GET /v1/players/me/preferences",
       "PATCH /v1/players/me/preferences/{scope}",
       "DELETE /v1/players/me",
+      "POST /v1/players/me/sign-out",
     ]) {
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
@@ -46,7 +48,14 @@ describe("player bundle", () => {
     expect(policies).toContain('"dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem"');
     /* CDK sorts each statement's actions, so these are listed alphabetically. */
     expect(policies).toContain('"dynamodb:DeleteItem","dynamodb:Query","dynamodb:UpdateItem"');
-    expect(policies).toContain('"cognito-idp:AdminDeleteUser","cognito-idp:ListUsers"');
+    expect(policies).toContain(
+      '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminUserGlobalSignOut","cognito-idp:ListUsers"',
+    );
+    expect(policies).toContain("secretsmanager:GetSecretValue");
+    app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+      RouteKey: "POST /v1/apple/notifications",
+      AuthorizationType: "NONE",
+    });
     expect(policies).not.toContain("dynamodb:Scan");
   });
 

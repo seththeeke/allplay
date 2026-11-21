@@ -13,4 +13,12 @@ export const playersRoutes = [
     minimumTier: "GUEST",
   },
   { method: "DELETE", path: "/v1/players/me", auth: "IAM", minimumTier: "PLAYER" },
+  { method: "POST", path: "/v1/players/me/sign-out", auth: "IAM", minimumTier: "PLAYER" },
 ] as const;
+
+/** Apple's server-to-server notifications: public, because Apple signs the body (authn-authz.md section 12). */
+export const appleNotificationsRoute = {
+  method: "POST",
+  path: "/v1/apple/notifications",
+  auth: "NONE",
+} as const;

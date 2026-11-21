@@ -127,7 +127,7 @@ On a guest's first request (and at most once per hour after that), the controlle
 | `GET /v1/admin/decisions?day=&class=` (failure browsing via `ByDayOutcome`) | ADMIN |
 | `GET /v1/admin/deployments`, `POST /v1/admin/deployments` | ADMIN |
 | `GET /v1/admin/players/duplicates`, `POST /v1/admin/players/merge` | ADMIN |
-| `POST /v1/apple/notifications` | None (public); the body is an Apple-signed JWT verified against Apple's keys (Section 12) |
+| `POST /v1/apple/notifications` | None (public); the body `{ "payload" }` is an Apple-signed JWT verified against Apple's keys (Section 12). Served by the player Lambda |
 
 `POST /v1/admin/deployments` calls `codepipeline:StartPipelineExecution` on the All Play pipeline and returns the execution id. `GET /v1/admin/deployments` lists the 20 most recent executions with their stage results. Only the admin API Lambda's role holds these CodePipeline permissions.
 
@@ -263,4 +263,5 @@ Status as of 2026-11-21.
 | AA-5, CDK-7 | Done | The player bundle, `AllPlay-PlayerApi-<Stage>`: `GET /v1/players/me`, `GET /v1/players/me/preferences` and `PATCH /v1/players/me/preferences/{scope}` behind AWS_IAM, the guest upsert on every request (a failure is logged and the request continues), and IAM bundle routes from route lists. The stats route waits for `PlayerStats` (DM-3). Integration tests call the routes with SigV4-signed guest credentials |
 | AA-9 | Done | Deployed stages configure Amplify from `config.json`: email sign-up, confirmation with auto sign-in, sign-in, password reset, global sign-out, preferences through the signed API, and `/v1/players/me` for the tier that gates admin pages. Google and Apple buttons appear only for providers in `config.json` `socialProviders`, which CDK adds with AA-3. A redirect that returns with `ALLPLAY_ACCOUNT_LINKED` is retried once at startup |
 | AA-7 | Done | `DELETE /v1/players/me` (PLAYER): deletes the preferences, leaves a tombstone `Player`, and deletes the Cognito user found by `sub`. Seats, stats and sessions join when their tables exist (DM-3); the Apple token revocation comes with AA-13 |
-| Next | | AA-13 (sign-out route, Apple revocation and notifications, privacy page), then AA-11b, DM-2, AA-6, AA-12, AA-8, AA-10. AA-3 waits on the Google and Apple keys |
+| AA-13 | Done (backend and web); Apple steps wait on AA-3 | `POST /v1/players/me/sign-out` (global sign-out), Apple token revocation when `DELETE /v1/players/me` carries `appleAuthorizationCode` (exchange with an ES256 client secret, then `auth/revoke`; skipped while the federation secret is PENDING, and never blocks deletion), the public `POST /v1/apple/notifications` (RS256 verified against Apple's keys; deletes the account or records the relay setting), and the `/privacy` page linked from Help. The clients' fresh Apple code at deletion, and registering the notification URL with Apple, come with AA-3 |
+| Next | | AA-11b, DM-2, AA-6, AA-12, AA-8, AA-10. AA-3 waits on the Google and Apple keys |

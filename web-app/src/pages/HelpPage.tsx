@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { PageHeading } from "../components/PageHeading";
 import { useGames } from "../hooks/useGames";
@@ -79,6 +79,11 @@ export function HelpPage(): React.JSX.Element {
           ))}
         </div>
       </section>
+      <p className="text-2xl">
+        <Link className="underline" to="/privacy">
+          Privacy: what All Play keeps and how to delete it
+        </Link>
+      </p>
     </main>
   );
 }

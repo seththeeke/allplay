@@ -1,5 +1,5 @@
 import { Amplify } from "aws-amplify";
-import { del, get, patch } from "aws-amplify/api";
+import { del, get, patch, post } from "aws-amplify/api";
 import {
   autoSignIn,
   confirmResetPassword,
@@ -150,6 +150,8 @@ export function createAmplifyPlayerService(config: CognitoConfig): PlayerService
     confirmPasswordReset: (email, code, newPassword) =>
       guarded(() => confirmResetPassword({ username: email, confirmationCode: code, newPassword })),
     signOut: async () => {
+      /* The server records the sign-out and revokes refresh tokens everywhere (authn-authz.md section 12). */
+      await post({ apiName: API, path: "/v1/players/me/sign-out" }).response.catch(() => undefined);
       await signOut({ global: true });
       return me();
     },

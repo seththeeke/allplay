@@ -46,6 +46,8 @@ function identities(
       return Promise.resolve();
     },
     deleteUserBySub: () => Promise.resolve(),
+    signOutBySub: () => Promise.resolve(),
+    playerIdForApple: () => Promise.resolve(null),
     ...overrides,
   };
 }

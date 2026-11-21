@@ -6,16 +6,24 @@ import {
   PreferencesResponseSchema,
 } from "../../../models/api";
 import { invalidRequest } from "../../../service/gameSession/errors";
+import type { AppleService } from "../../../service/player/appleService";
 import type { PlayerService } from "../../../service/player/playerService";
-import { jsonBody } from "../shared/httpEvent";
+import { z } from "zod";
+import { HttpEventSchema, jsonBody } from "../shared/httpEvent";
+import { errorResponse, jsonResponse } from "../shared/response";
 import type { HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
-import { playersRoutes } from "./playersRoutes";
+import { appleNotificationsRoute, playersRoutes } from "./playersRoutes";
 
 export interface PlayersControllerDeps {
   players: PlayerService;
+  /** Sign in with Apple revocation and notifications; absent where Apple is not used (the local server). */
+  apple?: AppleService;
   logger: Logger;
 }
+
+const DeleteBodySchema = z.object({ appleAuthorizationCode: z.string().min(1).optional() });
+const NotificationSchema = z.object({ payload: z.string().min(1) });
 
 /** A preference scope from the path: `APP` or `GAME#<gameId>` (data-model.md section 5). */
 const SCOPE = /^(APP|GAME#([a-z0-9-]+))$/;
@@ -28,16 +36,27 @@ const SCOPE = /^(APP|GAME#([a-z0-9-]+))$/;
 export function createPlayersHandler(
   deps: PlayersControllerDeps,
 ): (event: unknown) => Promise<HttpResult> {
-  return createRouter(
+  const router = createRouter(
     {
       "GET /v1/players/me": async ({ caller }) => [
         200,
         PlayerMeSchema.parse(await deps.players.me(caller)),
       ],
-      "DELETE /v1/players/me": async ({ caller }) => {
+      "DELETE /v1/players/me": async ({ caller, event }) => {
+        const body = DeleteBodySchema.safeParse(jsonBody(event) ?? {});
+        if (!body.success) throw invalidRequest("The deletion request could not be read.");
+        /* Apple tokens are revoked first when the client sent a fresh code; deletion happens either way. */
+        const revoked =
+          (await deps.apple?.revokeForDeletion(body.data.appleAuthorizationCode)) ?? false;
         await deps.players.deleteAccount(caller);
+        deps.logger.info("Apple tokens revoked", { revoked });
         deps.logger.info("Account deleted", { playerId: caller.playerId });
         return [200, { deleted: true }];
+      },
+      "POST /v1/players/me/sign-out": async ({ caller }) => {
+        await deps.players.signOut(caller);
+        deps.logger.info("Signed out everywhere", { playerId: caller.playerId });
+        return [200, { signedOut: true }];
       },
       "GET /v1/players/me/preferences": async ({ caller }) => [
         200,
@@ -62,4 +81,20 @@ export function createPlayersHandler(
     undefined,
     (caller) => deps.players.recordActivity(caller),
   );
+  const appleKey = `${appleNotificationsRoute.method} ${appleNotificationsRoute.path}`;
+  return async (raw) => {
+    const parsed = HttpEventSchema.safeParse(raw);
+    if (!parsed.success || parsed.data.routeKey !== appleKey) return router(raw);
+    const notification = NotificationSchema.safeParse(jsonBody(parsed.data));
+    if (!notification.success || deps.apple === undefined)
+      return errorResponse(400, "VALIDATION_ERROR", "Send { payload }.");
+    try {
+      const result = await deps.apple.handleNotification(notification.data.payload);
+      deps.logger.info("Apple notification handled", { result });
+      return jsonResponse(200, { result });
+    } catch (error) {
+      deps.logger.warn("Apple notification refused", { error });
+      return errorResponse(400, "VALIDATION_ERROR", "The notification could not be verified.");
+    }
+  };
 }

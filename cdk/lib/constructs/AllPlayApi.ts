@@ -25,7 +25,7 @@ export interface AllPlayApiProps {
 
 /** A route from a backend route list file that needs no signature. */
 export interface PublicRoute {
-  method: "GET";
+  method: "GET" | "POST";
   path: string;
   auth: "NONE";
 }
@@ -104,7 +104,7 @@ export class AllPlayApi extends Construct {
     });
     Validations.of(added).acknowledge({
       id: "AwsSolutions-APIG4",
-      reason: `${route.method} ${route.path} is public by design and reads no data (cdk-stacks.md section 5).`,
+      reason: `${route.method} ${route.path} is public by design: the health check reads no data, and Apple notifications carry a signature the Lambda verifies (cdk-stacks.md section 5, authn-authz.md section 12).`,
     });
     return added;
   }

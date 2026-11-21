@@ -1,6 +1,8 @@
 import {
   AdminAddUserToGroupCommand,
   AdminDeleteUserCommand,
+  AdminGetUserCommand,
+  AdminUserGlobalSignOutCommand,
   AdminLinkProviderForUserCommand,
   CognitoIdentityProviderClient,
   ListUsersCommand,
@@ -35,6 +37,10 @@ export interface UserPoolDirectory {
   usernameBySub(userPoolId: string, sub: string): Promise<string | null>;
   /** Deletes a user and every identity linked to it (`AdminDeleteUser`). */
   deleteUser(userPoolId: string, username: string): Promise<void>;
+  /** Revokes every refresh token of a user (`AdminUserGlobalSignOut`). */
+  globalSignOut(userPoolId: string, username: string): Promise<void>;
+  /** The `sub` of a user by username, or null when there is no such user (`AdminGetUser`). */
+  subOfUsername(userPoolId: string, username: string): Promise<string | null>;
 }
 
 /** The part of the Cognito client the directory uses, so tests can stand in for it. */
@@ -119,6 +125,22 @@ export function createUserPoolDirectory(
         }),
       )) as { Users?: UserType[] };
       return out.Users?.[0]?.Username ?? null;
+    },
+    globalSignOut: async (userPoolId, username) => {
+      await client.send(
+        new AdminUserGlobalSignOutCommand({ UserPoolId: userPoolId, Username: username }),
+      );
+    },
+    subOfUsername: async (userPoolId, username) => {
+      try {
+        const out = (await client.send(
+          new AdminGetUserCommand({ UserPoolId: userPoolId, Username: username }),
+        )) as { UserAttributes?: { Name?: string; Value?: string }[] };
+        return out.UserAttributes?.find((a) => a.Name === "sub")?.Value ?? null;
+      } catch (error) {
+        if (error instanceof Error && error.name === "UserNotFoundException") return null;
+        throw error;
+      }
     },
     deleteUser: async (userPoolId, username) => {
       await client.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: username }));

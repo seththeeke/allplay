@@ -133,6 +133,11 @@ describe("account deletion", () => {
             deleted.push(sub);
             return Promise.resolve();
           },
+          signOutBySub: (_pool, sub) => {
+            deleted.push(`signout ${sub}`);
+            return Promise.resolve();
+          },
+          playerIdForApple: () => Promise.resolve(null),
         },
       },
       now: t.now,
@@ -161,6 +166,9 @@ describe("account deletion", () => {
     expect(tombstone?.email).toBeUndefined();
     expect(tombstone?.displayName).toBeUndefined();
     expect(deleted).toEqual(["sub-1"]);
+    await service.signOut(account);
+    expect(deleted).toEqual(["sub-1", "signout sub-1"]);
+    await t.service.signOut(account);
     await t.service.deleteAccount({ ...account, playerId: "ACCT#never" });
     expect(await t.players.get("ACCT#never")).toBeNull();
   });

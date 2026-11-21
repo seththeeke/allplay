@@ -81,6 +81,64 @@ describe("players controller", () => {
     expect((await handler(apiEvent("DELETE /v1/players/me"))).statusCode).toBe(403);
   });
 
+  it("signs out everywhere, revokes Apple before deleting, and handles Apple notifications", async () => {
+    const players = createInMemoryPlayerDao();
+    const service = createPlayerService({ players, preferences: createInMemoryPreferenceDao() });
+    const apple = {
+      revokeForDeletion: vi.fn(() => Promise.resolve(true)),
+      handleNotification: vi.fn((payload: string) =>
+        payload === "bad"
+          ? Promise.reject(new Error("bad signature"))
+          : Promise.resolve("ACCOUNT_DELETED"),
+      ),
+    };
+    const handler = createPlayersHandler({
+      players: service,
+      apple,
+      logger: createLogger({ write }),
+    });
+    const asPlayer = (routeKey: string, body?: unknown) => {
+      const [method, path] = routeKey.split(" ") as [string, string];
+      return {
+        ...apiEvent(routeKey, body === undefined ? {} : { body }),
+        requestContext: {
+          requestId: "r",
+          http: { method, path },
+          authorizer: {
+            iam: {
+              cognitoIdentity: {
+                identityId: "id-1",
+                amr: ["authenticated", "x:CognitoSignIn:sub-1"],
+              },
+              userArn: "arn:aws:sts::1:assumed-role/AllPlay-PlayerRole-Test/x",
+            },
+          },
+        },
+      };
+    };
+    expect(json(await handler(asPlayer("POST /v1/players/me/sign-out")))).toEqual({
+      signedOut: true,
+    });
+    await handler(asPlayer("DELETE /v1/players/me", { appleAuthorizationCode: "code" }));
+    expect(apple.revokeForDeletion).toHaveBeenCalledWith("code");
+    expect(
+      (await handler(asPlayer("DELETE /v1/players/me", { appleAuthorizationCode: 5 }))).statusCode,
+    ).toBe(400);
+    const notify = (body: unknown) =>
+      apiEvent("POST /v1/apple/notifications", { identity: null, body });
+    const ok = await handler(notify({ payload: "jwt" }));
+    expect(json(ok)).toEqual({ result: "ACCOUNT_DELETED" });
+    expect((await handler(notify({ payload: "bad" }))).statusCode).toBe(400);
+    expect((await handler(notify({}))).statusCode).toBe(400);
+    const withoutApple = createPlayersHandler({
+      players: service,
+      logger: createLogger({ write }),
+    });
+    expect((await withoutApple(notify({ payload: "jwt" }))).statusCode).toBe(400);
+    expect((await withoutApple(asPlayer("DELETE /v1/players/me"))).statusCode).toBe(200);
+    expect((await handler({ nope: true })).statusCode).toBe(400);
+  });
+
   it("refuses bad scopes and unknown or invalid fields", async () => {
     const { handler } = setup();
     for (const [scope, body] of [
@@ -117,6 +175,7 @@ describe("players controller", () => {
       "GUEST",
       "GUEST",
       "GUEST",
+      "PLAYER",
       "PLAYER",
     ]);
     const { handler } = await import("../../../../src/controller/web-api/players/handler");

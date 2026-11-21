@@ -29,6 +29,10 @@ export interface IdentityService {
   addToGroup(userPoolId: string, username: string, group: string): Promise<void>;
   /** Deletes the user with this `sub`, if it still exists (account deletion, authn-authz.md section 8). */
   deleteUserBySub(userPoolId: string, sub: string): Promise<void>;
+  /** Revokes the refresh tokens of the user with this `sub` (sign-out, authn-authz.md section 12). */
+  signOutBySub(userPoolId: string, sub: string): Promise<void>;
+  /** The account `playerId` of a Sign in with Apple user, from Apple's subject, or null. */
+  playerIdForApple(userPoolId: string, appleSubject: string): Promise<string | null>;
 }
 
 export function createIdentityService(
@@ -46,6 +50,15 @@ export function createIdentityService(
     link: (userPoolId, destinationUsername, providerName, providerUserId) =>
       directory.linkProvider(userPoolId, destinationUsername, providerName, providerUserId),
     addToGroup: (userPoolId, username, group) => directory.addToGroup(userPoolId, username, group),
+    signOutBySub: async (userPoolId, sub) => {
+      const username = await directory.usernameBySub(userPoolId, sub);
+      if (username !== null) await directory.globalSignOut(userPoolId, username);
+    },
+    playerIdForApple: async (userPoolId, appleSubject) => {
+      /* A first Apple sign-in creates `SignInWithApple_<subject>`; one linked into another user has no user of its own. */
+      const sub = await directory.subOfUsername(userPoolId, `SignInWithApple_${appleSubject}`);
+      return sub === null ? null : `ACCT#${sub}`;
+    },
     deleteUserBySub: async (userPoolId, sub) => {
       const username = await directory.usernameBySub(userPoolId, sub);
       if (username !== null) await directory.deleteUser(userPoolId, username);

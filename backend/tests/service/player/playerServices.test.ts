@@ -29,6 +29,12 @@ function fakeDirectory(users: PoolUser[] = []) {
       calls.push(`delete ${username}`);
       return Promise.resolve();
     },
+    globalSignOut: (_pool, username) => {
+      calls.push(`signout ${username}`);
+      return Promise.resolve();
+    },
+    subOfUsername: (_pool, username) =>
+      Promise.resolve(username === "SignInWithApple_a1" ? "sub-apple" : null),
   };
   return { directory, calls };
 }
@@ -69,6 +75,11 @@ describe("identity service", () => {
     await service.deleteUserBySub("p", "sub-1");
     await service.deleteUserBySub("p", "gone");
     expect(deleting.calls).toEqual(["delete Google_sub-1"]);
+    await service.signOutBySub("p", "sub-1");
+    await service.signOutBySub("p", "gone");
+    expect(deleting.calls).toEqual(["delete Google_sub-1", "signout Google_sub-1"]);
+    expect(await service.playerIdForApple("p", "a1")).toBe("ACCT#sub-apple");
+    expect(await service.playerIdForApple("p", "zz")).toBeNull();
   });
 });
 

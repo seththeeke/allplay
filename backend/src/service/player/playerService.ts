@@ -55,6 +55,8 @@ export interface PlayerService {
    * sessions) join this as their legs land.
    */
   deleteAccount(caller: PlayerCaller): Promise<void>;
+  /** Revokes the account's refresh tokens on every device (authn-authz.md section 12). */
+  signOut(caller: PlayerCaller): Promise<void>;
 }
 
 /** Only the fields a schema knows, so item keys and timestamps never leak into a response. */
@@ -134,6 +136,13 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
       );
       return service.preferences(caller.playerId);
     },
+    signOut: async (caller) => {
+      if (deps.userPool !== undefined)
+        await deps.userPool.identities.signOutBySub(
+          deps.userPool.id,
+          caller.playerId.slice("ACCT#".length),
+        );
+    },
     deleteAccount: async (caller) => {
       const at = now().toISOString();
       await deps.preferences.deleteAll(caller.playerId);
@@ -180,4 +189,11 @@ export function createDeployedPlayerService(
       ? {}
       : { userPool: { id: userPoolId, identities: createIdentityService() } }),
   });
+}
+
+/** The Players table DAO named by PLAYERS_TABLE, for services that update players directly. */
+export function createDeployedPlayerDao(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): PlayerDao {
+  return createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? "");
 }

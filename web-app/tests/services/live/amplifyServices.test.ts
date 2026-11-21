@@ -10,7 +10,7 @@ const auth = vi.hoisted(() => ({
   confirmResetPassword: vi.fn(),
   signOut: vi.fn(),
 }));
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), del: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), del: vi.fn(), post: vi.fn() }));
 const configure = vi.hoisted(() => vi.fn());
 vi.mock("aws-amplify/auth", () => auth);
 vi.mock("aws-amplify/api", () => api);
@@ -49,6 +49,7 @@ beforeEach(() => {
   );
   api.patch.mockReturnValue(reply({ app: DEFAULT_APP_PREFERENCES, games: {} }));
   api.del.mockReturnValue(reply({}));
+  api.post.mockReturnValue(reply({ signedOut: true }));
 });
 
 describe("Amplify configuration", () => {
@@ -158,6 +159,9 @@ describe("Amplify player service", () => {
     auth.signOut.mockResolvedValue(undefined);
     await service().signOut();
     expect(auth.signOut).toHaveBeenCalledWith({ global: true });
+    expect(api.post).toHaveBeenCalledWith({ apiName: "AllPlay", path: "/v1/players/me/sign-out" });
+    api.post.mockReturnValue({ response: Promise.reject(new Error("guest")) });
+    await service().signOut();
     await service().deleteAccount();
     expect(api.del).toHaveBeenCalledWith({ apiName: "AllPlay", path: "/v1/players/me" });
   });

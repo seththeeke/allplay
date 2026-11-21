@@ -110,6 +110,29 @@ describe("UserPoolDirectory", () => {
     });
   });
 
+  it("signs a user out everywhere and finds a sub by username", async () => {
+    const { client, sent } = stub(
+      {},
+      { UserAttributes: [{ Name: "email" }, { Name: "sub", Value: "s-1" }] },
+      {},
+    );
+    const directory = createUserPoolDirectory(client);
+    await directory.globalSignOut("pool", "u");
+    expect(sent[0]).toEqual({
+      name: "AdminUserGlobalSignOutCommand",
+      input: { UserPoolId: "pool", Username: "u" },
+    });
+    expect(await directory.subOfUsername("pool", "u")).toBe("s-1");
+    expect(await directory.subOfUsername("pool", "u")).toBeNull();
+    const missing = createUserPoolDirectory({
+      send: () =>
+        Promise.reject(Object.assign(new Error("no user"), { name: "UserNotFoundException" })),
+    });
+    expect(await missing.subOfUsername("pool", "x")).toBeNull();
+    const failing = createUserPoolDirectory({ send: () => Promise.reject(new Error("throttled")) });
+    await expect(failing.subOfUsername("pool", "x")).rejects.toThrow("throttled");
+  });
+
   it("reads the identities attribute defensively", () => {
     expect(providersOf(undefined)).toEqual([]);
     expect(providersOf("")).toEqual([]);
