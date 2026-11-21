@@ -9,6 +9,7 @@ import { Topic } from "aws-cdk-lib/aws-sns";
 import { EmailSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import {
+  CodeBuildStep,
   CodePipeline,
   CodePipelineSource,
   ShellStep,
@@ -193,9 +194,14 @@ export class AllPlayPipelineStack extends Stack {
     });
     this.pipeline.addStage(stage, {
       post: [
-        new ShellStep(`Verify${stageName}`, {
+        new CodeBuildStep(`Verify${stageName}`, {
           envFromCfnOutputs: { API_URL: stage.app.apiUrl, WEB_URL: stage.app.webUrl },
-          env: { EXPECTED_STAGE: stageName },
+          /* Tests that write data run only against Test; Prod gets the read-only checks. */
+          env: {
+            EXPECTED_STAGE: stageName,
+            INTEGRATION_SCOPE: stageName === "Test" ? "stage" : "readonly",
+          },
+          rolePolicyStatements: stage.verifyGrants,
           commands: verifyCommands(),
         }),
       ],

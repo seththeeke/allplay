@@ -85,9 +85,9 @@ Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedro
 | Synth | `npm ci` in each package; lint everywhere; unit tests with coverage gates in `backend/`, `web-app/` and `cdk/`; `web-app` build; `cdk synth` with cdk-nag checks |
 | Self-mutate | Updates the pipeline from the synthesized template |
 | Deploy Test | `AllPlayStateful-Test`, then `AllPlayApp-Test` |
-| Test verification | CodeBuild: API integration tests against Test (`backend` `npm run test:integration` with the stage's API URL; test account credentials from Secrets Manager `allplay/test/integration` once routes need them); a smoke test of the Test CloudFront URL; Playwright browser smoke tests from CDK-10 |
+| Test verification | A CodeBuild step (`CodeBuildStep`) with `INTEGRATION_SCOPE=stage`: API integration tests against Test (`backend` `npm run test:integration` with the stage's API URL), including tests that write data. Its role holds only the stage's `verifyGrants`: each construct that integration tests exercise adds the grants they need there, such as a table's read and write or the User Pool's `AdminCreateUser` and `AdminDeleteUser` for the test accounts of `authn-authz.md` Section 10. Tests that write tag their data with the run id (`itest-<build id>`) and remove it after the file's tests. Then a smoke test of the Test CloudFront URL, and Playwright browser smoke tests from CDK-10 |
 | Deploy Prod | Runs only when Test verification passes: `AllPlayStateful-Prod`, then `AllPlayApp-Prod` |
-| Prod verification | Read-only smoke: load the site and `GET /v1/health`; from AA-4 also obtain guest credentials and `GET /v1/games` |
+| Prod verification | The same step with `INTEGRATION_SCOPE=readonly`, so tests that write are skipped: load the site and `GET /v1/health`; from AA-4 also obtain guest credentials and `GET /v1/games` |
 
 CodeBuild uses the small ARM Linux image with npm caching. A failed run sends a notification to the alert topic.
 

@@ -81,11 +81,15 @@ describe("AllPlayPipelineStack", () => {
         BuildSpec: Match.stringLikeRegexp("test:integration[\\s\\S]*config.json"),
       }),
     });
-    for (const stage of ["Test", "Prod"]) {
+    for (const [stage, scope] of [
+      ["Test", "stage"],
+      ["Prod", "readonly"],
+    ]) {
       template.hasResourceProperties("AWS::CodeBuild::Project", {
         Environment: Match.objectLike({
           EnvironmentVariables: Match.arrayWith([
             Match.objectLike({ Name: "EXPECTED_STAGE", Value: stage }),
+            Match.objectLike({ Name: "INTEGRATION_SCOPE", Value: scope }),
           ]),
         }),
       });

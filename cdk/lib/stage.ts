@@ -1,4 +1,5 @@
 import { Stage, Tags, type StageProps } from "aws-cdk-lib";
+import type { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 import { PROJECT_NAME, stackName, type StageName } from "./config";
 import { AllPlayAppStack } from "./stacks/AllPlayAppStack";
@@ -14,6 +15,12 @@ export interface AllPlayStageProps extends StageProps {
 export class AllPlayStage extends Stage {
   readonly stateful: AllPlayStatefulStack;
   readonly app: AllPlayAppStack;
+  /**
+   * Permissions the stage's verification step needs (cdk-stacks.md section 7),
+   * added by the constructs that integration tests exercise, such as a table
+   * the Test stage's write tests read and clean up. Empty until those exist.
+   */
+  readonly verifyGrants: PolicyStatement[] = [];
 
   constructor(scope: Construct, id: string, props: AllPlayStageProps) {
     super(scope, id, props);
