@@ -35,6 +35,17 @@ How the `allplays` AWS account was prepared for the All Play pipeline (`cdk-stac
 
    Transcribe streaming and Polly need no request; they worked on the account's defaults.
 
+7. Google and Apple sign-in credentials (`authn-authz.md` Section 3.1). The stateful stack creates `allplay/test/federation` and `allplay/prod/federation` with every field `PENDING`. Once the credentials exist, open each secret in the Secrets Manager console (US East, N. Virginia), choose Retrieve secret value, Edit, and replace the six values:
+
+   | Field | Where it comes from |
+   |---|---|
+   | `googleClientId`, `googleClientSecret` | Google Cloud Console, APIs and Services, Credentials, an OAuth client of type Web application whose authorized redirect URI is the stage's Cognito domain followed by `/oauth2/idpresponse` |
+   | `appleServicesId` | Apple Developer, Identifiers, the Services ID with Sign in with Apple enabled, whose return URL is the same Cognito address |
+   | `appleTeamId` | Apple Developer, Membership details |
+   | `appleKeyId`, `applePrivateKeyPem` | Apple Developer, Keys, a key with Sign in with Apple enabled; the PEM is the whole downloaded `.p8` file, including its BEGIN and END lines |
+
+   Do not edit the secret through CloudFormation or CDK. The next pipeline run after AA-3 picks up the values.
+
 ## 2. First pipeline deploy
 
 1. Build the web app, because the stages publish `web-app/dist`:

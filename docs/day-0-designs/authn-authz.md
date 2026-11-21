@@ -66,10 +66,10 @@ App clients (no client secret, SRP and refresh token auth flows, OAuth authoriza
 
 | Provider | Configuration |
 |---|---|
-| Google | OAuth client id in CDK context; client secret in the stage's federation secret |
-| Sign in with Apple | Services ID, Team ID and Key ID in CDK context; private key in the stage's federation secret |
+| Google | `googleClientId` and `googleClientSecret` from the stage's federation secret |
+| Sign in with Apple | `appleServicesId`, `appleTeamId`, `appleKeyId` and `applePrivateKeyPem` from the stage's federation secret |
 
-The federation secret is one Secrets Manager secret per stage, `allplay/<stage>/federation`, a JSON document with `googleClientSecret` and `applePrivateKeyPem`. It is created by hand once per stage (documented in the CDK leg) and never committed. Attribute mapping: `email`, `email_verified`, `name`.
+The federation secret is one Secrets Manager secret per stage, `allplay/<stage>/federation` (`allplay/test/federation`, `allplay/prod/federation`), a JSON document with exactly those six fields. The stateful stack creates it with every field set to `PENDING` and retains it on deletion; the owner replaces the values in the console (`docs/runbooks/bootstrap.md` step 7), so no credential is in the repository. The stack reads each field at deploy time as a CloudFormation dynamic reference. The placeholder template never changes, because CloudFormation rewrites a secret's value when its template value changes. Attribute mapping: `email`, `email_verified`, `name`.
 
 Both providers are offered on web and iOS. Offering Sign in with Apple alongside Google satisfies App Store guideline 4.8.
 

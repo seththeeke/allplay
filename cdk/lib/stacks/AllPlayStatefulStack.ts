@@ -1,6 +1,7 @@
 import { Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
 import { isProd, type StageName } from "../config";
+import { FederationSecret } from "../constructs/FederationSecret";
 
 export interface AllPlayStatefulStackProps extends StackProps {
   stage: StageName;
@@ -13,9 +14,12 @@ export interface AllPlayStatefulStackProps extends StackProps {
  */
 export class AllPlayStatefulStack extends Stack {
   readonly stage: StageName;
+  /** Google and Apple sign-in credentials, set by hand (authn-authz.md section 3.1); the User Pool reads them in AA-3. */
+  readonly federation: FederationSecret;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
     this.stage = props.stage;
+    this.federation = new FederationSecret(this, "Federation", { stage: props.stage });
   }
 }
