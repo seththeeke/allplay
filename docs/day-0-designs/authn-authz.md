@@ -242,8 +242,18 @@ Built in execution phase 4 (Authentication). Each leg is one commit.
 | AA-8 | Admin routes for metrics, decisions and deployments; `scripts/grant-admin.sh` |
 | AA-9 | Web auth screens, Amplify configuration, admin tab gating and `/admin` route guard |
 | AA-10 | Integration tests for every tier (Section 10) |
-| AA-11 | Local authentication: the `mock` callers for guest, player and admin, the web local sign-in service, and the `cognito-test` setting with the `local-aws-auth` preset (Section 11) |
+| AA-11 | Local authentication: the `mock` callers for guest, player and admin, `resolveCaller` per Section 4, route tiers enforced from the route lists, and the web local sign-in sending the development caller (Section 11) |
+| AA-11b | The `cognito-test` setting and the `local-aws-auth` preset (Section 11), built with AA-9 once the Test User Pool and Amplify exist |
 | AA-12 | Account linking and the account merge, the duplicate list and admin merge routes, `scripts/merge-accounts.sh` (Sections 6.1 and 6.2) |
 | AA-13 | App Store hooks: sign-out route, Sign in with Apple token revocation at deletion, the Apple notifications route, the privacy page (Section 12) |
 
 Build order, by the owner's direction: AA-11 first (so every later leg runs locally), then DM-1, AA-1, AA-2, AA-3 (once the Google and Apple keys exist), AA-4, CDK-7, AA-5, AA-9, AA-7, AA-13, DM-2, AA-6, AA-12, AA-8, AA-10.
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-21.
+
+| Leg | Status | Notes |
+|---|---|---|
+| AA-11 | Done | `resolveCaller` resolves guests and accounts with the tier of their role; the router enforces each route's `minimumTier` (403 `FORBIDDEN`); the local server writes guest, player and admin identities from `x-allplay-dev-caller`; the web app sends the mock-signed-in player as that header in local `LIVE` mode |
+| Next | | DM-1 (Players and Preferences tables and DAOs, the `ByEmail` index), then AA-1 and AA-2. AA-3 waits on the Google and Apple keys |

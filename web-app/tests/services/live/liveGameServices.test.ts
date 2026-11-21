@@ -131,7 +131,7 @@ describe("live game services", () => {
     await createApiClient("http://api.test/").get("v1/games", {
       parse: (v: unknown) => v,
     } as never);
-    expect(fetchSpy).toHaveBeenCalledWith("http://api.test/v1/games", undefined);
+    expect(fetchSpy).toHaveBeenCalledWith("http://api.test/v1/games", { headers: {} });
     vi.unstubAllGlobals();
   });
 });

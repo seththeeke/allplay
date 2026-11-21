@@ -2,7 +2,9 @@ import { passwordProblem, type PlayerMe } from "../../models/api";
 import type { PlayerService } from "../types";
 import type { MemoryStore } from "./memoryStore";
 
-const KEY = "allplay.memory.player";
+/** Where the signed-in mock player is kept; the local development caller is read from it. */
+export const PLAYER_KEY = "allplay.memory.player";
+const KEY = PLAYER_KEY;
 const GUEST: PlayerMe = {
   playerId: "GUEST#local-prototype",
   kind: "GUEST",

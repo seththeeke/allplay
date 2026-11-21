@@ -5,7 +5,7 @@ import { healthRoutes } from "../controller/web-api/health/healthRoutes";
 import { SEED_PATTERN } from "../game-engine";
 import { isWav, SpeechUnavailableError } from "../service/speech/speechToText";
 import { MAX_SPEECH_CHARS, SpeechOutputUnavailableError } from "../service/speech/textToSpeech";
-import { devCaller, toHttpApiEvent } from "./eventAdapter";
+import { devCaller, devPlayerId, toHttpApiEvent } from "./eventAdapter";
 import type { Handler, LocalProviders } from "./providers";
 
 /** Request bodies above this size are refused; ten seconds of 16 kHz PCM is about 320 KB. */
@@ -153,7 +153,10 @@ export function createLocalServer(providers: LocalProviders): Server {
         return [
           200,
           {
-            decisions: await providers.decisions.recent(`GUEST#${devCaller(request.headers)}`, 20),
+            decisions: await providers.decisions.recent(
+              devPlayerId(devCaller(request.headers)),
+              20,
+            ),
           },
         ];
       case "GET /local/speech/spoken":

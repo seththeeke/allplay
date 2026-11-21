@@ -15,7 +15,16 @@ export const HttpEventSchema = z.object({
     authorizer: z
       .object({
         iam: z
-          .object({ cognitoIdentity: z.object({ identityId: z.string().min(1) }).nullish() })
+          .object({
+            cognitoIdentity: z
+              .object({
+                identityId: z.string().min(1),
+                identityPoolId: z.string().optional(),
+                amr: z.array(z.string()).optional(),
+              })
+              .nullish(),
+            userArn: z.string().optional(),
+          })
           .optional(),
       })
       .optional(),

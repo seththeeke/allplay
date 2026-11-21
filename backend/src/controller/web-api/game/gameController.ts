@@ -11,6 +11,7 @@ import {
 import { invalidRequest, notFound } from "../../../service/gameSession/errors";
 import type { GameSessionService } from "../../../service/gameSession/gameSessionService";
 import { jsonBody } from "../shared/httpEvent";
+import { gameRoutes } from "./gameRoutes";
 import { createRouter, type RouteRequest } from "../shared/router";
 import type { HttpResult } from "../shared/response";
 
@@ -84,5 +85,6 @@ export function createGameHandler(
       },
     },
     deps.logger,
+    gameRoutes,
   );
 }

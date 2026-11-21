@@ -20,6 +20,7 @@ export interface ApiClient {
 export function createApiClient(
   apiUrl: string,
   fetchImpl: FetchLike = (input, init) => fetch(input, init),
+  headers: () => Record<string, string> = () => ({}),
 ): ApiClient {
   const base = apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`;
   const call = async <T extends z.ZodType>(
@@ -27,7 +28,10 @@ export function createApiClient(
     schema: T,
     init?: RequestInit,
   ): Promise<z.output<T>> => {
-    const response = await fetchImpl(new URL(path, base).toString(), init);
+    const response = await fetchImpl(new URL(path, base).toString(), {
+      ...init,
+      headers: { ...headers(), ...(init?.headers as Record<string, string> | undefined) },
+    });
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const error = ApiErrorSchema.safeParse(body);

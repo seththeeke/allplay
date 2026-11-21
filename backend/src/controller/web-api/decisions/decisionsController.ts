@@ -8,6 +8,7 @@ import {
 import type { DecisionService } from "../../../service/decision/decisionService";
 import { invalidRequest } from "../../../service/gameSession/errors";
 import { jsonBody } from "../shared/httpEvent";
+import { decisionsRoutes } from "./decisionsRoutes";
 import type { HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
 
@@ -52,5 +53,6 @@ export function createDecisionsHandler(
       },
     },
     deps.logger,
+    decisionsRoutes,
   );
 }

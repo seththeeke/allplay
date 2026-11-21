@@ -162,3 +162,49 @@ describe("game controller", () => {
     expect(gameRoutes.map((route) => `${route.method} ${route.path}`)).toHaveLength(9);
   });
 });
+
+describe("route tiers", () => {
+  it("answers 403 when the caller's tier is below the route's minimum", async () => {
+    const { createRouter } = await import("../../../../src/controller/web-api/shared/router");
+    const handler = createRouter(
+      { "GET /v1/secret": () => Promise.resolve([200, { ok: true }]) },
+      createLogger({ write }),
+      [{ method: "GET", path: "/v1/secret", minimumTier: "PLAYER" }],
+      "pool",
+    );
+    const as = (amr: string[], role: string) => ({
+      ...apiEvent("GET /v1/secret"),
+      requestContext: {
+        requestId: "r",
+        http: { method: "GET", path: "/v1/secret" },
+        authorizer: {
+          iam: {
+            cognitoIdentity: { identityId: "id-1", identityPoolId: "pool", amr },
+            userArn: `arn:aws:sts::1:assumed-role/${role}/x`,
+          },
+        },
+      },
+    });
+    const guest = await handler(as(["unauthenticated"], "AllPlay-GuestRole-Test"));
+    expect(guest.statusCode).toBe(403);
+    expect(JSON.parse(guest.body)).toEqual({ code: "FORBIDDEN", message: "Sign in to do that." });
+    const player = await handler(
+      as(["authenticated", "x:CognitoSignIn:sub-1"], "AllPlay-PlayerRole-Test"),
+    );
+    expect(player.statusCode).toBe(200);
+    const admins = createRouter(
+      { "GET /v1/admin": () => Promise.resolve([200, {}]) },
+      createLogger({ write }),
+      [{ method: "GET", path: "/v1/admin", minimumTier: "ADMIN" }],
+      "pool",
+    );
+    const denied = await admins({
+      ...as(["authenticated", "x:CognitoSignIn:sub-1"], "AllPlay-PlayerRole-Test"),
+      routeKey: "GET /v1/admin",
+    });
+    expect(JSON.parse(denied.body)).toEqual({
+      code: "FORBIDDEN",
+      message: "You do not have access to that.",
+    });
+  });
+});

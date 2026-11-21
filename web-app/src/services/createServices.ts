@@ -1,5 +1,7 @@
 import type { AppConfig } from "../config";
+import type { PlayerMe } from "../models/api";
 import { createApiClient } from "./live/apiClient";
+import { DEV_CALLER_HEADER, devCallerFor } from "./live/devCaller";
 import {
   createLiveDecisionService,
   createLiveGameService,
@@ -12,7 +14,7 @@ import { createMemoryDecisionService } from "./memory/memoryDecisionService";
 import { createMemoryGameService } from "./memory/memoryGameService";
 import { memoryHealthService } from "./memory/memoryHealthService";
 import { createMemoryVoiceLabService } from "./memory/memoryVoiceLabService";
-import { createMemoryPlayerService } from "./memory/memoryPlayerService";
+import { createMemoryPlayerService, PLAYER_KEY } from "./memory/memoryPlayerService";
 import { createMemorySessionService } from "./memory/memorySessionService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
 import { readStats } from "./memory/memoryStats";
@@ -50,7 +52,12 @@ export function createServices(
   let live: Pick<Services, "games" | "sessions" | "decisions"> | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
-    const api = createApiClient(config.apiUrl);
+    /* Locally the mock sign-in picks the caller (authn-authz.md section 11); deployed stages sign with Amplify (AA-9). */
+    const api = createApiClient(config.apiUrl, undefined, () =>
+      config.stage === "LOCAL"
+        ? { [DEV_CALLER_HEADER]: devCallerFor(store.read<PlayerMe | null>(PLAYER_KEY, null)) }
+        : {},
+    );
     live = {
       games: createLiveGameService(api),
       sessions: createLiveSessionService(api),

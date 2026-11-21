@@ -4,12 +4,58 @@ import type { IncomingHttpHeaders } from "node:http";
 export const DEV_CALLER_HEADER = "x-allplay-dev-caller";
 export const DEFAULT_DEV_CALLER = "local-guest";
 
-/** The development caller from the header, or the default guest; anything unsafe falls back to the default. */
-export function devCaller(headers: IncomingHttpHeaders): string {
+export type DevTier = "guest" | "player" | "admin";
+
+export interface DevCaller {
+  tier: DevTier;
+  id: string;
+}
+
+/**
+ * The development caller from the header (authn-authz.md section 11):
+ * `guest:<id>`, `player:<id>` or `admin:<id>`, where a bare `<id>` is a guest.
+ * Anything malformed falls back to the default guest.
+ */
+export function devCaller(headers: IncomingHttpHeaders): DevCaller {
   const value = headers[DEV_CALLER_HEADER];
-  return typeof value === "string" && /^[A-Za-z0-9:_-]{1,64}$/.test(value)
-    ? value
-    : DEFAULT_DEV_CALLER;
+  const match =
+    typeof value === "string"
+      ? /^(?:(guest|player|admin):)?([A-Za-z0-9_-]{1,64})$/.exec(value)
+      : null;
+  if (match === null) return { tier: "guest", id: DEFAULT_DEV_CALLER };
+  return { tier: (match[1] ?? "guest") as DevTier, id: match[2] as string };
+}
+
+const ROLES: Record<DevTier, string> = {
+  guest: "AllPlay-GuestRole-Local",
+  player: "AllPlay-PlayerRole-Local",
+  admin: "AllPlay-AdminRole-Local",
+};
+
+/**
+ * The Identity Pool fields API Gateway would put on the request for this
+ * caller, so resolveCaller and the route tiers run unchanged locally.
+ */
+export function devIdentity(caller: DevCaller): {
+  cognitoIdentity: { identityId: string; identityPoolId: string; amr: string[] };
+  userArn: string;
+} {
+  const signedIn = caller.tier !== "guest";
+  return {
+    cognitoIdentity: {
+      identityId: signedIn ? `local:${caller.id}` : caller.id,
+      identityPoolId: "local",
+      amr: signedIn
+        ? ["authenticated", "cognito-idp.local", `cognito-idp.local:CognitoSignIn:${caller.id}`]
+        : ["unauthenticated"],
+    },
+    userArn: `arn:aws:sts::000000000000:assumed-role/${ROLES[caller.tier]}/CognitoIdentityCredentials`,
+  };
+}
+
+/** The playerId resolveCaller derives for a development caller. */
+export function devPlayerId(caller: DevCaller): string {
+  return caller.tier === "guest" ? `GUEST#${caller.id}` : `ACCT#${caller.id}`;
 }
 
 export interface LocalRequest {
@@ -53,7 +99,7 @@ export function toHttpApiEvent(
     requestContext: {
       requestId: newId(),
       http: { method: request.method, path: request.path, sourceIp: "127.0.0.1" },
-      authorizer: { iam: { cognitoIdentity: { identityId: devCaller(request.headers) } } },
+      authorizer: { iam: devIdentity(devCaller(request.headers)) },
     },
   };
 }

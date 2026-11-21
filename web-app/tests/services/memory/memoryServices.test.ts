@@ -82,7 +82,16 @@ describe("createServices", () => {
     });
     expect(live.speechInput.kind).toBe("LOCAL_SERVER");
     await expect(live.games.list()).resolves.toEqual({ games: [] });
-    expect(fetchSpy).toHaveBeenCalledWith("http://localhost:4000/v1/games", undefined);
+    expect(fetchSpy).toHaveBeenCalledWith("http://localhost:4000/v1/games", {
+      headers: { "x-allplay-dev-caller": "guest:local-guest" },
+    });
+    const deployed = createServices({
+      stage: "TEST",
+      dataMode: "LIVE",
+      apiUrl: "https://api.example.com/",
+    });
+    await deployed.games.list();
+    expect(fetchSpy).toHaveBeenLastCalledWith("https://api.example.com/v1/games", { headers: {} });
     vi.unstubAllGlobals();
   });
 

@@ -377,7 +377,9 @@ describe("event adapter", () => {
       headers: { accept: "a,b" },
       requestContext: {
         requestId: "req-1",
-        authorizer: { iam: { cognitoIdentity: { identityId: "pat" } } },
+        authorizer: {
+          iam: { cognitoIdentity: { identityId: "pat", amr: ["unauthenticated"] } },
+        },
       },
     });
     expect(
@@ -389,7 +391,17 @@ describe("event adapter", () => {
         body: Buffer.alloc(0),
       }),
     ).not.toHaveProperty("body");
-    expect(devCaller({ "x-allplay-dev-caller": "bad caller!" })).toBe(DEFAULT_DEV_CALLER);
-    expect(devCaller({})).toBe(DEFAULT_DEV_CALLER);
+    const guest = { tier: "guest", id: DEFAULT_DEV_CALLER };
+    expect(devCaller({ "x-allplay-dev-caller": "bad caller!" })).toEqual(guest);
+    expect(devCaller({ "x-allplay-dev-caller": "boss:pat" })).toEqual(guest);
+    expect(devCaller({})).toEqual(guest);
+    expect(devCaller({ "x-allplay-dev-caller": "player:pat" })).toEqual({
+      tier: "player",
+      id: "pat",
+    });
+    expect(devCaller({ "x-allplay-dev-caller": "admin:root" })).toEqual({
+      tier: "admin",
+      id: "root",
+    });
   });
 });
