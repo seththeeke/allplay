@@ -69,8 +69,13 @@ describe("AllPlayStatefulStack", () => {
       ],
       TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
     });
+    template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+      TableName: "AllPlay-MergeTokens-Test",
+      KeySchema: [{ AttributeName: "tokenHash", KeyType: "HASH" }],
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
     expect(Object.keys(template.findOutputs("*"))).toEqual(
-      expect.arrayContaining(["PlayersTableName", "PreferencesTableName"]),
+      expect.arrayContaining(["PlayersTableName", "PreferencesTableName", "MergeTokensTableName"]),
     );
   });
 

@@ -22,10 +22,13 @@ export class AllPlayStatefulStack extends Stack {
   readonly players: AllPlayTable;
   /** Layered preferences (data-model.md section 5). */
   readonly preferences: AllPlayTable;
+  /** Single-use merge proofs, kept 10 minutes (data-model.md section 10). */
+  readonly mergeTokens: AllPlayTable;
   /** Accounts and groups (authn-authz.md section 3). */
   readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
   readonly preferencesTableName: CfnOutput;
+  readonly mergeTokensTableName: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
@@ -52,6 +55,12 @@ export class AllPlayStatefulStack extends Stack {
       sortKey: { name: "scope" },
       timeToLiveAttribute: "ttl",
     });
+    this.mergeTokens = new AllPlayTable(this, "MergeTokens", {
+      stage: props.stage,
+      entity: "MergeTokens",
+      partitionKey: { name: "tokenHash" },
+      timeToLiveAttribute: "ttl",
+    });
     const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
     if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
     this.users = new AllPlayUserPool(this, "Users", {
@@ -65,6 +74,9 @@ export class AllPlayStatefulStack extends Stack {
     });
     this.preferencesTableName = new CfnOutput(this, "PreferencesTableName", {
       value: this.preferences.table.tableName,
+    });
+    this.mergeTokensTableName = new CfnOutput(this, "MergeTokensTableName", {
+      value: this.mergeTokens.table.tableName,
     });
   }
 }

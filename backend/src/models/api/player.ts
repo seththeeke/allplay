@@ -106,8 +106,16 @@ export const MergeTokenResponseSchema = z.object({
 });
 export type MergeTokenResponse = z.infer<typeof MergeTokenResponseSchema>;
 
-export const MergeRequestSchema = z.object({ token: z.string().min(32) });
+/** `keep: SOURCE` redeems an account linking token, keeping the account that issued it (authn-authz.md section 6.1). */
+export const MergeRequestSchema = z.object({
+  token: z.string().min(32),
+  keep: z.literal("SOURCE").optional(),
+});
 export type MergeRequest = z.infer<typeof MergeRequestSchema>;
 
-export const MergeResponseSchema = z.object({ mergedGuestId: z.string().min(1) });
+/** The account kept and the player folded into it. */
+export const MergeResponseSchema = z.object({
+  primaryPlayerId: z.string().min(1),
+  mergedPlayerId: z.string().min(1),
+});
 export type MergeResponse = z.infer<typeof MergeResponseSchema>;

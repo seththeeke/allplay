@@ -1,7 +1,10 @@
 import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { documentClient } from "../../src/dao/dynamo";
+import { createHash } from "node:crypto";
+import { createDynamoMergeTokenDao } from "../../src/dao/mergeToken/dynamoMergeTokenDao";
 import { createDynamoPlayerDao } from "../../src/dao/player/dynamoPlayerDao";
 import { createDynamoPreferenceDao } from "../../src/dao/preference/dynamoPreferenceDao";
+import { mergeTokenDaoContract } from "../dao/mergeToken/mergeTokenDaoContract";
 import { playerDaoContract } from "../dao/player/playerDaoContract";
 import { preferenceDaoContract } from "../dao/preference/preferenceDaoContract";
 import { cleanUp, describeWrites, runId } from "./stage";
@@ -62,4 +65,22 @@ describeWrites("Preferences table", () => {
     ),
   );
   preferenceDaoContract(() => createDynamoPreferenceDao(tableName(), client), id);
+});
+
+describeWrites("MergeTokens table", () => {
+  const tableName = (): string => table("MERGE_TOKENS_TABLE");
+  const hashes = new Set<string>();
+  const hash = (name: string): string => {
+    const value = createHash("sha256").update(`${RUN}-${name}`).digest("hex");
+    hashes.add(value);
+    return value;
+  };
+  cleanUp(() =>
+    Promise.all(
+      [...hashes].map((tokenHash) =>
+        client.send(new DeleteCommand({ TableName: tableName(), Key: { tokenHash } })),
+      ),
+    ),
+  );
+  mergeTokenDaoContract(() => createDynamoMergeTokenDao(tableName(), client), hash, id);
 });

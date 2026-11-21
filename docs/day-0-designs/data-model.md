@@ -446,7 +446,7 @@ Table `AllPlay-MergeTokens-<Stage>`. Proves that the account now signing in owne
 |---|---|---|
 | Partition key | `tokenHash` | String: SHA-256 hex of the 32 byte random token; the raw token is returned to the client once and never stored |
 
-Attributes: `sourcePlayerId` (the guest for a guest merge, or the account that issued it for account linking), `sourceKind` (`GUEST` or `ACCOUNT`), `status` (`ISSUED`, `REDEEMED`), `redeemedBy` (account `playerId`), `ttl` (issue time + 10 minutes), plus Section 1 fields. Redemption is a conditional update requiring `status = ISSUED`.
+Attributes: `sourcePlayerId` (the guest for a guest merge, or the account that issued it for account linking), `sourceKind` (`GUEST` or `ACCOUNT`), `status` (`ISSUED`, `REDEEMED`), `redeemedBy` (account `playerId`), `ttl` (issue time + 10 minutes), plus Section 1 fields. Redemption is a conditional update requiring an unexpired `ttl` and `status = ISSUED`, or `redeemedBy` equal to the redeeming account, so the client's retry of an interrupted merge (`authn-authz.md` Section 6, step 4) reaches the merge again. Expiry is in the condition because DynamoDB deletes expired items only eventually.
 
 Sample:
 
@@ -471,6 +471,8 @@ Merge semantics, executed by the merge service:
 3. Each guest `PlayerStats` item is added into the account's item for the same `statsKey` (counters summed, best values compared).
 4. The guest `Player` item is set to `MERGED` with `mergedInto`; the account `Player` gains the guest id in `mergedGuestIds`.
 5. The merge is idempotent: each step checks whether it already ran, so a retried merge produces the same result.
+
+The merge service runs the data moves as an ordered list of steps. Step 2 (preferences) and step 4 (players) run since DM-2; the seat and stats steps join the list with their tables in DM-3.
 
 ## 11. RateLimitCounter
 
@@ -601,4 +603,5 @@ Status as of 2026-11-21.
 
 | Leg | Status | Notes |
 |---|---|---|
-| DM-1 | Done, first Test run pending | `Players` (with `ByEmail` and the guest `ttl`) and `Preferences` tables in the stateful stack; `models/player.ts`, `models/preference.ts`; in-memory and DynamoDB DAOs. Unit tests run the shared contracts against memory and check the DynamoDB DAOs' commands against a stubbed client. The same contracts run against the Test stage's tables in the pipeline's verification step, which may write to Test only |
+| DM-1 | Done | `Players` (with `ByEmail` and the guest `ttl`) and `Preferences` tables in the stateful stack; `models/player.ts`, `models/preference.ts`; in-memory and DynamoDB DAOs. Unit tests run the shared contracts against memory and check the DynamoDB DAOs' commands against a stubbed client. The same contracts run against the Test stage's tables in the pipeline's verification step, which may write to Test only |
+| DM-2 | Done | `AllPlay-MergeTokens-<Stage>` (`tokenHash`, TTL `ttl`), `models/mergeToken.ts`, in-memory and DynamoDB DAOs on a shared contract run in unit tests and against Test, and `service/player/mergeService.ts`: token issue (32 random bytes, SHA-256 stored), redemption, the guest merge and the account merge, with idempotency tests. Seat and stats steps wait on DM-3 |

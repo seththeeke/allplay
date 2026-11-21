@@ -52,6 +52,7 @@ export class AllPlayStage extends Stage {
       const tables: [string, string[]][] = [
         [resourceName("Players", stage), ["ByEmail"]],
         [resourceName("Preferences", stage), []],
+        [resourceName("MergeTokens", stage), []],
       ];
       this.verifyGrants.push(
         (pipeline) =>
