@@ -3,7 +3,10 @@ import { createPlayersHandler } from "../../../../src/controller/web-api/players
 import { playersRoutes } from "../../../../src/controller/web-api/players/playersRoutes";
 import { createInMemoryPlayerDao } from "../../../../src/dao/player/inMemoryPlayerDao";
 import { createInMemoryPreferenceDao } from "../../../../src/dao/preference/inMemoryPreferenceDao";
+import { createInMemoryMergeTokenDao } from "../../../../src/dao/mergeToken/inMemoryMergeTokenDao";
+import { devIdentity } from "../../../../src/local/eventAdapter";
 import { createLogger } from "../../../../src/logger";
+import { createMergeService, preferencesStep } from "../../../../src/service/player/mergeService";
 import {
   createPlayerService,
   type PlayerService,
@@ -11,14 +14,38 @@ import {
 import { apiEvent } from "../apiEvent";
 
 const write = vi.fn();
+const merge = createMergeService({
+  players: createInMemoryPlayerDao(),
+  mergeTokens: createInMemoryMergeTokenDao(),
+  steps: [],
+});
 
 function setup() {
   const players = createInMemoryPlayerDao();
-  const service = createPlayerService({ players, preferences: createInMemoryPreferenceDao() });
+  const preferences = createInMemoryPreferenceDao();
+  const service = createPlayerService({ players, preferences });
+  const merging = createMergeService({
+    players,
+    mergeTokens: createInMemoryMergeTokenDao(),
+    steps: [preferencesStep(preferences)],
+  });
   return {
     players,
-    handler: createPlayersHandler({ players: service, logger: createLogger({ write }) }),
+    handler: createPlayersHandler({
+      players: service,
+      merge: merging,
+      logger: createLogger({ write }),
+    }),
   };
+}
+
+/** An event from a caller of the given development tier (authn-authz.md section 11). */
+function as(routeKey: string, tier: "guest" | "player", id: string, body?: unknown) {
+  const event = apiEvent(routeKey, body === undefined ? {} : { body }) as {
+    requestContext: Record<string, unknown>;
+  };
+  event.requestContext["authorizer"] = { iam: devIdentity({ tier, id }) };
+  return event;
 }
 
 const json = (result: { body: string }) => JSON.parse(result.body) as Record<string, unknown>;
@@ -95,6 +122,7 @@ describe("players controller", () => {
     const handler = createPlayersHandler({
       players: service,
       apple,
+      merge,
       logger: createLogger({ write }),
     });
     const asPlayer = (routeKey: string, body?: unknown) => {
@@ -132,6 +160,7 @@ describe("players controller", () => {
     expect((await handler(notify({}))).statusCode).toBe(400);
     const withoutApple = createPlayersHandler({
       players: service,
+      merge,
       logger: createLogger({ write }),
     });
     expect((await withoutApple(notify({ payload: "jwt" }))).statusCode).toBe(400);
@@ -162,7 +191,11 @@ describe("players controller", () => {
       }),
       recordActivity: () => Promise.reject(new Error("throttled")),
     };
-    const handler = createPlayersHandler({ players: failing, logger: createLogger({ write }) });
+    const handler = createPlayersHandler({
+      players: failing,
+      merge,
+      logger: createLogger({ write }),
+    });
     expect((await handler(apiEvent("GET /v1/players/me"))).statusCode).toBe(200);
     expect(write).toHaveBeenCalledWith(
       "WARN",
@@ -170,15 +203,42 @@ describe("players controller", () => {
     );
   });
 
-  it("lists its routes for CDK, all open to guests", async () => {
+  it("lists its routes for CDK with their tiers", async () => {
     expect(playersRoutes.map((route) => route.minimumTier)).toEqual([
       "GUEST",
       "GUEST",
       "GUEST",
       "PLAYER",
       "PLAYER",
+      "GUEST",
+      "PLAYER",
     ]);
     const { handler } = await import("../../../../src/controller/web-api/players/handler");
     expect(typeof handler).toBe("function");
+  });
+
+  it("issues a guest merge token, and redeems it as the account, moving preferences", async () => {
+    const { handler, players } = setup();
+    const patched = as("PATCH /v1/players/me/preferences/{scope}", "guest", "g-9", {
+      zoomLevel: 2,
+    });
+    (patched as Record<string, unknown>)["pathParameters"] = { scope: "APP" };
+    await handler(patched);
+    const issued = await handler(as("POST /v1/players/me/merge-tokens", "guest", "g-9"));
+    expect(issued.statusCode).toBe(201);
+    const { token } = json(issued) as { token: string };
+    expect(
+      (await handler(as("POST /v1/players/me/merge", "guest", "g-9", { token }))).statusCode,
+    ).toBe(403);
+    expect((await handler(as("POST /v1/players/me/merge", "player", "sub-9", {}))).statusCode).toBe(
+      400,
+    );
+    const merged = await handler(as("POST /v1/players/me/merge", "player", "sub-9", { token }));
+    expect(json(merged)).toEqual({ primaryPlayerId: "ACCT#sub-9", mergedPlayerId: "GUEST#g-9" });
+    const prefs = await handler(as("GET /v1/players/me/preferences", "player", "sub-9"));
+    expect(json(prefs)).toMatchObject({ app: { zoomLevel: 2 } });
+    expect(await players.get("GUEST#g-9")).toMatchObject({ status: "MERGED" });
+    const reused = await handler(as("POST /v1/players/me/merge", "player", "sub-8", { token }));
+    expect(reused.statusCode).toBe(422);
   });
 });

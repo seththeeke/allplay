@@ -27,8 +27,10 @@ export function usePlayer(): UsePlayer {
   const query = useQuery({ queryKey: PLAYER_KEY, queryFn: () => service.me() });
   const mutation = useMutation({
     mutationFn: (work: (player: PlayerService) => Promise<PlayerMe>) => work(service),
-    onSuccess: (player) => {
+    onSuccess: async (player) => {
       queryClient.setQueryData(PLAYER_KEY, player);
+      /* Everything else is the caller's own data, which changes with who is signed in (and after a merge). */
+      await queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "player" });
     },
   });
   return {

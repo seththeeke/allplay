@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { PlayerMeSchema, PreferencesResponseSchema } from "../../src/models/api";
+import {
+  MergeTokenResponseSchema,
+  PlayerMeSchema,
+  PreferencesResponseSchema,
+} from "../../src/models/api";
 import { apiUrl } from "./apiUrl";
 import { guestCredentials, identityPoolId, signedFetch } from "./guestCredentials";
+import { writesAllowed } from "./stage";
 
 /*
  * The player routes as a guest browser calls them (authn-authz.md sections 4
@@ -28,5 +33,25 @@ describe.runIf(identityPoolId() !== undefined)("player routes as a guest", () =>
   it("refuses an unsigned request", async () => {
     const response = await fetch(new URL("v1/players/me", apiUrl()));
     expect(response.status).toBe(403);
+  });
+
+  it("refuses a guest redeeming a merge token (authn-authz.md section 6)", async () => {
+    const guest = await guestCredentials(identityPoolId() ?? "");
+    const redeemed = await signedFetch(new URL("v1/players/me/merge", apiUrl()), guest, {
+      method: "POST",
+      body: { token: "t".repeat(43) },
+    });
+    expect(redeemed.status).toBe(403);
+  });
+
+  /* Issuing writes a token item, which expires in 10 minutes; only Test's verification writes. */
+  it.runIf(writesAllowed())("issues a guest a 10 minute merge token", async () => {
+    const guest = await guestCredentials(identityPoolId() ?? "");
+    const issued = await signedFetch(new URL("v1/players/me/merge-tokens", apiUrl()), guest, {
+      method: "POST",
+    });
+    expect(issued.status).toBe(201);
+    const { expiresAt } = MergeTokenResponseSchema.parse(await issued.json());
+    expect(Date.parse(expiresAt) - Date.now()).toBeGreaterThan(9 * 60 * 1000);
   });
 });

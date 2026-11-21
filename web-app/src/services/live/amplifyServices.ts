@@ -14,12 +14,15 @@ import {
 import type { AppConfig } from "../../config";
 import {
   DeploymentsResponseSchema,
+  MergeResponseSchema,
+  MergeTokenResponseSchema,
   PlayerMeSchema,
   PreferencesResponseSchema,
   StartDeploymentResponseSchema,
   type PlayerMe,
 } from "../../models/api";
 import type { AdminService, PlayerService, PreferencesService, SignInProvider } from "../types";
+import type { MergeApi } from "./guestMerge";
 
 /** The config fields Amplify needs; present on deployed stages from AA-1 and AA-4. */
 export interface CognitoConfig {
@@ -225,6 +228,35 @@ export function createAmplifyPreferencesService(headers: CallHeaders = none): Pr
       ),
     patchApp: (changes) => scoped("APP", changes),
     patchGame: (gameId, changes) => scoped(`GAME#${gameId}`, changes),
+  };
+}
+
+/** The merge routes over the signed API (authn-authz.md section 6). */
+export function createAmplifyMergeApi(headers: CallHeaders = none): MergeApi {
+  return {
+    issue: async () =>
+      MergeTokenResponseSchema.parse(
+        await json(
+          post({
+            apiName: API,
+            path: "/v1/players/me/merge-tokens",
+            options: { headers: await headers() },
+          }),
+        ),
+      ),
+    redeem: async (token, keep) =>
+      MergeResponseSchema.parse(
+        await json(
+          post({
+            apiName: API,
+            path: "/v1/players/me/merge",
+            options: {
+              headers: await headers(),
+              body: keep === undefined ? { token } : { token, keep },
+            },
+          }),
+        ),
+      ),
   };
 }
 

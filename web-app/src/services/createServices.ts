@@ -5,6 +5,7 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyAdminService,
+  createAmplifyMergeApi,
   createAmplifyPreferencesService,
   type CallHeaders,
   type CognitoConfig,
@@ -12,6 +13,7 @@ import {
 } from "./live/amplifyServices";
 import { createApiClient, type ApiClient } from "./live/apiClient";
 import { createLiveAdminService } from "./live/liveAdminService";
+import { withGuestMerge } from "./live/guestMerge";
 import { DEV_CALLER_HEADER, devCallerFor } from "./live/devCaller";
 import {
   createLiveDecisionService,
@@ -121,7 +123,11 @@ export function createServices(
     player:
       cognito === null
         ? createMemoryPlayerService(store)
-        : createAmplifyPlayerService(cognito, callHeaders),
+        : withGuestMerge(
+            createAmplifyPlayerService(cognito, callHeaders),
+            createAmplifyMergeApi(callHeaders),
+            globalThis.sessionStorage,
+          ),
     decisions: createMemoryDecisionService(sessions, preferences),
     stats: { list: () => Promise.resolve(readStats(store)) },
     ...live,

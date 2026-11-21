@@ -7,6 +7,8 @@ import { createPlayersHandler } from "../controller/web-api/players/playersContr
 import { createAdminHandler } from "../controller/web-api/admin/adminController";
 import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploymentPipeline";
 import { createDeploymentService } from "../service/admin/deploymentService";
+import { createInMemoryMergeTokenDao } from "../dao/mergeToken/inMemoryMergeTokenDao";
+import { createMergeService, preferencesStep } from "../service/player/mergeService";
 import type { HttpResult } from "../controller/web-api/shared/response";
 import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
 import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
@@ -234,6 +236,9 @@ export async function createLocalProviders(
         (await repository.get(gameId, version)).speech.deciderGuidance ?? [],
       ...(overrides.now ? { now: overrides.now } : {}),
     });
+    /* One in-memory store per table, shared by the player and merge services as the tables are. */
+    const playerDao = createInMemoryPlayerDao();
+    const preferenceDao = createInMemoryPreferenceDao();
     return {
       decisions,
       sessions,
@@ -244,8 +249,14 @@ export async function createLocalProviders(
         }),
         players: createPlayersHandler({
           players: createPlayerService({
-            players: createInMemoryPlayerDao(),
-            preferences: createInMemoryPreferenceDao(),
+            players: playerDao,
+            preferences: preferenceDao,
+            ...(overrides.now ? { now: overrides.now } : {}),
+          }),
+          merge: createMergeService({
+            players: playerDao,
+            mergeTokens: createInMemoryMergeTokenDao(),
+            steps: [preferencesStep(preferenceDao)],
             ...(overrides.now ? { now: overrides.now } : {}),
           }),
           logger: logger.child({ bundle: "players" }),

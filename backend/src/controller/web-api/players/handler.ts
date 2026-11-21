@@ -1,6 +1,7 @@
 import { logger } from "../../../logger";
 import { createDeployedAppleService } from "../../../service/player/appleService";
 import { createIdentityService } from "../../../service/player/identityService";
+import { createDeployedMergeService } from "../../../service/player/mergeService";
 import {
   createDeployedPlayerService,
   createDeployedPlayerDao,
@@ -17,5 +18,6 @@ export const handler = createPlayersHandler({
     accounts: players,
     logger: logger.child({ bundle: "players", provider: "apple" }),
   }),
+  merge: createDeployedMergeService(),
   logger: logger.child({ bundle: "players" }),
 });

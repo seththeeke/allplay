@@ -1,5 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
+import { createDynamoMergeTokenDao } from "../../dao/mergeToken/dynamoMergeTokenDao";
 import type { MergeTokenDao } from "../../dao/mergeToken/mergeTokenDao";
+import { createDynamoPlayerDao } from "../../dao/player/dynamoPlayerDao";
+import { createDynamoPreferenceDao } from "../../dao/preference/dynamoPreferenceDao";
 import type { PlayerDao } from "../../dao/player/playerDao";
 import type { PreferenceDao } from "../../dao/preference/preferenceDao";
 import type { MergeResponse, MergeTokenResponse } from "../../models/api";
@@ -51,6 +54,19 @@ export interface MergeService {
   redeem(caller: PlayerCaller, token: string, keep?: "SOURCE"): Promise<MergeResponse>;
   /** Folds the duplicate account into the primary (authn-authz.md section 6.2). */
   mergeAccounts(primaryPlayerId: string, duplicatePlayerId: string): Promise<MergeResponse>;
+}
+
+/** The merge service over the deployed tables (PLAYERS_TABLE, PREFERENCES_TABLE, MERGE_TOKENS_TABLE). */
+export function createDeployedMergeService(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  afterAccountMerge?: AccountMergeHook,
+): MergeService {
+  return createMergeService({
+    players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
+    mergeTokens: createDynamoMergeTokenDao(env["MERGE_TOKENS_TABLE"] ?? ""),
+    steps: [preferencesStep(createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""))],
+    ...(afterAccountMerge === undefined ? {} : { afterAccountMerge }),
+  });
 }
 
 const hashOf = (token: string): string => createHash("sha256").update(token).digest("hex");

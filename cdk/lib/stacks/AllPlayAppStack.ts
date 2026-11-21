@@ -85,7 +85,7 @@ export class AllPlayAppStack extends Stack {
         ...adminRoutes,
       ],
     });
-    const { players, preferences } = props.stateful;
+    const { players, preferences, mergeTokens } = props.stateful;
     const playerApi = new AllPlayFunction(this, "PlayerApi", {
       stage: props.stage,
       name: "PlayerApi",
@@ -95,6 +95,7 @@ export class AllPlayAppStack extends Stack {
       environment: {
         PLAYERS_TABLE: players.table.tableName,
         PREFERENCES_TABLE: preferences.table.tableName,
+        MERGE_TOKENS_TABLE: mergeTokens.table.tableName,
         IDENTITY_POOL_ID: this.identity.identityPool.ref,
         USER_POOL_ID: users.userPool.userPoolId,
         FEDERATION_SECRET_ID: props.stateful.federation.secret.secretName,
@@ -110,6 +111,13 @@ export class AllPlayAppStack extends Stack {
       new PolicyStatement({
         actions: ["dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:DeleteItem"],
         resources: [preferences.table.tableArn],
+      }),
+    );
+    /* Merge tokens are written once and redeemed with a conditional update (data-model.md section 10). */
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
+        resources: [mergeTokens.table.tableArn],
       }),
     );
     /* Account deletion finds the user by sub and deletes it (authn-authz.md section 8). */

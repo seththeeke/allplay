@@ -14,6 +14,9 @@ export const playersRoutes = [
   },
   { method: "DELETE", path: "/v1/players/me", auth: "IAM", minimumTier: "PLAYER" },
   { method: "POST", path: "/v1/players/me/sign-out", auth: "IAM", minimumTier: "PLAYER" },
+  /* A guest issues for the guest merge, an account for account linking (authn-authz.md section 6). */
+  { method: "POST", path: "/v1/players/me/merge-tokens", auth: "IAM", minimumTier: "GUEST" },
+  { method: "POST", path: "/v1/players/me/merge", auth: "IAM", minimumTier: "PLAYER" },
 ] as const;
 
 /** Apple's server-to-server notifications: public, because Apple signs the body (authn-authz.md section 12). */

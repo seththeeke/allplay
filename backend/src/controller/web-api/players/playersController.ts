@@ -1,5 +1,8 @@
 import type { Logger } from "../../../logger";
 import {
+  MergeRequestSchema,
+  MergeResponseSchema,
+  MergeTokenResponseSchema,
   PatchAppPreferencesSchema,
   PatchGamePreferencesSchema,
   PlayerMeSchema,
@@ -7,6 +10,7 @@ import {
 } from "../../../models/api";
 import { invalidRequest } from "../../../service/gameSession/errors";
 import type { AppleService } from "../../../service/player/appleService";
+import type { MergeService } from "../../../service/player/mergeService";
 import type { PlayerService } from "../../../service/player/playerService";
 import { z } from "zod";
 import { HttpEventSchema, jsonBody } from "../shared/httpEvent";
@@ -19,6 +23,7 @@ export interface PlayersControllerDeps {
   players: PlayerService;
   /** Sign in with Apple revocation and notifications; absent where Apple is not used (the local server). */
   apple?: AppleService;
+  merge: MergeService;
   logger: Logger;
 }
 
@@ -57,6 +62,19 @@ export function createPlayersHandler(
         await deps.players.signOut(caller);
         deps.logger.info("Signed out everywhere", { playerId: caller.playerId });
         return [200, { signedOut: true }];
+      },
+      "POST /v1/players/me/merge-tokens": async ({ caller }) => [
+        201,
+        MergeTokenResponseSchema.parse(await deps.merge.issue(caller)),
+      ],
+      "POST /v1/players/me/merge": async ({ caller, event }) => {
+        const request = MergeRequestSchema.safeParse(jsonBody(event));
+        if (!request.success) throw invalidRequest("Send { token } and optionally keep: SOURCE.");
+        const merged = MergeResponseSchema.parse(
+          await deps.merge.redeem(caller, request.data.token, request.data.keep),
+        );
+        deps.logger.info("Players merged", merged);
+        return [200, merged];
       },
       "GET /v1/players/me/preferences": async ({ caller }) => [
         200,

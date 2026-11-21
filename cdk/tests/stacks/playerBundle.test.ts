@@ -23,6 +23,7 @@ describe("player bundle", () => {
         Variables: Match.objectLike({
           PLAYERS_TABLE: Match.anyValue(),
           PREFERENCES_TABLE: Match.anyValue(),
+          MERGE_TOKENS_TABLE: Match.anyValue(),
           IDENTITY_POOL_ID: Match.anyValue(),
           USER_POOL_ID: Match.anyValue(),
           FEDERATION_SECRET_ID: Match.anyValue(),
@@ -35,6 +36,8 @@ describe("player bundle", () => {
       "PATCH /v1/players/me/preferences/{scope}",
       "DELETE /v1/players/me",
       "POST /v1/players/me/sign-out",
+      "POST /v1/players/me/merge-tokens",
+      "POST /v1/players/me/merge",
     ]) {
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
@@ -52,6 +55,7 @@ describe("player bundle", () => {
       '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminUserGlobalSignOut","cognito-idp:ListUsers"',
     );
     expect(policies).toContain("secretsmanager:GetSecretValue");
+    expect(policies).toContain('"dynamodb:PutItem","dynamodb:UpdateItem"');
     app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
       RouteKey: "POST /v1/apple/notifications",
       AuthorizationType: "NONE",

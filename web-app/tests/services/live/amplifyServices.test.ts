@@ -23,6 +23,7 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyAdminService,
+  createAmplifyMergeApi,
   createAmplifyPreferencesService,
   localAuthHeaders,
   PENDING_PROVIDER_KEY,
@@ -267,5 +268,33 @@ describe("Amplify admin service", () => {
     });
     expect(await admin.metrics("a", "b")).toEqual({ days: [] });
     expect(await admin.failures("a")).toEqual({ decisions: [] });
+  });
+});
+
+describe("Amplify merge API", () => {
+  it("issues and redeems tokens through the signed API", async () => {
+    const merge = createAmplifyMergeApi();
+    api.post.mockReturnValueOnce(
+      reply({ token: "t".repeat(43), expiresAt: "2026-11-21T12:10:00.000Z" }),
+    );
+    expect((await merge.issue()).token).toHaveLength(43);
+    expect(api.post).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/players/me/merge-tokens",
+      options: { headers: {} },
+    });
+    api.post.mockReturnValue(reply({ primaryPlayerId: "ACCT#a", mergedPlayerId: "GUEST#g" }));
+    await merge.redeem("t".repeat(43));
+    expect(api.post).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/players/me/merge",
+      options: { headers: {}, body: { token: "t".repeat(43) } },
+    });
+    await merge.redeem("t".repeat(43), "SOURCE");
+    expect(api.post).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: { headers: {}, body: { token: "t".repeat(43), keep: "SOURCE" } },
+      }),
+    );
   });
 });

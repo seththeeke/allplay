@@ -24,7 +24,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 | Admin tier from the email prefix `admin` | `memoryPlayerService.ts` | `ADMIN` Cognito group (`scripts/grant-admin.sh`) | AA-8, AA-9 |
 | Google and Apple sign in | `memoryPlayerService.ts` `signInWithProvider` (fake `<provider>.player@example.com` account) | Cognito federation with Google and Apple | AA-3, AA-9 |
 | Account deletion | `memoryPlayerService.ts` `deleteAccount` (resets to guest) | `DELETE /v1/players/me` | AA-7, WP-3 |
-| Guest to account merge | Not modeled; signing in replaces the guest | Merge token flow (`authn-authz.md`) | DM-2, AA-6, WP-3 |
+| Guest to account merge | `MEMORY` mode and the local mock sign-in, where signing in keeps the browser's own data; deployed stages and `local-aws-auth` redeem a merge token since AA-6 | Merge token flow (`authn-authz.md` Section 6) | DM-3 (seats and stats), WP-3 |
 | Admin metrics, failures and deployments | `services/memory/memoryAdminService.ts`, `test-data/admin.ts` (deterministic sample data) | `/v1/admin/*` over `MetricRollups`, `Decisions` and CodePipeline | DM-5, AA-8, WP-4 |
 | Deployment trigger | `memoryAdminService.ts` `startDeployment` (adds a fake in-progress row) | `POST /v1/admin/deployments` starting the pipeline | AA-8, WP-4 |
 
