@@ -26,6 +26,8 @@ export function createRouter(
   logger: Logger,
   routes: readonly { method: string; path: string; minimumTier?: Tier }[] = [],
   identityPoolId: string | undefined = process.env["IDENTITY_POOL_ID"],
+  /** Runs for every resolved caller before its controller; a failure is logged and the request goes on. */
+  onCaller?: (caller: Caller) => Promise<void>,
 ): (event: unknown) => Promise<HttpResult> {
   const minimum = new Map(
     routes.map((route) => [`${route.method} ${route.path}`, route.minimumTier ?? "GUEST"]),
@@ -46,6 +48,13 @@ export function createRouter(
         "FORBIDDEN",
         caller.tier === "GUEST" ? "Sign in to do that." : "You do not have access to that.",
       );
+    if (onCaller !== undefined) {
+      try {
+        await onCaller(caller);
+      } catch (error) {
+        logger.warn("Caller activity was not recorded", { playerId: caller.playerId, error });
+      }
+    }
     try {
       const [status, body] = await controller({
         event,

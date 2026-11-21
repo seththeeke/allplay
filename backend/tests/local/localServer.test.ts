@@ -174,6 +174,7 @@ describe("local server", () => {
       health: () => Promise.reject(new Error("boom")),
       decisions: original,
       game: original,
+      players: original,
     });
     const failed = await fetch(`${base}/v1/health`);
     expect(failed.status).toBe(500);

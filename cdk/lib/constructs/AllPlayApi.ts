@@ -108,4 +108,29 @@ export class AllPlayApi extends Construct {
     });
     return added;
   }
+
+  /**
+   * Adds a bundle's routes from its route list (cdk-stacks.md section 5),
+   * every one behind AWS_IAM and served by the bundle's Lambda through one
+   * integration. Public routes are refused here.
+   */
+  addBundle(
+    id: string,
+    routes: readonly { method: string; path: string; auth: string }[],
+    handler: IFunction,
+  ): HttpRoute[] {
+    const integration = new HttpLambdaIntegration(`${id}Integration`, handler);
+    return routes.map((route, index) => {
+      if (route.auth !== "IAM")
+        throw new Error(`${route.method} ${route.path} is not an IAM route.`);
+      return new HttpRoute(this, `${id}Route${String(index)}`, {
+        httpApi: this.api,
+        routeKey: HttpRouteKey.with(
+          route.path,
+          HttpMethod[route.method as keyof typeof HttpMethod],
+        ),
+        integration,
+      });
+    });
+  }
 }

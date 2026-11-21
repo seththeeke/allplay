@@ -3,9 +3,12 @@ import { fileURLToPath } from "node:url";
 import { createDecisionsHandler } from "../controller/web-api/decisions/decisionsController";
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
+import { createPlayersHandler } from "../controller/web-api/players/playersController";
 import type { HttpResult } from "../controller/web-api/shared/response";
 import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
 import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
+import { createInMemoryPlayerDao } from "../dao/player/inMemoryPlayerDao";
+import { createInMemoryPreferenceDao } from "../dao/preference/inMemoryPreferenceDao";
 import { createInMemorySeatAssignmentDao } from "../dao/seatAssignment/inMemorySeatAssignmentDao";
 import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
@@ -25,6 +28,7 @@ import {
   type GameSessionService,
 } from "../service/gameSession/gameSessionService";
 import { createHealthService } from "../service/healthService";
+import { createPlayerService } from "../service/player/playerService";
 import { createMacosSpeech } from "../service/speech/macosSpeech";
 import type { ProviderStatus, SpeechToText } from "../service/speech/speechToText";
 import { createTranscribe } from "../service/speech/transcribe";
@@ -52,7 +56,7 @@ export interface LocalProviders {
   llm: LlmClient;
   decisions: DecisionService;
   sessions: GameSessionService;
-  handlers: { health: Handler; decisions: Handler; game: Handler };
+  handlers: { health: Handler; decisions: Handler; game: Handler; players: Handler };
   status(): Promise<Record<string, CapabilityStatus>>;
   /** Drops all in-memory state and the fixed seed, for tests (POST /local/reset). */
   reset(): void;
@@ -181,6 +185,14 @@ export async function createLocalProviders(
       decisions,
       sessions,
       handlers: {
+        players: createPlayersHandler({
+          players: createPlayerService({
+            players: createInMemoryPlayerDao(),
+            preferences: createInMemoryPreferenceDao(),
+            ...(overrides.now ? { now: overrides.now } : {}),
+          }),
+          logger: logger.child({ bundle: "players" }),
+        }),
         game: createGameHandler({
           catalog: repository,
           sessions,

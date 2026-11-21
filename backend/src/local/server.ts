@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { decisionsRoutes } from "../controller/web-api/decisions/decisionsRoutes";
 import { gameRoutes } from "../controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../controller/web-api/health/healthRoutes";
+import { playersRoutes } from "../controller/web-api/players/playersRoutes";
 import { SEED_PATTERN } from "../game-engine";
 import { isWav, SpeechUnavailableError } from "../service/speech/speechToText";
 import { MAX_SPEECH_CHARS, SpeechOutputUnavailableError } from "../service/speech/textToSpeech";
@@ -95,6 +96,7 @@ export function createLocalServer(providers: LocalProviders): Server {
     [healthRoutes, "health"],
     [decisionsRoutes, "decisions"],
     [gameRoutes, "game"],
+    [playersRoutes, "players"],
   ] as const;
   const api: ApiRoute[] = bundles.flatMap(([routes, bundle]) =>
     routes.map((route) => ({
@@ -107,7 +109,7 @@ export function createLocalServer(providers: LocalProviders): Server {
 
   const cors = {
     "access-control-allow-origin": providers.settings.webOrigin,
-    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-methods": "GET, POST, PATCH, OPTIONS",
     "access-control-allow-headers": "content-type, x-allplay-dev-caller",
   };
 

@@ -1,9 +1,11 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
 import { gameRoutes } from "../../../backend/src/controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../../../backend/src/controller/web-api/health/healthRoutes";
+import { playersRoutes } from "../../../backend/src/controller/web-api/players/playersRoutes";
 import { resourceName, type StageName } from "../config";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
@@ -71,8 +73,34 @@ export class AllPlayAppStack extends Stack {
       userPool: users.userPool,
       clients: [this.webClient, this.iosClient],
       api: this.api.api,
-      routes: [...healthRoutes, ...gameRoutes, ...decisionsRoutes],
+      routes: [...healthRoutes, ...gameRoutes, ...decisionsRoutes, ...playersRoutes],
     });
+    const { players, preferences } = props.stateful;
+    const playerApi = new AllPlayFunction(this, "PlayerApi", {
+      stage: props.stage,
+      name: "PlayerApi",
+      entry: "controller/web-api/players/handler.ts",
+      memorySize: 512,
+      timeout: Duration.seconds(10),
+      environment: {
+        PLAYERS_TABLE: players.table.tableName,
+        PREFERENCES_TABLE: preferences.table.tableName,
+        IDENTITY_POOL_ID: this.identity.identityPool.ref,
+      },
+    });
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+        resources: [players.table.tableArn],
+      }),
+    );
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query", "dynamodb:UpdateItem"],
+        resources: [preferences.table.tableArn],
+      }),
+    );
+    this.api.addBundle("Players", playersRoutes, playerApi.function);
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",

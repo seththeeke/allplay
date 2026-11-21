@@ -45,6 +45,7 @@ describe("resolveCaller", () => {
     expect(resolveCaller(event(deployedGuest), POOL)).toEqual({
       playerId: "GUEST#us-east-1:guest-1",
       tier: "GUEST",
+      identityId: "us-east-1:guest-1",
     });
     for (const [role, tier] of [
       ["AllPlay-PlayerRole-Test", "PLAYER"],
@@ -55,6 +56,7 @@ describe("resolveCaller", () => {
       expect(resolveCaller(event(deployedAccount(role)), POOL)).toEqual({
         playerId: "ACCT#7b3e9a10-sub",
         tier,
+        identityId: "us-east-1:acct-1",
       });
     }
     expect(resolveCaller(event({ ...deployedAccount("x"), userArn: undefined }))?.tier).toBe(
@@ -72,6 +74,7 @@ describe("resolveCaller", () => {
     expect(resolveCaller(event({ cognitoIdentity: { identityId: "x" } }))).toEqual({
       playerId: "GUEST#x",
       tier: "GUEST",
+      identityId: "x",
     });
   });
 
