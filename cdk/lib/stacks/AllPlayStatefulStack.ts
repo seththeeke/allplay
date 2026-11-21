@@ -1,6 +1,7 @@
-import { Stack, type StackProps } from "aws-cdk-lib";
+import { CfnOutput, Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
 import { isProd, type StageName } from "../config";
+import { AllPlayTable } from "../constructs/AllPlayTable";
 import { FederationSecret } from "../constructs/FederationSecret";
 
 export interface AllPlayStatefulStackProps extends StackProps {
@@ -16,10 +17,44 @@ export class AllPlayStatefulStack extends Stack {
   readonly stage: StageName;
   /** Google and Apple sign-in credentials, set by hand (authn-authz.md section 3.1); the User Pool reads them in AA-3. */
   readonly federation: FederationSecret;
+  /** Guests and accounts (data-model.md section 4). */
+  readonly players: AllPlayTable;
+  /** Layered preferences (data-model.md section 5). */
+  readonly preferences: AllPlayTable;
+  readonly playersTableName: CfnOutput;
+  readonly preferencesTableName: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
     this.stage = props.stage;
     this.federation = new FederationSecret(this, "Federation", { stage: props.stage });
+    this.players = new AllPlayTable(this, "Players", {
+      stage: props.stage,
+      entity: "Players",
+      partitionKey: { name: "playerId" },
+      timeToLiveAttribute: "ttl",
+      globalIndexes: [
+        {
+          indexName: "ByEmail",
+          partitionKey: { name: "emailKey" },
+          sortKey: { name: "createdAt" },
+          projection: { include: ["status", "signInProviders"] },
+        },
+      ],
+    });
+    this.preferences = new AllPlayTable(this, "Preferences", {
+      stage: props.stage,
+      entity: "Preferences",
+      partitionKey: { name: "playerId" },
+      sortKey: { name: "scope" },
+      timeToLiveAttribute: "ttl",
+    });
+    /* Table names for the pipeline's integration tests (cdk-stacks.md section 7). */
+    this.playersTableName = new CfnOutput(this, "PlayersTableName", {
+      value: this.players.table.tableName,
+    });
+    this.preferencesTableName = new CfnOutput(this, "PreferencesTableName", {
+      value: this.preferences.table.tableName,
+    });
   }
 }

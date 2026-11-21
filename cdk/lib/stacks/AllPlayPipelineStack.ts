@@ -195,13 +195,18 @@ export class AllPlayPipelineStack extends Stack {
     this.pipeline.addStage(stage, {
       post: [
         new CodeBuildStep(`Verify${stageName}`, {
-          envFromCfnOutputs: { API_URL: stage.app.apiUrl, WEB_URL: stage.app.webUrl },
+          envFromCfnOutputs: {
+            API_URL: stage.app.apiUrl,
+            WEB_URL: stage.app.webUrl,
+            PLAYERS_TABLE: stage.stateful.playersTableName,
+            PREFERENCES_TABLE: stage.stateful.preferencesTableName,
+          },
           /* Tests that write data run only against Test; Prod gets the read-only checks. */
           env: {
             EXPECTED_STAGE: stageName,
             INTEGRATION_SCOPE: stageName === "Test" ? "stage" : "readonly",
           },
-          rolePolicyStatements: stage.verifyGrants,
+          rolePolicyStatements: stage.verifyGrants.map((grant) => grant(this)),
           commands: verifyCommands(),
         }),
       ],
