@@ -54,7 +54,15 @@ Table `AllPlay-Players-<Stage>`.
 |---|---|---|
 | Partition key | `playerId` | String |
 
-No GSIs. Total and 30 day active user counts are computed by the daily rollup job (Section 12).
+GSI `ByEmail` (duplicate account detection, `authn-authz.md` Section 6.2):
+
+| Key | Attribute | Format |
+|---|---|---|
+| Partition key | `emailKey` | The account email trimmed and lowercased; `ACCOUNT` items only, so guests are not indexed |
+| Sort key | `createdAt` | ISO timestamp |
+| Projection | KEYS_ONLY plus `status`, `signInProviders` | |
+
+`playerId` stays `ACCT#<sub>`: one Cognito user is one account, and the pre sign-up trigger links every Google and Apple identity with the same verified email to that user. `ByEmail` finds the duplicates that linking cannot prevent, such as an Apple private relay email, and the account merge folds them together. Total and 30 day active user counts are computed by the daily rollup job (Section 12).
 
 Attributes:
 
@@ -70,6 +78,9 @@ Attributes:
 | `signInProviders` | String set | `ACCOUNT` only: `COGNITO`, `GOOGLE`, `APPLE` |
 | `mergedInto` | String | `MERGED` guests only: the account `playerId` |
 | `mergedGuestIds` | String set | `ACCOUNT` only: guest `playerId`s folded into this account |
+| `mergedAccountIds` | String set | `ACCOUNT` only: duplicate account `playerId`s folded into this account (`authn-authz.md` Section 6.2) |
+| `emailKey` | String | `ACCOUNT` only: the email trimmed and lowercased, the `ByEmail` key |
+| `relayEmailEnabled` | Boolean | `ACCOUNT` with an Apple private relay email only: false after Apple's `email-disabled` notification |
 | `firstSeenAt` | String | ISO timestamp |
 | `lastActiveAt` | String | Updated at most once per hour per player (conditional write on the stored value) |
 | `entityVersion`, `createdAt`, `updatedAt` | | Section 1 |
@@ -433,14 +444,15 @@ Table `AllPlay-MergeTokens-<Stage>`. Proves that the account now signing in owne
 |---|---|---|
 | Partition key | `tokenHash` | String: SHA-256 hex of the 32 byte random token; the raw token is returned to the client once and never stored |
 
-Attributes: `guestPlayerId`, `status` (`ISSUED`, `REDEEMED`), `redeemedBy` (account `playerId`), `ttl` (issue time + 10 minutes), plus Section 1 fields. Redemption is a conditional update requiring `status = ISSUED`.
+Attributes: `sourcePlayerId` (the guest for a guest merge, or the account that issued it for account linking), `sourceKind` (`GUEST` or `ACCOUNT`), `status` (`ISSUED`, `REDEEMED`), `redeemedBy` (account `playerId`), `ttl` (issue time + 10 minutes), plus Section 1 fields. Redemption is a conditional update requiring `status = ISSUED`.
 
 Sample:
 
 ```json
 {
   "tokenHash": "c0a8d2f4e6b1...9e",
-  "guestPlayerId": "GUEST#us-east-1:4f1c2a9e-1d7b-4c55-9a0e-8f3f1d2b6c11",
+  "sourcePlayerId": "GUEST#us-east-1:4f1c2a9e-1d7b-4c55-9a0e-8f3f1d2b6c11",
+  "sourceKind": "GUEST",
   "status": "REDEEMED",
   "redeemedBy": "ACCT#7b3e9a10-5c2d-4f8e-a1b6-0d9c3e4f5a67",
   "ttl": 1796225445,

@@ -47,12 +47,14 @@ Each capability is chosen by an environment variable. A preset sets all of them,
 | `ALLPLAY_LLM` | `claude-code`, `claude-api`, `bedrock`, `fake` |
 | `ALLPLAY_SPEECH_IN` | `auto`, `macos`, `whisper`, `transcribe`, `typed` |
 | `ALLPLAY_SPEECH_OUT` | `kokoro`, `polly`, `recording` |
+| `ALLPLAY_AUTH` | `mock`, `cognito-test` (`authn-authz.md` Section 11) |
 
-| Preset | Storage | Language model | Speech in | Speech out |
-|---|---|---|---|---|
-| `local` | memory | `claude-code` | `auto` (macOS speech, else whisper.cpp, else typed) | `kokoro` |
-| `local-aws` | memory | `bedrock` | `transcribe` | `polly` |
-| `continuous-integration` | memory | `fake` | `typed` | `recording` |
+| Preset | Storage | Language model | Speech in | Speech out | Auth |
+|---|---|---|---|---|---|
+| `local` | memory | `claude-code` | `auto` (macOS speech, else whisper.cpp, else typed) | `kokoro` | `mock` |
+| `local-aws` | memory | `bedrock` | `transcribe` | `polly` | `mock` |
+| `local-aws-auth` | memory | `bedrock` | `transcribe` | `polly` | `cognito-test` |
+| `continuous-integration` | memory | `fake` | `typed` | `recording` | `mock` |
 
 `ALLPLAY_CLAUDE_MODEL` overrides the model of Claude Code and the Claude API, and `ALLPLAY_CLAUDE_BIN` the Claude Code executable (`action-decision.md` Section 8).
 
@@ -60,7 +62,7 @@ Each capability is chosen by an environment variable. A preset sets all of them,
 
 ## 3. Identity
 
-1. The caller's identity comes from a development header, `x-allplay-dev-caller`, defaulting to a fixed local guest. The local server writes it into the request context's IAM identity fields, the same fields `resolveCaller` reads in deployed stages, so `resolveCaller` has no local branch.
+1. The caller's identity comes from a development header, `x-allplay-dev-caller` (`guest:<id>`, `player:<id>` or `admin:<id>`, `authn-authz.md` Section 11), defaulting to a fixed local guest. The local server writes it into the request context's IAM identity fields, the same fields `resolveCaller` reads in deployed stages, so `resolveCaller` has no local branch.
 2. Tier checks (`requireTier`) run unchanged; the header can name a guest, a player or an admin.
 3. Only the local server reads the header. A test asserts that deployed handlers ignore it.
 
@@ -102,7 +104,7 @@ A provider that is not set up is reported by `GET /local/status`, and the server
 | LD-3 | Local caller identity header written into the IAM identity fields |
 | LD-4 | Web app `LIVE` services against the local server, and a root `npm run dev` |
 | LD-5 | Local integration test run in GitHub Actions with the `continuous-integration` preset |
-| LD-6 | Fakes for sign-in and deployments as those features land |
+| LD-6 | Fakes for sign-in (`authn-authz.md` AA-11) and deployments as those features land |
 | LD-7 | Game screen microphone capture through the local server, and the voice playthrough test (Section 6) |
 
 The voice legs (AD-10 to AD-15) are listed in `action-decision.md` Section 15. The first build order is LD-1, LD-3, AD-12, AD-10, then AD-11: speech to text, shown in the Voice Lab, reaching the backend as text.

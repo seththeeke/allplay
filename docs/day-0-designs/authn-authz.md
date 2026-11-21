@@ -1,12 +1,12 @@
 # Authentication and Authorization
 
-Status: Day 0 design, 2026-11-17.
+Status: Day 0 design, 2026-11-17; account linking, duplicate merge, App Store hooks and local authentication added 2026-11-21.
 
 All Play is free and playable without an account. Every visitor gets a guest identity automatically; signing up or signing in is optional and carries the guest's games, preferences and statistics into the account. This document defines identities, roles, the Cognito configuration, API authorization, the guest merge, and the client flows.
 
 Related specs: `data-model.md` (Player, MergeToken), `cdk-stacks.md` (provisioning), `action-decision.md` (Transcribe and Polly access).
 
-Reference implementations: `seththeeke/nyc-311` (role-based admin routes), `seththeeke/survive-and-advance` (Google and Apple sign-in, federated account linking in the pre sign-up trigger), `seththeeke/rook` (Amplify Swift auth and Face ID on iOS).
+Reference implementations: `seththeeke/nyc-311` (role-based admin routes), `seththeeke/survive-and-advance` (Google and Apple sign-in, federated account linking in the pre sign-up trigger; it can still end with duplicate users, which Section 6.2 repairs here), `seththeeke/rook` (Amplify Swift auth and Face ID on iOS).
 
 ## 1. Principles
 
@@ -49,7 +49,7 @@ One pool per stage: `AllPlay-Users-<Stage>`.
 | MFA | Off |
 | Account recovery | Email only |
 | Token validity | ID and access tokens 1 hour; refresh token 90 days |
-| Domain | Cognito managed domain `allplay-<stage>-<accountId>` for managed login (OAuth) |
+| Domain | Cognito managed domain `allplay-<stage>-<suffix>` for managed login (OAuth), where `<suffix>` is a fixed random string in CDK context, so public URLs never carry the account id |
 | Email sender | Cognito default email until a domain exists; Amazon SES from a verified domain afterward (added in the domain leg, `cdk-stacks.md` Section 8) |
 | Deletion protection | Prod only |
 
@@ -79,7 +79,7 @@ Both providers are offered on web and iOS. Offering Sign in with Apple alongside
 |---|---|
 | Pre sign-up | Federated sign-up: if a user with the same verified email exists, link the new provider identity to that user (`AdminLinkProviderForUser`) so one person has one account; otherwise auto-confirm and mark the email verified. Native sign-up: if a federated-only user with that email exists, reject with a stable message token (`ALLPLAY_USE_SOCIAL_SIGN_IN`) that clients turn into "This email signs in with Google or Apple" |
 | Post confirmation | Add the user to `PLAYER`; create the `ACCOUNT` `Player` item (`ACCT#<sub>`) with `email` and `signInProviders` |
-| Post authentication | Update `Player.lastActiveAt` and `signInProviders` |
+| Post authentication | Update `Player.lastActiveAt` and `signInProviders`. If another `ACTIVE` account `Player` has the same normalized email (`ByEmail`, `data-model.md` Section 4), record a `DUPLICATE_ACCOUNT` metric and log both `playerId`s for the duplicate merge (Section 6.2); sign-in is never blocked |
 | Custom message | Render the HTML email templates for sign-up code, resend code, forgot password code and attribute verification from `backend/src/controller/cognito/templates/` (large type, plain layout, the code in 32 px text) |
 
 ## 4. Identity Pool and API Authorization
@@ -118,13 +118,16 @@ On a guest's first request (and at most once per hour after that), the controlle
 | `GET /v1/players/me` | Guest |
 | `GET /v1/players/me/preferences`, `PATCH /v1/players/me/preferences/{scope}` | Guest |
 | `GET /v1/players/me/stats` | Guest |
-| `POST /v1/players/me/merge-tokens` | Guest only |
+| `POST /v1/players/me/merge-tokens` | Guest (guest merge) or PLAYER (account linking) |
 | `POST /v1/players/me/merge` | PLAYER |
+| `POST /v1/players/me/sign-out` | PLAYER (records the sign-out and revokes refresh tokens, Section 12) |
 | `PATCH /v1/players/me` (display name) | PLAYER |
 | `DELETE /v1/players/me` | PLAYER |
 | `GET /v1/admin/metrics?from=&to=` | ADMIN |
 | `GET /v1/admin/decisions?day=&class=` (failure browsing via `ByDayOutcome`) | ADMIN |
 | `GET /v1/admin/deployments`, `POST /v1/admin/deployments` | ADMIN |
+| `GET /v1/admin/players/duplicates`, `POST /v1/admin/players/merge` | ADMIN |
+| `POST /v1/apple/notifications` | None (public); the body is an Apple-signed JWT verified against Apple's keys (Section 12) |
 
 `POST /v1/admin/deployments` calls `codepipeline:StartPipelineExecution` on the All Play pipeline and returns the execution id. `GET /v1/admin/deployments` lists the 20 most recent executions with their stage results. Only the admin API Lambda's role holds these CodePipeline permissions.
 
@@ -138,6 +141,26 @@ On a guest's first request (and at most once per hour after that), the controlle
 A token is single-use and bound to the guest that requested it; redeeming it requires an account caller, so a guest cannot redeem a token and an account cannot forge one for another guest.
 
 On sign-out, Amplify clears the account credentials and obtains a new guest identity. The new guest starts fresh; the account's data stays with the account.
+
+### 6.1 Account Linking
+
+A signed-in player can link a second sign-in method (Google, Apple, or email and password) to their account, for example after signing in once with Apple's private relay email and once with Google. Linking reuses the merge token:
+
+1. Signed in as account A, the client calls `POST /v1/players/me/merge-tokens`, which for an account caller issues a token whose source is A.
+2. The player signs in with the other method, becoming account B.
+3. The client calls `POST /v1/players/me/merge` as B with the token and `{ "keep": "SOURCE" }`, so the account the player started from, A, is kept.
+4. The server runs the account merge (Section 6.2) from B into A, then the client signs out and the player signs in again with either method, reaching A.
+
+A token is single-use, expires in 10 minutes, and redeeming it requires that both A and B are accounts the caller has just proved: A by issuing the token, B by redeeming it.
+
+### 6.2 Account Merge
+
+The account merge folds one account (the duplicate) into another (the primary). It is used by account linking and by an admin when a duplicate is found.
+
+1. Data moves exactly as in the guest merge (`data-model.md` Section 10): seats, then preferences the primary lacks, then stats summed, idempotently.
+2. The duplicate `Player` becomes `MERGED` with `mergedInto`, and the primary gains it in `mergedAccountIds` and gains its `signInProviders`.
+3. The duplicate's Cognito user is deleted (`AdminDeleteUser`). Each of its Google or Apple identities is then linked to the primary's Cognito user (`AdminLinkProviderForUser`), so the next sign-in with that provider reaches the primary. An email and password identity cannot be linked; the player uses the primary's methods afterwards.
+4. Admins run it with `POST /v1/admin/players/merge` `{ "primaryPlayerId", "duplicatePlayerId" }` or `scripts/merge-accounts.sh <Test|Prod> <primary> <duplicate>` (a mutating call under the CLAUDE.md deploy safety gate). `GET /v1/admin/players/duplicates` lists `ACTIVE` accounts that share a normalized email.
 
 ## 7. Clients
 
@@ -158,6 +181,10 @@ On sign-out, Amplify clears the account credentials and obtains a new guest iden
 
 `DELETE /v1/players/me` deletes the account's data (`data-model.md` Section 14) and then the Cognito user (`AdminDeleteUser`). The client then signs out and receives a new guest identity.
 
+1. Deletion is started in the app (web Account page, iOS Settings), confirmed once ("Delete your account and all your games? This cannot be undone."), and completes immediately; no support contact or waiting period.
+2. For an account whose `signInProviders` include `APPLE`, the client first asks the player to sign in with Apple once more and sends the fresh authorization code in the body, `{ "appleAuthorizationCode" }`. The server exchanges it at Apple's token endpoint with the client secret signed by the Sign in with Apple key, then calls Apple's revoke endpoint (`https://appleid.apple.com/auth/revoke`) so the app is removed from the player's Apple ID. If the player cancels that step or Apple is unreachable, deletion still completes, as Apple requires, and the failure is logged.
+3. Deletion is also triggered by Apple: a `consent-revoked` or `account-deleted` notification (Section 12) deletes the matching account the same way, without the revoke step.
+
 ## 9. Admin Provisioning
 
 Admins are added by hand with `scripts/grant-admin.sh <Test|Prod> <email>`, which calls `AdminAddUserToGroup`. It is a mutating AWS call and follows the CLAUDE.md deploy safety gate. There is no admin self-service.
@@ -172,7 +199,34 @@ Admins are added by hand with `scripts/grant-admin.sh <Test|Prod> <email>`, whic
    - A test admin account calls `GET /v1/admin/metrics`.
    - The full merge flow moves a guest's in-progress session to the account.
 
-## 11. Implementation Legs
+## 11. Local Authentication
+
+Locally, authentication is chosen by `ALLPLAY_AUTH` (`local-development.md` Section 2.1).
+
+| Setting | Caller identity |
+|---|---|
+| `mock` (presets `local`, `local-aws`, `continuous-integration`) | The development header `x-allplay-dev-caller`: `guest:<id>`, `player:<id>` or `admin:<id>`, default `guest:local-guest`. The local server writes the matching IAM fields: the identity id, `amr` (`unauthenticated`, or `authenticated` with `...:CognitoSignIn:<id>`), and a `userArn` naming `AllPlay-GuestRole-Local`, `AllPlay-PlayerRole-Local` or `AllPlay-AdminRole-Local`, so `resolveCaller` and `requireTier` run unchanged |
+| `cognito-test` (preset `local-aws-auth`) | Real Cognito from the Test stage. The web app signs in with Amplify against the Test User Pool and Identity Pool (the Test web client already allows `http://localhost:5173/`) and sends the ID token as `Authorization: Bearer <token>`, or for a guest its Identity Pool identity id as `x-allplay-identity-id`. The local server verifies the ID token against the Test pool's keys and writes the same IAM fields from its `sub` and `cognito:groups`; a guest identity id is accepted as given, which is safe only because the local server listens on 127.0.0.1 |
+
+In the web app, `MEMORY` mode keeps its in-memory player service. In `LIVE` mode against the local server, the `mock` setting uses a local sign-in service: any email signs in, an email starting with `admin` signs in as an admin, Google and Apple buttons sign in as a mock federated player, and the service sends the matching development header. The `cognito-test` setting uses the Amplify service, as deployed stages do.
+
+## 12. App Store Requirements
+
+The iOS app (phase 8) must pass App Review. These requirements shape the account functions built now, on web and backend, so iOS adds only its screens.
+
+| Requirement | Source | Hook |
+|---|---|---|
+| An app offering third-party sign-in (Google) must also offer an equivalent private option | Guideline 4.8 | Sign in with Apple on web and iOS, alongside Google and email |
+| An app that supports account creation must let people start account deletion in the app | Guideline 5.1.1(v) | `DELETE /v1/players/me` from the web Account page and iOS Settings (Section 8) |
+| Apps using Sign in with Apple should revoke the user's tokens when the account is deleted | Apple TN3194 | Fresh authorization code at deletion, exchange, then `auth/revoke` (Section 8) |
+| Apple tells the app when a user stops using Sign in with Apple, deletes their Apple Account, or turns relay email on or off | Sign in with Apple server-to-server notifications | `POST /v1/apple/notifications`, registered as the Services ID's notification endpoint. `consent-revoked` and `account-deleted` delete the account; `email-disabled` and `email-enabled` set `Player.relayEmailEnabled` |
+| Mail to `@privaterelay.appleid.com` addresses is delivered only from registered sources | Private email relay | The sending address (the Cognito default sender, then the SES domain once a domain exists) is registered as an email source in the Apple Developer account |
+| Features that do not need an account must not require sign-in | Guideline 5.1.1 | Guests play every game; only linking, profile and deletion need an account |
+| Sign-out must end the session on the device and stop the refresh token | Account security | `POST /v1/players/me/sign-out` records it, Amplify signs out globally (`signOut({ global: true })`, revoking the refresh token), credentials are cleared, and a new guest identity is obtained |
+| A privacy policy and the App Privacy details | Guideline 5.1.1(i), App Store Connect | A `/privacy` page in the web app; App Privacy: email address and name (account, not used for tracking), gameplay data (app functionality), audio not collected (transcribed in memory and discarded) |
+| Review must be able to use the app | Guideline 2.1 | No demo account is needed, because guests can play; review notes describe the voice flow |
+
+## 13. Implementation Legs
 
 Built in execution phase 4 (Authentication). Each leg is one commit.
 
@@ -188,3 +242,8 @@ Built in execution phase 4 (Authentication). Each leg is one commit.
 | AA-8 | Admin routes for metrics, decisions and deployments; `scripts/grant-admin.sh` |
 | AA-9 | Web auth screens, Amplify configuration, admin tab gating and `/admin` route guard |
 | AA-10 | Integration tests for every tier (Section 10) |
+| AA-11 | Local authentication: the `mock` callers for guest, player and admin, the web local sign-in service, and the `cognito-test` setting with the `local-aws-auth` preset (Section 11) |
+| AA-12 | Account linking and the account merge, the duplicate list and admin merge routes, `scripts/merge-accounts.sh` (Sections 6.1 and 6.2) |
+| AA-13 | App Store hooks: sign-out route, Sign in with Apple token revocation at deletion, the Apple notifications route, the privacy page (Section 12) |
+
+Build order, by the owner's direction: AA-11 first (so every later leg runs locally), then DM-1, AA-1, AA-2, AA-3 (once the Google and Apple keys exist), AA-4, CDK-7, AA-5, AA-9, AA-7, AA-13, DM-2, AA-6, AA-12, AA-8, AA-10.
