@@ -200,6 +200,7 @@ export class AllPlayPipelineStack extends Stack {
             WEB_URL: stage.app.webUrl,
             PLAYERS_TABLE: stage.stateful.playersTableName,
             PREFERENCES_TABLE: stage.stateful.preferencesTableName,
+            IDENTITY_POOL_ID: stage.app.identity.identityPoolIdOutput,
           },
           /* Tests that write data run only against Test; Prod gets the read-only checks. */
           env: {

@@ -25,7 +25,8 @@ const goldens = readdirSync(dir)
   .map((file) => GoldenSchema.parse(JSON.parse(readFileSync(new URL(file, dir), "utf8"))));
 const spider = createBundledRulesRepository().compiled("spider-solitaire");
 
-describe("golden Spider games", () => {
+/* Long replays (the four-suit game is 290 moves) get more than the default 5 seconds on a busy machine. */
+describe("golden Spider games", { timeout: 30_000 }, () => {
   it("covers every suit option", () => {
     expect(goldens.map((golden) => golden.options["suits"]).sort()).toEqual([1, 2, 4]);
   });

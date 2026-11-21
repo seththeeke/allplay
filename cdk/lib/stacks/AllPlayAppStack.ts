@@ -1,10 +1,13 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import type { Construct } from "constructs";
+import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
+import { gameRoutes } from "../../../backend/src/controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../../../backend/src/controller/web-api/health/healthRoutes";
 import { resourceName, type StageName } from "../config";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
+import { IdentityAccess } from "../constructs/IdentityAccess";
 import { WebHosting } from "../constructs/WebHosting";
 import type { AllPlayStatefulStack } from "./AllPlayStatefulStack";
 
@@ -30,6 +33,8 @@ export class AllPlayAppStack extends Stack {
   readonly webConfig: Record<string, unknown>;
   readonly webClient: UserPoolClient;
   readonly iosClient: UserPoolClient;
+  /** Guest and signed-in AWS credentials and the four roles (authn-authz.md section 4). */
+  readonly identity: IdentityAccess;
 
   constructor(scope: Construct, id: string, props: AllPlayAppStackProps) {
     super(scope, id, props);
@@ -61,6 +66,13 @@ export class AllPlayAppStack extends Stack {
     this.iosClient = users.appClient(this, "IosClient", resourceName("iOS", props.stage), {
       urls: ["allplay://auth/"],
     });
+    this.identity = new IdentityAccess(this, "Identity", {
+      stage: props.stage,
+      userPool: users.userPool,
+      clients: [this.webClient, this.iosClient],
+      api: this.api.api,
+      routes: [...healthRoutes, ...gameRoutes, ...decisionsRoutes],
+    });
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",
@@ -69,6 +81,7 @@ export class AllPlayAppStack extends Stack {
       userPoolId: users.userPool.userPoolId,
       userPoolClientId: this.webClient.userPoolClientId,
       oauthDomain: users.domain.baseUrl().replace("https://", ""),
+      identityPoolId: this.identity.identityPool.ref,
     };
     this.web.publish(this.webConfig);
     this.apiUrl = new CfnOutput(this, "ApiUrl", { value: this.api.url });

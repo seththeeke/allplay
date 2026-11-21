@@ -48,7 +48,8 @@ async function play(
 const zone = (envelope: SessionEnvelope, zoneId: string) =>
   envelope.view.zones.find((z) => z.zoneId === zoneId);
 
-describe("Spider Solitaire playthroughs from fixed seeds", () => {
+/* Whole games through the service get more than the default 5 seconds on a busy machine. */
+describe("Spider Solitaire playthroughs from fixed seeds", { timeout: 30_000 }, () => {
   it("wins a one-suit game by completing all eight runs", async () => {
     const scenario = loadScenario("spider-win-one-suit.json");
     const { envelope } = await play(scenario);

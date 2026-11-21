@@ -95,7 +95,7 @@ Roles:
 | `AllPlay-PlayerPlusRole-<Stage>` | `PLAYER_PLUS` group | Same as `PLAYER` plus reserved routes |
 | `AllPlay-AdminRole-<Stage>` | `ADMIN` group | Same as `PLAYER` plus `/v1/admin/*` |
 
-Role mapping: token-based (`cognito:preferred_role`, which Cognito sets from the highest-precedence group), with ambiguous tokens resolved to the authenticated role. Every role's trust policy is limited to this stage's identity pool and the matching `amr` value.
+Role mapping: rules-based on the ID token's `cognito:groups` claim, for each app client: a token whose groups contain `ADMIN` gets `AllPlay-AdminRole-<Stage>`, one containing `PLAYER_PLUS` gets `AllPlay-PlayerPlusRole-<Stage>`, and any other signed-in player gets the authenticated role, `AllPlay-PlayerRole-<Stage>`; ambiguous tokens resolve to the authenticated role. (Token-based mapping would need each group to name its role, but the groups are in the stateful stack and the roles in the app stack, so that reference would be a cycle.) Every role's trust policy is limited to this stage's identity pool and the matching `amr` value. Route grants are generated from the route lists: each role may invoke every `AWS_IAM` route at or below its tier, with path parameters as one-segment wildcards.
 
 Every route on the HTTP API uses `AWS_IAM` authorization. Each controller resolves the caller from `requestContext.authorizer.iam`:
 
@@ -259,4 +259,5 @@ Status as of 2026-11-21.
 | DM-1 | Done | See `data-model.md` |
 | AA-1 | Done | `AllPlay-Users-<Stage>` with the groups, the managed login domain `allplay-<stage>-jbus19`, the custom message trigger and its large-type templates; the web and iOS clients; the pool, web client and domain in `config.json` |
 | AA-2 | Done | The three triggers behind an identity service and the account service, so trigger controllers call no DAO; the User Pool adapter in `dao/userPool/`; per-trigger permissions with no wildcards |
-| Next | | AA-4 (Identity Pool, roles, role mapping, IAM route policies) and CDK-7. AA-3 waits on the Google and Apple keys |
+| AA-4 | Done | `AllPlay_Identities_<Stage>` (retained), the four roles with route grants generated from the route lists plus Transcribe and Polly, group-based role mapping, the pool id in `config.json`; an integration test gets guest credentials in both stages and checks they act as the guest role |
+| Next | | AA-5 (guest upsert, `GET /v1/players/me`, preferences routes) with CDK-7 (the player bundle's IAM routes). AA-3 waits on the Google and Apple keys |
