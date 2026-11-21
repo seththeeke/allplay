@@ -45,6 +45,7 @@ function identities(
       calls.push(`group ${user} ${group}`);
       return Promise.resolve();
     },
+    deleteUserBySub: () => Promise.resolve(),
     ...overrides,
   };
 }

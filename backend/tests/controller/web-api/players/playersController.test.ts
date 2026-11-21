@@ -57,6 +57,30 @@ describe("players controller", () => {
     expect(json(read)).toMatchObject({ app: { zoomLevel: 2 } });
   });
 
+  it("deletes a signed-in account and refuses guests", async () => {
+    const { handler } = setup();
+    const signedIn = {
+      ...apiEvent("DELETE /v1/players/me"),
+      requestContext: {
+        requestId: "r",
+        http: { method: "DELETE", path: "/v1/players/me" },
+        authorizer: {
+          iam: {
+            cognitoIdentity: {
+              identityId: "id-1",
+              amr: ["authenticated", "x:CognitoSignIn:sub-1"],
+            },
+            userArn: "arn:aws:sts::1:assumed-role/AllPlay-PlayerRole-Test/x",
+          },
+        },
+      },
+    };
+    const deleted = await handler(signedIn);
+    expect(deleted.statusCode).toBe(200);
+    expect(json(deleted)).toEqual({ deleted: true });
+    expect((await handler(apiEvent("DELETE /v1/players/me"))).statusCode).toBe(403);
+  });
+
   it("refuses bad scopes and unknown or invalid fields", async () => {
     const { handler } = setup();
     for (const [scope, body] of [
@@ -89,7 +113,12 @@ describe("players controller", () => {
   });
 
   it("lists its routes for CDK, all open to guests", async () => {
-    expect(playersRoutes.map((route) => route.minimumTier)).toEqual(["GUEST", "GUEST", "GUEST"]);
+    expect(playersRoutes.map((route) => route.minimumTier)).toEqual([
+      "GUEST",
+      "GUEST",
+      "GUEST",
+      "PLAYER",
+    ]);
     const { handler } = await import("../../../../src/controller/web-api/players/handler");
     expect(typeof handler).toBe("function");
   });

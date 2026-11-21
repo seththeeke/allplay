@@ -34,6 +34,11 @@ export function createPlayersHandler(
         200,
         PlayerMeSchema.parse(await deps.players.me(caller)),
       ],
+      "DELETE /v1/players/me": async ({ caller }) => {
+        await deps.players.deleteAccount(caller);
+        deps.logger.info("Account deleted", { playerId: caller.playerId });
+        return [200, { deleted: true }];
+      },
       "GET /v1/players/me/preferences": async ({ caller }) => [
         200,
         PreferencesResponseSchema.parse(await deps.players.preferences(caller.playerId)),

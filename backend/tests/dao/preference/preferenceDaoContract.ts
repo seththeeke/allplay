@@ -58,6 +58,24 @@ export function preferenceDaoContract(
     expect(await dao.list(`GUEST#${id("other")}`)).toEqual([]);
   });
 
+  it("deletes every scope of one player only", async () => {
+    const dao = create();
+    const playerId = `GUEST#${id("delete")}`;
+    const other = `GUEST#${id("keep")}`;
+    await dao.patch(playerId, "APP", { zoomLevel: 2 }, "2026-11-21T12:00:00.000Z");
+    await dao.patch(
+      playerId,
+      "GAME#spider-solitaire",
+      { helpSeen: true },
+      "2026-11-21T12:00:00.000Z",
+    );
+    await dao.patch(other, "APP", { zoomLevel: 3 }, "2026-11-21T12:00:00.000Z");
+    await dao.deleteAll(playerId);
+    expect(await dao.list(playerId)).toEqual([]);
+    expect(await dao.list(other)).toHaveLength(1);
+    await dao.deleteAll(`GUEST#${id("nobody")}`);
+  });
+
   it("refuses values outside the preference schema", async () => {
     const dao = create();
     await expect(

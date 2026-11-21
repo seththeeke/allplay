@@ -97,6 +97,19 @@ describe("UserPoolDirectory", () => {
     expect(typeof createUserPoolDirectory().addToGroup).toBe("function");
   });
 
+  it("finds a username by sub and deletes users", async () => {
+    const { client, sent } = stub({ Users: [{ Username: "Google_1" }] }, {}, {});
+    const directory = createUserPoolDirectory(client);
+    expect(await directory.usernameBySub("pool", 'sub-"1')).toBe("Google_1");
+    expect(sent[0]?.input).toEqual({ UserPoolId: "pool", Filter: 'sub = "sub-1"', Limit: 1 });
+    expect(await directory.usernameBySub("pool", "none")).toBeNull();
+    await directory.deleteUser("pool", "Google_1");
+    expect(sent[2]).toEqual({
+      name: "AdminDeleteUserCommand",
+      input: { UserPoolId: "pool", Username: "Google_1" },
+    });
+  });
+
   it("reads the identities attribute defensively", () => {
     expect(providersOf(undefined)).toEqual([]);
     expect(providersOf("")).toEqual([]);

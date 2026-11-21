@@ -16,6 +16,7 @@ import {
 } from "../../models/api";
 import { guestTtl, type Player } from "../../models/player";
 import type { Preference } from "../../models/preference";
+import { createIdentityService, type IdentityService } from "./identityService";
 
 /** Who is calling, as the controllers resolved it. */
 export interface PlayerCaller {
@@ -27,6 +28,8 @@ export interface PlayerCaller {
 export interface PlayerServiceDeps {
   players: PlayerDao;
   preferences: PreferenceDao;
+  /** The User Pool, for account deletion; absent where there is no pool (the local server). */
+  userPool?: { id: string; identities: IdentityService };
   now?: () => Date;
 }
 
@@ -45,6 +48,13 @@ export interface PlayerService {
     gameId: string,
     patch: PatchGamePreferences,
   ): Promise<PreferencesResponse>;
+  /**
+   * Account deletion (authn-authz.md section 8, data-model.md section 14):
+   * deletes the preferences, leaves a tombstone `Player` with no email or
+   * name, then deletes the Cognito user. Tables added later (seats, stats,
+   * sessions) join this as their legs land.
+   */
+  deleteAccount(caller: PlayerCaller): Promise<void>;
 }
 
 /** Only the fields a schema knows, so item keys and timestamps never leak into a response. */
@@ -124,6 +134,25 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
       );
       return service.preferences(caller.playerId);
     },
+    deleteAccount: async (caller) => {
+      const at = now().toISOString();
+      await deps.preferences.deleteAll(caller.playerId);
+      if ((await deps.players.get(caller.playerId)) !== null) {
+        await deps.players.update(caller.playerId, { status: "DELETED", identityIds: [] }, at, [
+          "email",
+          "emailKey",
+          "displayName",
+          "signInProviders",
+          "cognitoSub",
+          "relayEmailEnabled",
+        ]);
+      }
+      if (deps.userPool !== undefined)
+        await deps.userPool.identities.deleteUserBySub(
+          deps.userPool.id,
+          caller.playerId.slice("ACCT#".length),
+        );
+    },
     patchGame: async (caller, gameId, patch) => {
       const at = now();
       await deps.preferences.patch(
@@ -143,8 +172,12 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
 export function createDeployedPlayerService(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): PlayerService {
+  const userPoolId = env["USER_POOL_ID"];
   return createPlayerService({
     players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
     preferences: createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""),
+    ...(userPoolId === undefined
+      ? {}
+      : { userPool: { id: userPoolId, identities: createIdentityService() } }),
   });
 }

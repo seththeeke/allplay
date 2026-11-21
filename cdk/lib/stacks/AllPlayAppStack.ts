@@ -86,6 +86,7 @@ export class AllPlayAppStack extends Stack {
         PLAYERS_TABLE: players.table.tableName,
         PREFERENCES_TABLE: preferences.table.tableName,
         IDENTITY_POOL_ID: this.identity.identityPool.ref,
+        USER_POOL_ID: users.userPool.userPoolId,
       },
     });
     playerApi.function.addToRolePolicy(
@@ -96,8 +97,15 @@ export class AllPlayAppStack extends Stack {
     );
     playerApi.function.addToRolePolicy(
       new PolicyStatement({
-        actions: ["dynamodb:Query", "dynamodb:UpdateItem"],
+        actions: ["dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:DeleteItem"],
         resources: [preferences.table.tableArn],
+      }),
+    );
+    /* Account deletion finds the user by sub and deletes it (authn-authz.md section 8). */
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["cognito-idp:ListUsers", "cognito-idp:AdminDeleteUser"],
+        resources: [users.userPool.userPoolArn],
       }),
     );
     this.api.addBundle("Players", playersRoutes, playerApi.function);

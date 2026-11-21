@@ -12,4 +12,5 @@ export const playersRoutes = [
     auth: "IAM",
     minimumTier: "GUEST",
   },
+  { method: "DELETE", path: "/v1/players/me", auth: "IAM", minimumTier: "PLAYER" },
 ] as const;

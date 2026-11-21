@@ -1,5 +1,6 @@
 import {
   AdminAddUserToGroupCommand,
+  AdminDeleteUserCommand,
   AdminLinkProviderForUserCommand,
   CognitoIdentityProviderClient,
   ListUsersCommand,
@@ -30,6 +31,10 @@ export interface UserPoolDirectory {
     providerUserId: string,
   ): Promise<void>;
   addToGroup(userPoolId: string, username: string, group: string): Promise<void>;
+  /** The pool username of the user with this `sub` (federated usernames are `<Provider>_<subject>`), or null. */
+  usernameBySub(userPoolId: string, sub: string): Promise<string | null>;
+  /** Deletes a user and every identity linked to it (`AdminDeleteUser`). */
+  deleteUser(userPoolId: string, username: string): Promise<void>;
 }
 
 /** The part of the Cognito client the directory uses, so tests can stand in for it. */
@@ -104,6 +109,19 @@ export function createUserPoolDirectory(
           },
         }),
       );
+    },
+    usernameBySub: async (userPoolId, sub) => {
+      const out = (await client.send(
+        new ListUsersCommand({
+          UserPoolId: userPoolId,
+          Filter: `sub = "${sub.replaceAll("\\", "").replaceAll('"', "")}"`,
+          Limit: 1,
+        }),
+      )) as { Users?: UserType[] };
+      return out.Users?.[0]?.Username ?? null;
+    },
+    deleteUser: async (userPoolId, username) => {
+      await client.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: username }));
     },
     addToGroup: async (userPoolId, username, group) => {
       await client.send(

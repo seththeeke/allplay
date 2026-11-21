@@ -16,6 +16,10 @@ export function createInMemoryPreferenceDao(): PreferenceDao {
           .sort((a, b) => a.scope.localeCompare(b.scope))
           .map((item) => structuredClone(item)),
       ),
+    deleteAll: (playerId) =>
+      run(() => {
+        for (const [key, item] of items) if (item.playerId === playerId) items.delete(key);
+      }),
     patch: (playerId, scope, values, at, ttl) =>
       run(() => {
         const key = `${playerId}|${scope}`;

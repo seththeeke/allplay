@@ -24,6 +24,11 @@ function fakeDirectory(users: PoolUser[] = []) {
       calls.push(`group ${username} ${group}`);
       return Promise.resolve();
     },
+    usernameBySub: (_pool, sub) => Promise.resolve(sub === "gone" ? null : `Google_${sub}`),
+    deleteUser: (_pool, username) => {
+      calls.push(`delete ${username}`);
+      return Promise.resolve();
+    },
   };
   return { directory, calls };
 }
@@ -59,6 +64,11 @@ describe("identity service", () => {
     expect(await empty.linkTarget("p", "e", "self", "Google")).toBeNull();
     expect(await empty.emailInUse("p", "e")).toBe(false);
     expect(typeof createIdentityService().link).toBe("function");
+    const deleting = fakeDirectory();
+    const service = createIdentityService(deleting.directory);
+    await service.deleteUserBySub("p", "sub-1");
+    await service.deleteUserBySub("p", "gone");
+    expect(deleting.calls).toEqual(["delete Google_sub-1"]);
   });
 });
 

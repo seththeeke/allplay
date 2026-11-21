@@ -59,6 +59,15 @@ describe("Identity Pool", () => {
     expect(policies).toContain("/$default/POST/v1/decisions");
     expect(policies).toContain("/$default/GET/v1/sessions/*/hint");
     expect(policies).not.toContain("/v1/health");
+    /* Deleting an account needs a signed-in tier, so only the account roles may call it. */
+    const guestPolicy = JSON.stringify(
+      Object.values(app.findResources("AWS::IAM::Policy")).find((policy) =>
+        JSON.stringify(policy).includes("GuestRole"),
+      ),
+    );
+    expect(guestPolicy).toContain("/$default/GET/v1/players/me");
+    expect(guestPolicy).not.toContain("/$default/DELETE/v1/players/me");
+    expect(policies).toContain("/$default/DELETE/v1/players/me");
     expect(policies).toContain("transcribe:StartStreamTranscriptionWebSocket");
     expect(policies).toContain("polly:SynthesizeSpeech");
   });

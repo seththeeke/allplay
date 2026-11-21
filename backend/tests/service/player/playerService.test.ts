@@ -114,3 +114,54 @@ describe("player service", () => {
     ).toBe("function");
   });
 });
+
+describe("account deletion", () => {
+  it("deletes preferences, tombstones the player, and deletes the Cognito user", async () => {
+    const t = setup();
+    const deleted: string[] = [];
+    const service = createPlayerService({
+      players: t.players,
+      preferences: t.preferences,
+      userPool: {
+        id: "pool",
+        identities: {
+          emailInUse: () => Promise.resolve(false),
+          linkTarget: () => Promise.resolve(null),
+          link: () => Promise.resolve(),
+          addToGroup: () => Promise.resolve(),
+          deleteUserBySub: (_pool, sub) => {
+            deleted.push(sub);
+            return Promise.resolve();
+          },
+        },
+      },
+      now: t.now,
+    });
+    await t.players.create({
+      playerId: "ACCT#sub-1",
+      kind: "ACCOUNT",
+      status: "ACTIVE",
+      identityIds: ["id-2"],
+      cognitoSub: "sub-1",
+      email: "pat@example.com",
+      emailKey: "pat@example.com",
+      displayName: "Pat",
+      signInProviders: ["GOOGLE"],
+      firstSeenAt: "2026-11-21T00:00:00.000Z",
+      lastActiveAt: "2026-11-21T00:00:00.000Z",
+      entityVersion: 1,
+      createdAt: "2026-11-21T00:00:00.000Z",
+      updatedAt: "2026-11-21T00:00:00.000Z",
+    });
+    await service.patchApp(account, { zoomLevel: 2 });
+    await service.deleteAccount(account);
+    expect(await t.preferences.list("ACCT#sub-1")).toEqual([]);
+    const tombstone = await t.players.get("ACCT#sub-1");
+    expect(tombstone).toMatchObject({ status: "DELETED", identityIds: [] });
+    expect(tombstone?.email).toBeUndefined();
+    expect(tombstone?.displayName).toBeUndefined();
+    expect(deleted).toEqual(["sub-1"]);
+    await t.service.deleteAccount({ ...account, playerId: "ACCT#never" });
+    expect(await t.players.get("ACCT#never")).toBeNull();
+  });
+});

@@ -24,6 +24,7 @@ describe("player bundle", () => {
           PLAYERS_TABLE: Match.anyValue(),
           PREFERENCES_TABLE: Match.anyValue(),
           IDENTITY_POOL_ID: Match.anyValue(),
+          USER_POOL_ID: Match.anyValue(),
         }),
       },
     });
@@ -31,6 +32,7 @@ describe("player bundle", () => {
       "GET /v1/players/me",
       "GET /v1/players/me/preferences",
       "PATCH /v1/players/me/preferences/{scope}",
+      "DELETE /v1/players/me",
     ]) {
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
@@ -42,7 +44,9 @@ describe("player bundle", () => {
   it("grants the player Lambda only the table calls it makes", () => {
     const policies = JSON.stringify(app.findResources("AWS::IAM::Policy"));
     expect(policies).toContain('"dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem"');
-    expect(policies).toContain('"dynamodb:Query","dynamodb:UpdateItem"');
+    /* CDK sorts each statement's actions, so these are listed alphabetically. */
+    expect(policies).toContain('"dynamodb:DeleteItem","dynamodb:Query","dynamodb:UpdateItem"');
+    expect(policies).toContain('"cognito-idp:AdminDeleteUser","cognito-idp:ListUsers"');
     expect(policies).not.toContain("dynamodb:Scan");
   });
 
