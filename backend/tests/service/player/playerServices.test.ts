@@ -35,6 +35,15 @@ function fakeDirectory(users: PoolUser[] = []) {
     },
     subOfUsername: (_pool, username) =>
       Promise.resolve(username === "SignInWithApple_a1" ? "sub-apple" : null),
+    identitiesOf: (_pool, username) =>
+      Promise.resolve(
+        username === "Google_dup"
+          ? [
+              { providerName: "Google", userId: "g-9" },
+              { providerName: "SignInWithApple", userId: "a-9" },
+            ]
+          : [],
+      ),
   };
   return { directory, calls };
 }
@@ -51,6 +60,19 @@ const poolUser = (
 });
 
 describe("identity service", () => {
+  it("merges users: deletes the duplicate, then links its identities to the primary", async () => {
+    const { directory, calls } = fakeDirectory();
+    const identities = createIdentityService(directory);
+    expect(await identities.mergeUsers("p", "main", "dup")).toEqual(["Google", "SignInWithApple"]);
+    expect(calls).toEqual([
+      "delete Google_dup",
+      "link Google_main Google",
+      "link Google_main SignInWithApple",
+    ]);
+    expect(await identities.mergeUsers("p", "main", "gone")).toEqual([]);
+    await expect(identities.mergeUsers("p", "gone", "dup")).rejects.toThrow("no user in the pool");
+  });
+
   it("prefers a verified user that lacks the incoming provider", async () => {
     const { directory, calls } = fakeDirectory([
       poolUser("self", true),

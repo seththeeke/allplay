@@ -54,6 +54,8 @@ export function createMemoryPlayerService(store: MemoryStore): PlayerService {
       return problem === null ? Promise.resolve() : fail(problem);
     },
     signOut: () => save(GUEST),
+    /* In memory there is one browser-local account, so linking only signs out. */
+    startLink: () => save(GUEST),
     deleteAccount: () => save(GUEST),
   };
 }

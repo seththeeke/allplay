@@ -136,4 +136,48 @@ describe("admin page with sparse data", () => {
     expect(await screen.findByText("unrecognized, hard")).toBeInTheDocument();
     expect((await screen.findAllByRole("cell", { name: "Manual" })).length).toBe(3);
   });
+
+  it("lists duplicate accounts and merges the newer one after confirming", async () => {
+    const user = userEvent.setup();
+    await openAdmin();
+    const panel = screen.getByRole("region", { name: "Duplicate accounts" });
+    expect(within(panel).getByText("pat@example.com")).toBeInTheDocument();
+    expect(within(panel).getByText(/Keeps ACCT#sample-apple/)).toBeInTheDocument();
+    expect(within(panel).getByText(/ACCT#sample-google, 2026-11-15, Google/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Merge" }));
+    await user.click(within(panel).getByRole("button", { name: "Cancel" }));
+    await user.click(within(panel).getByRole("button", { name: "Merge" }));
+    await user.click(within(panel).getByRole("button", { name: "Yes, merge into the oldest" }));
+    expect(await within(panel).findByText("Merged ACCT#sample-google.")).toBeInTheDocument();
+    expect(await within(panel).findByText("No accounts share an email.")).toBeInTheDocument();
+  });
+
+  it("reports a failed merge and names accounts without a recorded sign-in", async () => {
+    const user = userEvent.setup();
+    const services = freshServices();
+    await services.player.signIn("admin@example.com");
+    services.admin.duplicates = () =>
+      Promise.resolve({
+        duplicates: [
+          {
+            emailKey: "x@example.com",
+            accounts: [
+              {
+                playerId: "ACCT#1",
+                signInProviders: ["COGNITO"],
+                createdAt: "2026-01-01T00:00:00.000Z",
+              },
+              { playerId: "ACCT#2", signInProviders: [], createdAt: "2026-02-01T00:00:00.000Z" },
+            ],
+          },
+        ],
+      });
+    services.admin.mergeAccounts = () => Promise.reject(new Error("refused"));
+    renderApp("/admin", services);
+    const panel = await screen.findByRole("region", { name: "Duplicate accounts" });
+    expect(await within(panel).findByText(/no sign-in recorded/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Merge" }));
+    await user.click(within(panel).getByRole("button", { name: "Yes, merge into the oldest" }));
+    expect(await within(panel).findByText("Could not merge ACCT#2.")).toBeInTheDocument();
+  });
 });

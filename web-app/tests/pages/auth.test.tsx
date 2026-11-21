@@ -128,4 +128,20 @@ describe("account", () => {
     expect(await screen.findByRole("link", { name: "Sign in" })).toBeInTheDocument();
     expect((await services.player.me()).kind).toBe("GUEST");
   });
+
+  it("starts a link, asks for the other sign-in, and confirms once linked", async () => {
+    const user = userEvent.setup();
+    const services = freshServices();
+    await services.player.signIn("pat@example.com");
+    renderApp("/account", services);
+    await user.click(await screen.findByRole("button", { name: "Link another sign-in method" }));
+    expect(await screen.findByText(/Now sign in with the other method/)).toBeInTheDocument();
+    expect((await services.player.me()).kind).toBe("GUEST");
+    /* A finished link returns a guest from the sign-in; the in-memory service stands in for it. */
+    services.player.signIn = () => services.player.startLink();
+    await user.type(screen.getByLabelText("Email"), "pat@example.com");
+    await user.type(screen.getByLabelText("Password"), "pw");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByText(/Linked. Sign in again/)).toBeInTheDocument();
+  });
 });

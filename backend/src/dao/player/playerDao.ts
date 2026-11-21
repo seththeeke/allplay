@@ -21,6 +21,11 @@ export interface EmailMatch {
   createdAt: string;
 }
 
+/** An account on the `ByEmail` index with its key. */
+export interface EmailEntry extends EmailMatch {
+  emailKey: string;
+}
+
 /** `lastActiveAt` moves at most this often (data-model.md section 4). */
 export const TOUCH_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -47,4 +52,6 @@ export interface PlayerDao {
   touch(playerId: string, at: Date, ttl?: number): Promise<boolean>;
   /** Accounts whose normalized email is `emailKey`, oldest first (`ByEmail`). */
   listByEmail(emailKey: string): Promise<EmailMatch[]>;
+  /** Every account with an email, for the admin duplicate list (a scan of `ByEmail`). */
+  listAllEmails(): Promise<EmailEntry[]>;
 }

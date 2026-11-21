@@ -128,6 +128,7 @@ export class AllPlayAppStack extends Stack {
           "cognito-idp:AdminDeleteUser",
           "cognito-idp:AdminUserGlobalSignOut",
           "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminLinkProviderForUser",
         ],
         resources: [users.userPool.userPoolArn],
       }),
@@ -147,8 +148,44 @@ export class AllPlayAppStack extends Stack {
       entry: "controller/web-api/admin/handler.ts",
       memorySize: 512,
       timeout: Duration.seconds(10),
-      environment: { IDENTITY_POOL_ID: this.identity.identityPool.ref },
+      environment: {
+        IDENTITY_POOL_ID: this.identity.identityPool.ref,
+        PLAYERS_TABLE: players.table.tableName,
+        PREFERENCES_TABLE: preferences.table.tableName,
+        MERGE_TOKENS_TABLE: mergeTokens.table.tableName,
+        USER_POOL_ID: users.userPool.userPoolId,
+      },
     });
+    /* The duplicate list scans ByEmail; the merge updates players, copies preferences and merges Cognito users (authn-authz.md section 6.2). */
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:UpdateItem"],
+        resources: [players.table.tableArn],
+      }),
+    );
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Scan"],
+        resources: [`${players.table.tableArn}/index/ByEmail`],
+      }),
+    );
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query", "dynamodb:UpdateItem"],
+        resources: [preferences.table.tableArn],
+      }),
+    );
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          "cognito-idp:ListUsers",
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminDeleteUser",
+          "cognito-idp:AdminLinkProviderForUser",
+        ],
+        resources: [users.userPool.userPoolArn],
+      }),
+    );
     /* Only the admin Lambda may read and start the pipeline (authn-authz.md section 5). */
     adminApi.function.addToRolePolicy(
       new PolicyStatement({

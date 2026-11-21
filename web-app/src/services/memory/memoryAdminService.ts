@@ -1,10 +1,16 @@
-import { sampleDeployments, sampleFailures, sampleMetrics } from "../../../test-data/admin";
+import {
+  sampleDeployments,
+  sampleDuplicates,
+  sampleFailures,
+  sampleMetrics,
+} from "../../../test-data/admin";
 import type { Deployment } from "../../models/api";
 import type { AdminService } from "../types";
 
 /** Admin API over deterministic sample data; a started deployment shows as in progress. */
 export function createMemoryAdminService(now: () => Date = () => new Date()): AdminService {
   const started: Deployment[] = [];
+  const merged = new Set<string>();
   return {
     metrics: (from, to) =>
       Promise.resolve({
@@ -24,6 +30,19 @@ export function createMemoryAdminService(now: () => Date = () => new Date()): Ad
         stages: [{ name: "Build", status: "IN_PROGRESS" }],
       });
       return Promise.resolve({ executionId });
+    },
+    duplicates: () =>
+      Promise.resolve({
+        duplicates: sampleDuplicates()
+          .map((group) => ({
+            ...group,
+            accounts: group.accounts.filter((account) => !merged.has(account.playerId)),
+          }))
+          .filter((group) => group.accounts.length > 1),
+      }),
+    mergeAccounts: (primaryPlayerId, duplicatePlayerId) => {
+      merged.add(duplicatePlayerId);
+      return Promise.resolve({ primaryPlayerId, mergedPlayerId: duplicatePlayerId });
     },
   };
 }

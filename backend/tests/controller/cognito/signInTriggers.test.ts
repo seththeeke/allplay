@@ -48,6 +48,7 @@ function identities(
     deleteUserBySub: () => Promise.resolve(),
     signOutBySub: () => Promise.resolve(),
     playerIdForApple: () => Promise.resolve(null),
+    mergeUsers: () => Promise.resolve([]),
     ...overrides,
   };
 }

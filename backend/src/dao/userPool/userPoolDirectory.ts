@@ -41,6 +41,11 @@ export interface UserPoolDirectory {
   globalSignOut(userPoolId: string, username: string): Promise<void>;
   /** The `sub` of a user by username, or null when there is no such user (`AdminGetUser`). */
   subOfUsername(userPoolId: string, username: string): Promise<string | null>;
+  /** The Google or Apple identities linked to a user (its `identities` attribute, `AdminGetUser`). */
+  identitiesOf(
+    userPoolId: string,
+    username: string,
+  ): Promise<{ providerName: string; userId: string }[]>;
 }
 
 /** The part of the Cognito client the directory uses, so tests can stand in for it. */
@@ -130,6 +135,12 @@ export function createUserPoolDirectory(
       await client.send(
         new AdminUserGlobalSignOutCommand({ UserPoolId: userPoolId, Username: username }),
       );
+    },
+    identitiesOf: async (userPoolId, username) => {
+      const out = (await client.send(
+        new AdminGetUserCommand({ UserPoolId: userPoolId, Username: username }),
+      )) as { UserAttributes?: { Name?: string; Value?: string }[] };
+      return providersOf(out.UserAttributes?.find((a) => a.Name === "identities")?.Value);
     },
     subOfUsername: async (userPoolId, username) => {
       try {

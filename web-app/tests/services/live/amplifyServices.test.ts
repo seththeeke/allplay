@@ -268,6 +268,15 @@ describe("Amplify admin service", () => {
     });
     expect(await admin.metrics("a", "b")).toEqual({ days: [] });
     expect(await admin.failures("a")).toEqual({ decisions: [] });
+    api.get.mockReturnValue(reply({ duplicates: [] }));
+    expect(await admin.duplicates()).toEqual({ duplicates: [] });
+    api.post.mockReturnValue(reply({ primaryPlayerId: "ACCT#a", mergedPlayerId: "ACCT#b" }));
+    await admin.mergeAccounts("ACCT#a", "ACCT#b");
+    expect(api.post).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/players/merge",
+      options: { headers: {}, body: { primaryPlayerId: "ACCT#a", duplicatePlayerId: "ACCT#b" } },
+    });
   });
 });
 

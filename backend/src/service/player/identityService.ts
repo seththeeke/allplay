@@ -31,6 +31,13 @@ export interface IdentityService {
   deleteUserBySub(userPoolId: string, sub: string): Promise<void>;
   /** Revokes the refresh tokens of the user with this `sub` (sign-out, authn-authz.md section 12). */
   signOutBySub(userPoolId: string, sub: string): Promise<void>;
+  /**
+   * The Cognito half of an account merge (authn-authz.md section 6.2, step 3):
+   * deletes the duplicate's user, then links each of its Google or Apple
+   * identities to the primary's user. A duplicate already gone is a no-op.
+   * Returns the providers linked.
+   */
+  mergeUsers(userPoolId: string, primarySub: string, duplicateSub: string): Promise<string[]>;
   /** The account `playerId` of a Sign in with Apple user, from Apple's subject, or null. */
   playerIdForApple(userPoolId: string, appleSubject: string): Promise<string | null>;
 }
@@ -53,6 +60,18 @@ export function createIdentityService(
     signOutBySub: async (userPoolId, sub) => {
       const username = await directory.usernameBySub(userPoolId, sub);
       if (username !== null) await directory.globalSignOut(userPoolId, username);
+    },
+    mergeUsers: async (userPoolId, primarySub, duplicateSub) => {
+      const duplicate = await directory.usernameBySub(userPoolId, duplicateSub);
+      if (duplicate === null) return [];
+      const primary = await directory.usernameBySub(userPoolId, primarySub);
+      if (primary === null) throw new Error("The primary account has no user in the pool.");
+      const identities = await directory.identitiesOf(userPoolId, duplicate);
+      /* An identity belongs to one user at a time, so the duplicate goes first. */
+      await directory.deleteUser(userPoolId, duplicate);
+      for (const identity of identities)
+        await directory.linkProvider(userPoolId, primary, identity.providerName, identity.userId);
+      return identities.map((identity) => identity.providerName);
     },
     playerIdForApple: async (userPoolId, appleSubject) => {
       /* A first Apple sign-in creates `SignInWithApple_<subject>`; one linked into another user has no user of its own. */

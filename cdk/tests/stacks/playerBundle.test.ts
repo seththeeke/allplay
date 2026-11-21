@@ -52,7 +52,7 @@ describe("player bundle", () => {
     /* CDK sorts each statement's actions, so these are listed alphabetically. */
     expect(policies).toContain('"dynamodb:DeleteItem","dynamodb:Query","dynamodb:UpdateItem"');
     expect(policies).toContain(
-      '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminUserGlobalSignOut","cognito-idp:ListUsers"',
+      '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminLinkProviderForUser","cognito-idp:AdminUserGlobalSignOut","cognito-idp:ListUsers"',
     );
     expect(policies).toContain("secretsmanager:GetSecretValue");
     expect(policies).toContain('"dynamodb:PutItem","dynamodb:UpdateItem"');
@@ -60,7 +60,12 @@ describe("player bundle", () => {
       RouteKey: "POST /v1/apple/notifications",
       AuthorizationType: "NONE",
     });
-    expect(policies).not.toContain("dynamodb:Scan");
+    /* Only the admin Lambda scans, and only the ByEmail index (adminBundle.test.ts). */
+    const player = Object.entries(app.findResources("AWS::IAM::Policy"))
+      .filter(([logicalId]) => logicalId.startsWith("PlayerApi"))
+      .map(([, value]) => JSON.stringify(value));
+    expect(player).toHaveLength(1);
+    expect(player[0]).not.toContain("dynamodb:Scan");
   });
 
   it("refuses a public route in an IAM bundle", () => {

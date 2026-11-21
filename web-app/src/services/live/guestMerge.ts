@@ -7,6 +7,13 @@ export interface MergeApi {
   redeem(token: string, keep?: "SOURCE"): Promise<MergeResponse>;
 }
 
+/** A waiting token; `keep: SOURCE` marks account linking (authn-authz.md section 6.1). */
+interface PendingToken {
+  token?: unknown;
+  expiresAt?: unknown;
+  keep?: unknown;
+}
+
 /** Where a guest's merge token waits for the sign-in to finish (authn-authz.md section 6, step 1). */
 export const MERGE_TOKEN_KEY = "allplay.mergeToken";
 
@@ -20,11 +27,12 @@ function statusOf(failure: unknown): number | null {
 }
 
 /**
- * The guest merge around a player service: before a guest signs in, signs
- * up or leaves for Google or Apple, it requests a merge token; once the
- * caller is an account, it redeems the token. `me()` redeems a waiting token
- * too, so a redirect sign-in or an interrupted merge finishes on the next
- * load while the token is valid. A refused token is dropped.
+ * The guest merge around a player service: a guest about to sign in, sign
+ * up or leave for Google or Apple gets a merge token, redeemed once the
+ * caller is an account. `me()` redeems a waiting token too, so a redirect or
+ * an interrupted merge finishes on the next load. A refused token is dropped.
+ * A link token (`keep: SOURCE`) is redeemed the same way, then this device
+ * signs out so the player signs in again to the kept account.
  */
 export function withGuestMerge(
   player: PlayerService,
@@ -32,36 +40,45 @@ export function withGuestMerge(
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">,
   now: () => Date = () => new Date(),
 ): PlayerService {
+  const read = (): PendingToken | null => {
+    const stored = storage.getItem(MERGE_TOKEN_KEY);
+    return stored === null ? null : (JSON.parse(stored) as PendingToken);
+  };
+  const usable = (
+    pending: PendingToken | null,
+  ): pending is PendingToken & { token: string; expiresAt: string } =>
+    pending !== null &&
+    typeof pending.token === "string" &&
+    typeof pending.expiresAt === "string" &&
+    Date.parse(pending.expiresAt) > now().getTime();
   const prepare = async () => {
     try {
+      const pending = read();
+      /* A link in progress is not replaced by a guest token. */
+      if (usable(pending) && pending.keep === "SOURCE") return;
       if ((await player.me()).kind !== "GUEST") return;
       storage.setItem(MERGE_TOKEN_KEY, JSON.stringify(await api.issue()));
     } catch {
       /* Without a token the sign-in still works; the guest's progress simply stays behind. */
     }
   };
-  const redeemPending = async (me: PlayerMe): Promise<void> => {
-    const stored = storage.getItem(MERGE_TOKEN_KEY);
-    if (stored === null || me.kind === "GUEST") return;
-    const pending = JSON.parse(stored) as Partial<MergeTokenResponse>;
-    if (
-      typeof pending.token !== "string" ||
-      Date.parse(pending.expiresAt ?? "") <= now().getTime()
-    ) {
+  const settled = async (me: PlayerMe): Promise<PlayerMe> => {
+    const pending = read();
+    if (pending === null || me.kind === "GUEST") return me;
+    if (!usable(pending)) {
       storage.removeItem(MERGE_TOKEN_KEY);
-      return;
+      return me;
     }
+    const link = pending.keep === "SOURCE";
     try {
-      await api.redeem(pending.token);
+      await (link ? api.redeem(pending.token, "SOURCE") : api.redeem(pending.token));
       storage.removeItem(MERGE_TOKEN_KEY);
     } catch (failure) {
       const status = statusOf(failure);
       if (status !== null && status >= 400 && status < 500) storage.removeItem(MERGE_TOKEN_KEY);
+      return me;
     }
-  };
-  const settled = async (me: PlayerMe): Promise<PlayerMe> => {
-    await redeemPending(me);
-    return me;
+    return link ? player.startLink() : me;
   };
   return {
     ...player,
@@ -79,5 +96,10 @@ export function withGuestMerge(
       await player.signUp(email, password);
     },
     confirmSignUp: async (email, code) => settled(await player.confirmSignUp(email, code)),
+    startLink: async () => {
+      if ((await player.me()).kind === "GUEST") throw new Error("Sign in before linking.");
+      storage.setItem(MERGE_TOKEN_KEY, JSON.stringify({ ...(await api.issue()), keep: "SOURCE" }));
+      return player.startLink();
+    },
   };
 }

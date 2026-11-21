@@ -56,6 +56,22 @@ export function createInMemoryPlayerDao(): PlayerDao {
         });
         return true;
       }),
+    listAllEmails: () =>
+      run(() =>
+        [...items.values()].flatMap((item) =>
+          item.kind === "ACCOUNT" && item.emailKey !== undefined
+            ? [
+                {
+                  emailKey: item.emailKey,
+                  playerId: item.playerId,
+                  status: item.status,
+                  signInProviders: [...(item.signInProviders ?? [])],
+                  createdAt: item.createdAt,
+                },
+              ]
+            : [],
+        ),
+      ),
     listByEmail: (emailKey) =>
       run(() =>
         [...items.values()]

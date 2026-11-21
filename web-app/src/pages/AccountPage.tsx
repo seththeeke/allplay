@@ -4,7 +4,7 @@ import { Button } from "../components/Button";
 import { PageHeading } from "../components/PageHeading";
 import { usePlayer } from "../hooks/usePlayer";
 
-/** Account: sign out, or delete the account and its data (authn-authz.md section 8). */
+/** Account: sign out, link a second sign-in method, or delete the account (authn-authz.md sections 6.1 and 8). */
 export function AccountPage(): React.JSX.Element {
   const { player, run } = usePlayer();
   const navigate = useNavigate();
@@ -20,6 +20,27 @@ export function AccountPage(): React.JSX.Element {
           Sign out
         </Button>
       </div>
+      <section
+        aria-labelledby="link-heading"
+        className="max-w-2xl rounded-2xl border-4 border-line bg-surface p-4"
+      >
+        <h2 id="link-heading" className="text-2xl font-bold">
+          Link another sign-in method
+        </h2>
+        <p className="text-xl text-muted">
+          Signed in another way before, such as with Google after Apple? Link it, and both reach
+          this account with all its games.
+        </p>
+        <Button
+          className="mt-3"
+          variant="secondary"
+          onClick={() => {
+            void run((service) => service.startLink()).then(() => navigate("/sign-in?link=1"));
+          }}
+        >
+          Link another sign-in method
+        </Button>
+      </section>
       <section
         aria-labelledby="delete-heading"
         className="max-w-2xl rounded-2xl border-4 border-line bg-surface p-4"

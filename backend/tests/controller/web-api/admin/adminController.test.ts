@@ -4,6 +4,11 @@ import { createInMemoryDeploymentPipeline } from "../../../../src/dao/pipeline/i
 import { devIdentity } from "../../../../src/local/eventAdapter";
 import { createLogger } from "../../../../src/logger";
 import { createDeploymentService } from "../../../../src/service/admin/deploymentService";
+import { createAccountAdminService } from "../../../../src/service/admin/accountAdminService";
+import { createInMemoryMergeTokenDao } from "../../../../src/dao/mergeToken/inMemoryMergeTokenDao";
+import { createInMemoryPlayerDao } from "../../../../src/dao/player/inMemoryPlayerDao";
+import { createMergeService } from "../../../../src/service/player/mergeService";
+import { account } from "../../../dao/player/playerDaoContract";
 import { apiEvent } from "../apiEvent";
 
 const AT = new Date("2026-11-21T10:00:00.000Z");
@@ -14,9 +19,16 @@ function asCaller(routeKey: string, tier: "guest" | "player" | "admin") {
   return event;
 }
 
+const players = createInMemoryPlayerDao();
+const accounts = createAccountAdminService(
+  players,
+  createMergeService({ players, mergeTokens: createInMemoryMergeTokenDao(), steps: [] }),
+);
+
 describe("admin controller", () => {
   const handler = createAdminHandler({
     deployments: createDeploymentService(createInMemoryDeploymentPipeline(() => AT)),
+    accounts,
     logger: createLogger({ write: vi.fn() }),
   });
 
@@ -40,9 +52,66 @@ describe("admin controller", () => {
     });
   });
 
+  it("lists duplicate accounts and merges one, through the route and the operator task", async () => {
+    await players.create(account("ACCT#old", "Pat@example.com", "2026-01-01T00:00:00.000Z"));
+    await players.create(account("ACCT#new", "pat@example.com", "2026-02-01T00:00:00.000Z"));
+    await players.create(account("ACCT#third", "pat@example.com", "2026-03-01T00:00:00.000Z"));
+    await players.create(account("ACCT#solo", "solo@example.com"));
+    await players.create({ ...account("ACCT#gone", "solo@example.com"), status: "DELETED" });
+    const listed = await handler(asCaller("GET /v1/admin/players/duplicates", "admin"));
+    expect(JSON.parse(listed.body)).toEqual({
+      duplicates: [
+        {
+          emailKey: "pat@example.com",
+          accounts: [
+            {
+              playerId: "ACCT#old",
+              signInProviders: ["GOOGLE"],
+              createdAt: "2026-01-01T00:00:00.000Z",
+            },
+            {
+              playerId: "ACCT#new",
+              signInProviders: ["GOOGLE"],
+              createdAt: "2026-02-01T00:00:00.000Z",
+            },
+            {
+              playerId: "ACCT#third",
+              signInProviders: ["GOOGLE"],
+              createdAt: "2026-03-01T00:00:00.000Z",
+            },
+          ],
+        },
+      ],
+    });
+    const merge = asCaller("POST /v1/admin/players/merge", "admin") as Record<string, unknown>;
+    merge["body"] = JSON.stringify({ primaryPlayerId: "ACCT#old", duplicatePlayerId: "ACCT#new" });
+    expect(JSON.parse((await handler(merge)).body)).toEqual({
+      primaryPlayerId: "ACCT#old",
+      mergedPlayerId: "ACCT#new",
+    });
+    merge["body"] = JSON.stringify({ primaryPlayerId: "GUEST#x", duplicatePlayerId: "ACCT#new" });
+    expect((await handler(merge)).statusCode).toBe(400);
+    const operator = await handler({
+      operatorTask: "MERGE_ACCOUNTS",
+      primaryPlayerId: "ACCT#old",
+      duplicatePlayerId: "ACCT#third",
+    });
+    expect(JSON.parse(operator.body)).toEqual({
+      primaryPlayerId: "ACCT#old",
+      mergedPlayerId: "ACCT#third",
+    });
+    const after = await handler(asCaller("GET /v1/admin/players/duplicates", "admin"));
+    expect(JSON.parse(after.body)).toEqual({ duplicates: [] });
+  });
+
   it("refuses guests and players with 403", async () => {
     for (const tier of ["guest", "player"] as const)
-      for (const route of ["GET /v1/admin/deployments", "POST /v1/admin/deployments"])
+      for (const route of [
+        "GET /v1/admin/deployments",
+        "POST /v1/admin/deployments",
+        "GET /v1/admin/players/duplicates",
+        "POST /v1/admin/players/merge",
+      ])
         expect((await handler(asCaller(route, tier))).statusCode).toBe(403);
   });
 

@@ -43,6 +43,10 @@ function setup(start: PlayerMe = GUEST) {
     requestPasswordReset: vi.fn(() => Promise.resolve()),
     confirmPasswordReset: vi.fn(() => Promise.resolve()),
     signOut: vi.fn(() => Promise.resolve(GUEST)),
+    startLink: vi.fn(() => {
+      current = GUEST;
+      return Promise.resolve(GUEST);
+    }),
     deleteAccount: vi.fn(() => Promise.resolve(GUEST)),
   };
   const api = {
@@ -140,5 +144,28 @@ describe("guest merge", () => {
     });
     await player.me();
     expect(api.redeem).toHaveBeenCalledTimes(1);
+  });
+
+  it("links accounts: the token keeps the source, and the device signs out after redemption", async () => {
+    const { player, api, store } = setup(ACCOUNT);
+    expect(await player.startLink()).toEqual(GUEST);
+    const stored = JSON.parse(store.get(MERGE_TOKEN_KEY) ?? "{}") as { keep?: string };
+    expect(stored.keep).toBe("SOURCE");
+    /* Signing in with the other method keeps the link token rather than issuing a guest one. */
+    expect(await player.signIn("b@x.y", "pw")).toEqual(GUEST);
+    expect(api.issue).toHaveBeenCalledTimes(1);
+    expect(api.redeem).toHaveBeenCalledWith("t".repeat(43), "SOURCE");
+    expect(store.has(MERGE_TOKEN_KEY)).toBe(false);
+    await expect(setup(GUEST).player.startLink()).rejects.toThrow("Sign in before linking");
+  });
+
+  it("stays signed in when a link is refused", async () => {
+    const { player, api, store } = setup(ACCOUNT);
+    await player.startLink();
+    api.redeem.mockRejectedValueOnce(
+      new ApiRequestError(400, { code: "VALIDATION_ERROR", message: "same" }),
+    );
+    expect(await player.signIn("a@x.y", "pw")).toEqual(ACCOUNT);
+    expect(store.has(MERGE_TOKEN_KEY)).toBe(false);
   });
 });

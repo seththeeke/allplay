@@ -18,7 +18,12 @@ describe("admin bundle", () => {
       Timeout: 10,
       Environment: { Variables: Match.objectLike({ IDENTITY_POOL_ID: Match.anyValue() }) },
     });
-    for (const routeKey of ["GET /v1/admin/deployments", "POST /v1/admin/deployments"])
+    for (const routeKey of [
+      "GET /v1/admin/deployments",
+      "POST /v1/admin/deployments",
+      "GET /v1/admin/players/duplicates",
+      "POST /v1/admin/players/merge",
+    ])
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
         AuthorizationType: "AWS_IAM",
@@ -51,5 +56,27 @@ describe("admin bundle", () => {
       JSON.stringify(role).includes("AllPlay-AdminRole-Test"),
     )?.[0];
     expect(invokers[0]).toContain(String(adminRoleId));
+  });
+
+  it("lets the admin Lambda scan only ByEmail and merge accounts", () => {
+    const [policy] = Object.entries(app.findResources("AWS::IAM::Policy"))
+      .filter(([logicalId]) => logicalId.startsWith("AdminApi"))
+      .map(([, value]) => JSON.stringify(value));
+    expect(policy).toContain('"Action":"dynamodb:Scan"');
+    expect(policy).toContain('/index/ByEmail"');
+    expect(policy).toContain(
+      '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminLinkProviderForUser","cognito-idp:ListUsers"',
+    );
+    app.hasResourceProperties("AWS::Lambda::Function", {
+      FunctionName: "AllPlay-AdminApi-Test",
+      Environment: {
+        Variables: Match.objectLike({
+          PLAYERS_TABLE: Match.anyValue(),
+          PREFERENCES_TABLE: Match.anyValue(),
+          MERGE_TOKENS_TABLE: Match.anyValue(),
+          USER_POOL_ID: Match.anyValue(),
+        }),
+      },
+    });
   });
 });

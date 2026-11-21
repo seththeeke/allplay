@@ -80,3 +80,26 @@ export type DeploymentsResponse = z.infer<typeof DeploymentsResponseSchema>;
 
 export const StartDeploymentResponseSchema = z.object({ executionId: z.string().min(1) });
 export type StartDeploymentResponse = z.infer<typeof StartDeploymentResponseSchema>;
+
+/** Accounts sharing a normalized email (authn-authz.md section 6.2). */
+export const DuplicateAccountsResponseSchema = z.object({
+  duplicates: z.array(
+    z.object({
+      emailKey: z.string().min(1),
+      accounts: z.array(
+        z.object({
+          playerId: z.string().min(1),
+          signInProviders: z.array(z.enum(["COGNITO", "GOOGLE", "APPLE"])),
+          createdAt: IsoTimestampSchema,
+        }),
+      ),
+    }),
+  ),
+});
+export type DuplicateAccountsResponse = z.infer<typeof DuplicateAccountsResponseSchema>;
+
+export const MergeAccountsRequestSchema = z.object({
+  primaryPlayerId: z.string().regex(/^ACCT#.+$/),
+  duplicatePlayerId: z.string().regex(/^ACCT#.+$/),
+});
+export type MergeAccountsRequest = z.infer<typeof MergeAccountsRequestSchema>;

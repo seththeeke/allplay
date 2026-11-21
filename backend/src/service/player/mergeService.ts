@@ -10,6 +10,7 @@ import { MERGE_TOKEN_SECONDS } from "../../models/mergeToken";
 import type { Player } from "../../models/player";
 import { PreferenceValuesSchema, type PreferenceValues } from "../../models/preference";
 import { invalidRequest, notApplicable } from "../gameSession/errors";
+import { createIdentityService, type IdentityService } from "./identityService";
 import type { PlayerCaller } from "./playerService";
 
 /**
@@ -56,11 +57,25 @@ export interface MergeService {
   mergeAccounts(primaryPlayerId: string, duplicatePlayerId: string): Promise<MergeResponse>;
 }
 
+/** The Cognito side of an account merge, for the stage's User Pool (authn-authz.md section 6.2). */
+export function cognitoAccountMerge(
+  identities: IdentityService,
+  userPoolId: string,
+): AccountMergeHook {
+  const subOf = (player: Player) => player.cognitoSub ?? player.playerId.slice("ACCT#".length);
+  return async (primary, duplicate) => {
+    await identities.mergeUsers(userPoolId, subOf(primary), subOf(duplicate));
+  };
+}
+
 /** The merge service over the deployed tables (PLAYERS_TABLE, PREFERENCES_TABLE, MERGE_TOKENS_TABLE). */
 export function createDeployedMergeService(
   env: Readonly<Record<string, string | undefined>> = process.env,
-  afterAccountMerge?: AccountMergeHook,
+  identities: IdentityService = createIdentityService(),
 ): MergeService {
+  const userPoolId = env["USER_POOL_ID"];
+  const afterAccountMerge =
+    userPoolId === undefined ? undefined : cognitoAccountMerge(identities, userPoolId);
   return createMergeService({
     players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
     mergeTokens: createDynamoMergeTokenDao(env["MERGE_TOKENS_TABLE"] ?? ""),

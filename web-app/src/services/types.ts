@@ -1,6 +1,8 @@
 import type {
   AbandonRequest,
   AdminDecisionsResponse,
+  DuplicateAccountsResponse,
+  MergeResponse,
   DeploymentsResponse,
   MetricsResponse,
   StartDeploymentResponse,
@@ -52,6 +54,12 @@ export interface PlayerService {
   requestPasswordReset(email: string): Promise<void>;
   confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
   signOut(): Promise<PlayerMe>;
+  /**
+   * Starts linking a second sign-in method (authn-authz.md section 6.1): the
+   * account issues a link token and signs out on this device only; the next
+   * sign-in redeems the token, keeping this account, and signs out again.
+   */
+  startLink(): Promise<PlayerMe>;
   deleteAccount(): Promise<PlayerMe>;
 }
 
@@ -87,6 +95,9 @@ export interface AdminService {
   failures(day: string): Promise<AdminDecisionsResponse>;
   deployments(): Promise<DeploymentsResponse>;
   startDeployment(): Promise<StartDeploymentResponse>;
+  /** Accounts sharing an email, and folding one into another (authn-authz.md section 6.2). */
+  duplicates(): Promise<DuplicateAccountsResponse>;
+  mergeAccounts(primaryPlayerId: string, duplicatePlayerId: string): Promise<MergeResponse>;
 }
 
 /** Result of one call to `GET /v1/health`: the HTTP status, the parsed body when it matched the contract, and the round trip time. */

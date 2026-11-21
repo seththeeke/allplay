@@ -1,4 +1,9 @@
-import type { AdminDecision, DayMetrics, Deployment } from "../src/models/api";
+import type {
+  DuplicateAccountsResponse,
+  AdminDecision,
+  DayMetrics,
+  Deployment,
+} from "../src/models/api";
 
 /** Deterministic sample admin data for the prototype: 30 days ending on the given date. */
 
@@ -76,4 +81,25 @@ export function sampleDeployments(end: Date): Deployment[] {
       ],
     };
   });
+}
+
+/** One email shared by two accounts, as after an Apple relay sign-in and a Google sign-in. */
+export function sampleDuplicates(): DuplicateAccountsResponse["duplicates"] {
+  return [
+    {
+      emailKey: "pat@example.com",
+      accounts: [
+        {
+          playerId: "ACCT#sample-apple",
+          signInProviders: ["APPLE"],
+          createdAt: "2026-11-01T10:00:00.000Z",
+        },
+        {
+          playerId: "ACCT#sample-google",
+          signInProviders: ["GOOGLE"],
+          createdAt: "2026-11-15T10:00:00.000Z",
+        },
+      ],
+    },
+  ];
 }

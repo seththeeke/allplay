@@ -1,10 +1,17 @@
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  ScanCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { PlayerSchema, type Player } from "../../models/player";
 import { conditionFailed, documentClient, updateExpression, type DocumentSender } from "../dynamo";
 import {
   PlayerExistsError,
   PlayerMissingError,
   TOUCH_INTERVAL_MS,
+  type EmailEntry,
   type EmailMatch,
   type PlayerDao,
 } from "./playerDao";
@@ -36,6 +43,21 @@ function fromItem(item: Record<string, unknown>): Player {
     if (value instanceof Set) fields[field] = [...(value as Set<string>)].sort();
   }
   return PlayerSchema.parse(fields);
+}
+
+/** One `ByEmail` index item as the DAO returns it. */
+function emailEntry(item: Record<string, unknown>): EmailEntry {
+  const providers = item["signInProviders"];
+  return {
+    emailKey: item["emailKey"] as string,
+    playerId: item["playerId"] as string,
+    status: item["status"] as EmailMatch["status"],
+    signInProviders:
+      providers instanceof Set
+        ? [...(providers as Set<EmailMatch["signInProviders"][number]>)].sort()
+        : [],
+    createdAt: item["createdAt"] as string,
+  };
 }
 
 /**
@@ -130,20 +152,29 @@ export function createDynamoPlayerDao(
           }),
         )) as { Items?: Record<string, unknown>[]; LastEvaluatedKey?: Record<string, unknown> };
         for (const item of out.Items ?? []) {
-          const providers = item["signInProviders"];
+          const entry = emailEntry(item);
           matches.push({
-            playerId: item["playerId"] as string,
-            status: item["status"] as EmailMatch["status"],
-            signInProviders:
-              providers instanceof Set
-                ? [...(providers as Set<EmailMatch["signInProviders"][number]>)].sort()
-                : [],
-            createdAt: item["createdAt"] as string,
+            playerId: entry.playerId,
+            status: entry.status,
+            signInProviders: entry.signInProviders,
+            createdAt: entry.createdAt,
           });
         }
         start = out.LastEvaluatedKey;
       } while (start !== undefined);
       return matches;
+    },
+    listAllEmails: async () => {
+      const entries: EmailEntry[] = [];
+      let start: Record<string, unknown> | undefined;
+      do {
+        const out = (await client.send(
+          new ScanCommand({ TableName: tableName, IndexName: "ByEmail", ExclusiveStartKey: start }),
+        )) as { Items?: Record<string, unknown>[]; LastEvaluatedKey?: Record<string, unknown> };
+        entries.push(...(out.Items ?? []).map(emailEntry));
+        start = out.LastEvaluatedKey;
+      } while (start !== undefined);
+      return entries;
     },
   };
 }

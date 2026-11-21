@@ -125,4 +125,29 @@ describe("DynamoPlayerDao", () => {
     expect(stub.sent[1]?.input).toMatchObject({ ExclusiveStartKey: { playerId: "ACCT#a" } });
     expect(await dao.listByEmail("nobody@example.com")).toEqual([]);
   });
+
+  it("scans the ByEmail index in pages for the duplicate list", async () => {
+    const stub = stubDynamo(
+      {
+        Items: [
+          { emailKey: "pat@example.com", playerId: "ACCT#a", status: "ACTIVE", createdAt: "1" },
+        ],
+        LastEvaluatedKey: { playerId: "ACCT#a" },
+      },
+      {},
+    );
+    const dao = createDynamoPlayerDao(TABLE, stub);
+    expect(await dao.listAllEmails()).toEqual([
+      {
+        emailKey: "pat@example.com",
+        playerId: "ACCT#a",
+        status: "ACTIVE",
+        signInProviders: [],
+        createdAt: "1",
+      },
+    ]);
+    expect(stub.sent.map((sent) => sent.command)).toEqual(["ScanCommand", "ScanCommand"]);
+    expect(stub.sent[0]?.input).toMatchObject({ TableName: TABLE, IndexName: "ByEmail" });
+    expect(stub.sent[1]?.input).toMatchObject({ ExclusiveStartKey: { playerId: "ACCT#a" } });
+  });
 });

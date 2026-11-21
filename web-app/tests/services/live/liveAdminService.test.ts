@@ -19,7 +19,13 @@ describe("live admin service", () => {
         status: 200,
         json: () =>
           Promise.resolve(
-            init?.method === "POST" ? { executionId: "e-2" } : { deployments: [DEPLOYMENT], input },
+            input.endsWith("/merge")
+              ? { primaryPlayerId: "ACCT#a", mergedPlayerId: "ACCT#b" }
+              : input.endsWith("/duplicates")
+                ? { duplicates: [] }
+                : init?.method === "POST"
+                  ? { executionId: "e-2" }
+                  : { deployments: [DEPLOYMENT], input },
           ),
       }),
     );
@@ -29,5 +35,10 @@ describe("live admin service", () => {
     expect(await admin.startDeployment()).toEqual({ executionId: "e-2" });
     expect(await admin.metrics("2026-11-01", "2026-11-21")).toEqual({ days: [] });
     expect(await admin.failures("2026-11-21")).toEqual({ decisions: [] });
+    expect(await admin.duplicates()).toEqual({ duplicates: [] });
+    expect(await admin.mergeAccounts("ACCT#a", "ACCT#b")).toEqual({
+      primaryPlayerId: "ACCT#a",
+      mergedPlayerId: "ACCT#b",
+    });
   });
 });

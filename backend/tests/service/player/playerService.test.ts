@@ -138,6 +138,7 @@ describe("account deletion", () => {
             return Promise.resolve();
           },
           playerIdForApple: () => Promise.resolve(null),
+          mergeUsers: () => Promise.resolve([]),
         },
       },
       now: t.now,

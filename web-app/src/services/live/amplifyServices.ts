@@ -14,6 +14,7 @@ import {
 import type { AppConfig } from "../../config";
 import {
   DeploymentsResponseSchema,
+  DuplicateAccountsResponseSchema,
   MergeResponseSchema,
   MergeTokenResponseSchema,
   PlayerMeSchema,
@@ -194,6 +195,11 @@ export function createAmplifyPlayerService(
       await signOut({ global: true });
       return me();
     },
+    /* The link token is issued by withGuestMerge; here only this device signs out. */
+    startLink: async () => {
+      await signOut();
+      return me();
+    },
     deleteAccount: async () => {
       await del({ apiName: API, path: "/v1/players/me", options: { headers: await headers() } })
         .response;
@@ -285,6 +291,26 @@ export function createAmplifyAdminService(headers: CallHeaders = none): AdminSer
             apiName: API,
             path: "/v1/admin/deployments",
             options: { headers: await headers() },
+          }),
+        ),
+      ),
+    duplicates: async () =>
+      DuplicateAccountsResponseSchema.parse(
+        await json(
+          get({
+            apiName: API,
+            path: "/v1/admin/players/duplicates",
+            options: { headers: await headers() },
+          }),
+        ),
+      ),
+    mergeAccounts: async (primaryPlayerId, duplicatePlayerId) =>
+      MergeResponseSchema.parse(
+        await json(
+          post({
+            apiName: API,
+            path: "/v1/admin/players/merge",
+            options: { headers: await headers(), body: { primaryPlayerId, duplicatePlayerId } },
           }),
         ),
       ),

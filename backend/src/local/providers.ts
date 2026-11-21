@@ -7,6 +7,7 @@ import { createPlayersHandler } from "../controller/web-api/players/playersContr
 import { createAdminHandler } from "../controller/web-api/admin/adminController";
 import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploymentPipeline";
 import { createDeploymentService } from "../service/admin/deploymentService";
+import { createAccountAdminService } from "../service/admin/accountAdminService";
 import { createInMemoryMergeTokenDao } from "../dao/mergeToken/inMemoryMergeTokenDao";
 import { createMergeService, preferencesStep } from "../service/player/mergeService";
 import type { HttpResult } from "../controller/web-api/shared/response";
@@ -239,12 +240,19 @@ export async function createLocalProviders(
     /* One in-memory store per table, shared by the player and merge services as the tables are. */
     const playerDao = createInMemoryPlayerDao();
     const preferenceDao = createInMemoryPreferenceDao();
+    const merge = createMergeService({
+      players: playerDao,
+      mergeTokens: createInMemoryMergeTokenDao(),
+      steps: [preferencesStep(preferenceDao)],
+      ...(overrides.now ? { now: overrides.now } : {}),
+    });
     return {
       decisions,
       sessions,
       handlers: {
         admin: createAdminHandler({
           deployments: createDeploymentService(createInMemoryDeploymentPipeline(overrides.now)),
+          accounts: createAccountAdminService(playerDao, merge),
           logger: logger.child({ bundle: "admin" }),
         }),
         players: createPlayersHandler({
@@ -253,12 +261,7 @@ export async function createLocalProviders(
             preferences: preferenceDao,
             ...(overrides.now ? { now: overrides.now } : {}),
           }),
-          merge: createMergeService({
-            players: playerDao,
-            mergeTokens: createInMemoryMergeTokenDao(),
-            steps: [preferencesStep(preferenceDao)],
-            ...(overrides.now ? { now: overrides.now } : {}),
-          }),
+          merge,
           logger: logger.child({ bundle: "players" }),
         }),
         game: createGameHandler({

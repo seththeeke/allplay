@@ -111,5 +111,15 @@ export function playerDaoContract(create: () => PlayerDao, id: (name: string) =>
     const matches = await dao.listByEmail(email.toLowerCase());
     expect(matches[0]).toMatchObject({ status: "ACTIVE", signInProviders: ["GOOGLE"] });
     expect(await dao.listByEmail(`${id("nobody")}@example.com`)).toEqual([]);
+    await expect
+      .poll(
+        async () =>
+          (await dao.listAllEmails())
+            .filter((entry) => entry.emailKey === email.toLowerCase())
+            .map((entry) => entry.playerId)
+            .sort(),
+        { timeout: 10_000, interval: 250 },
+      )
+      .toEqual([`ACCT#${id("dup-new")}`, `ACCT#${id("dup-old")}`]);
   });
 }

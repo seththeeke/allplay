@@ -133,6 +133,26 @@ describe("UserPoolDirectory", () => {
     await expect(failing.subOfUsername("pool", "x")).rejects.toThrow("throttled");
   });
 
+  it("reads a user's linked identities", async () => {
+    const { client, sent } = stub(
+      {
+        UserAttributes: [
+          { Name: "identities", Value: '[{"providerName":"Google","userId":"g-1"}]' },
+        ],
+      },
+      {},
+    );
+    const directory = createUserPoolDirectory(client);
+    expect(await directory.identitiesOf("pool", "Google_g-1")).toEqual([
+      { providerName: "Google", userId: "g-1" },
+    ]);
+    expect(sent[0]).toEqual({
+      name: "AdminGetUserCommand",
+      input: { UserPoolId: "pool", Username: "Google_g-1" },
+    });
+    expect(await directory.identitiesOf("pool", "native")).toEqual([]);
+  });
+
   it("reads the identities attribute defensively", () => {
     expect(providersOf(undefined)).toEqual([]);
     expect(providersOf("")).toEqual([]);

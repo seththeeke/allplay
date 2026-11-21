@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/Button";
 import { FormError } from "../components/FormError";
 import { PageHeading } from "../components/PageHeading";
@@ -13,13 +13,15 @@ import type { PlayerMe } from "../models/api";
 export function SignInPage(): React.JSX.Element {
   const { run, service } = usePlayer();
   const navigate = useNavigate();
+  const [search] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const attempt = (work: (service: PlayerService) => Promise<PlayerMe>): void => {
     setError(null);
     run(work).then(
-      () => navigate("/"),
+      /* Only a finished link returns a guest from a sign-in: the device signed out to switch accounts. */
+      (me) => navigate(me.kind === "GUEST" ? "/sign-in?linked=1" : "/"),
       (failure: unknown) => {
         setError(errorMessage(failure, "Sign in failed. Please try again."));
       },
@@ -31,6 +33,17 @@ export function SignInPage(): React.JSX.Element {
         title="Sign in"
         lead="Signing in keeps your games and settings on every device."
       />
+      {search.has("link") ? (
+        <p role="status" className="rounded-2xl border-4 border-line bg-surface p-4 text-2xl">
+          Now sign in with the other method. Its games and settings move into the account you
+          started from.
+        </p>
+      ) : null}
+      {search.has("linked") ? (
+        <p role="status" className="rounded-2xl border-4 border-line bg-surface p-4 text-2xl">
+          Linked. Sign in again with either method to reach your account.
+        </p>
+      ) : null}
       <ProviderButtons
         providers={service.providers}
         onChoose={(provider) => {
