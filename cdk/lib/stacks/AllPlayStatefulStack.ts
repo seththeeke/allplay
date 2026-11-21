@@ -2,6 +2,7 @@ import { CfnOutput, Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
 import { isProd, type StageName } from "../config";
 import { AllPlayTable } from "../constructs/AllPlayTable";
+import { AllPlayUserPool } from "../constructs/AllPlayUserPool";
 import { FederationSecret } from "../constructs/FederationSecret";
 
 export interface AllPlayStatefulStackProps extends StackProps {
@@ -21,6 +22,8 @@ export class AllPlayStatefulStack extends Stack {
   readonly players: AllPlayTable;
   /** Layered preferences (data-model.md section 5). */
   readonly preferences: AllPlayTable;
+  /** Accounts and groups (authn-authz.md section 3). */
+  readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
   readonly preferencesTableName: CfnOutput;
 
@@ -28,6 +31,9 @@ export class AllPlayStatefulStack extends Stack {
     super(scope, id, { ...props, terminationProtection: isProd(props.stage) });
     this.stage = props.stage;
     this.federation = new FederationSecret(this, "Federation", { stage: props.stage });
+    const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
+    if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
+    this.users = new AllPlayUserPool(this, "Users", { stage: props.stage, domainSuffix });
     this.players = new AllPlayTable(this, "Players", {
       stage: props.stage,
       entity: "Players",

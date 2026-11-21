@@ -55,7 +55,7 @@ One pool per stage: `AllPlay-Users-<Stage>`.
 
 Groups: `ADMIN` (precedence 1, role `AllPlay-AdminRole-<Stage>`), `PLAYER_PLUS` (precedence 5, role `AllPlay-PlayerPlusRole-<Stage>`), `PLAYER` (precedence 10, role `AllPlay-PlayerRole-<Stage>`).
 
-App clients (no client secret, SRP and refresh token auth flows, OAuth authorization code grant with PKCE, scopes `openid email profile`):
+App clients (no client secret, SRP and refresh token auth flows, OAuth authorization code grant with PKCE, scopes `openid email profile`; created in the app stack, `cdk-stacks.md` Section 2):
 
 | Client | Callback and sign-out URLs |
 |---|---|
@@ -256,4 +256,6 @@ Status as of 2026-11-21.
 | Leg | Status | Notes |
 |---|---|---|
 | AA-11 | Done | `resolveCaller` resolves guests and accounts with the tier of their role; the router enforces each route's `minimumTier` (403 `FORBIDDEN`); the local server writes guest, player and admin identities from `x-allplay-dev-caller`; the web app sends the mock-signed-in player as that header in local `LIVE` mode |
-| Next | | DM-1 (Players and Preferences tables and DAOs, the `ByEmail` index), then AA-1 and AA-2. AA-3 waits on the Google and Apple keys |
+| DM-1 | Done | See `data-model.md` |
+| AA-1 | Done | `AllPlay-Users-<Stage>` with the groups, the managed login domain `allplay-<stage>-jbus19`, the custom message trigger and its large-type templates; the web and iOS clients; the pool, web client and domain in `config.json` |
+| Next | | AA-2 (pre sign-up, post confirmation and post authentication triggers). AA-3 waits on the Google and Apple keys |

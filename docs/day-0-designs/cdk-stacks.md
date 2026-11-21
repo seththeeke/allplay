@@ -18,8 +18,8 @@ Related specs: `data-model.md`, `game-engine.md`, `action-decision.md`, `authn-a
 | Stack | Instances | Contents |
 |---|---|---|
 | `AllPlayPipeline` | One | CodePipeline, CodeBuild projects, GitHub connection reference, daily schedule, budget, alert topic |
-| `AllPlayStateful-<Stage>` | Test, Prod | DynamoDB tables, Cognito User Pool (groups, app clients, domain, identity providers, triggers), Identity Pool and its four roles |
-| `AllPlayApp-<Stage>` | Test, Prod | HTTP API and its Lambdas, metrics rollup job and schedule, web hosting (S3, CloudFront), stage `config.json`, Transcribe vocabulary, IAM route policies attached to the Identity Pool roles, alarms |
+| `AllPlayStateful-<Stage>` | Test, Prod | DynamoDB tables, the federation secret, Cognito User Pool (groups, domain, identity providers, triggers) |
+| `AllPlayApp-<Stage>` | Test, Prod | HTTP API and its Lambdas, the User Pool app clients and the Identity Pool with its four roles (the web client's URLs name this stack's CloudFront origin, so they cannot live in the stateful stack without a dependency cycle; the Identity Pool is retained on deletion so guest identities survive), metrics rollup job and schedule, web hosting (S3, CloudFront), stage `config.json`, Transcribe vocabulary, IAM route policies attached to the Identity Pool roles, alarms |
 
 The stateful and app split protects player data and identities from application changes: the stateful stack has termination protection in Prod, retains its resources on deletion, and changes rarely. The app stack can be replaced freely. The app stack depends on the stateful stack and receives its resources as constructor props; the stateful stack never references the app stack. Policies that grant the Identity Pool roles access to API routes are `iam.Policy` resources created in the app stack and attached to those roles, which keeps the dependency one-way.
 

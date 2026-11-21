@@ -1,7 +1,8 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
+import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import type { Construct } from "constructs";
 import { healthRoutes } from "../../../backend/src/controller/web-api/health/healthRoutes";
-import type { StageName } from "../config";
+import { resourceName, type StageName } from "../config";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
 import { WebHosting } from "../constructs/WebHosting";
@@ -27,6 +28,8 @@ export class AllPlayAppStack extends Stack {
   readonly webUrl: CfnOutput;
   /** The stage's config.json content (cdk-stacks.md section 6). */
   readonly webConfig: Record<string, unknown>;
+  readonly webClient: UserPoolClient;
+  readonly iosClient: UserPoolClient;
 
   constructor(scope: Construct, id: string, props: AllPlayAppStackProps) {
     super(scope, id, props);
@@ -46,11 +49,26 @@ export class AllPlayAppStack extends Stack {
     });
     const [healthRoute] = healthRoutes;
     this.api.addPublicRoute("HealthRoute", healthRoute, health.function);
+    /* App clients live here because the web client's URLs name this stack's CloudFront origin. */
+    const users = props.stateful.users;
+    const webUrls = [
+      `${this.web.origin}/`,
+      ...(props.stage === "Test" ? ["http://localhost:5173/"] : []),
+    ];
+    this.webClient = users.appClient(this, "WebClient", resourceName("Web", props.stage), {
+      urls: webUrls,
+    });
+    this.iosClient = users.appClient(this, "IosClient", resourceName("iOS", props.stage), {
+      urls: ["allplay://auth/"],
+    });
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",
       region: this.region,
       apiUrl: this.api.url,
+      userPoolId: users.userPool.userPoolId,
+      userPoolClientId: this.webClient.userPoolClientId,
+      oauthDomain: users.domain.baseUrl().replace("https://", ""),
     };
     this.web.publish(this.webConfig);
     this.apiUrl = new CfnOutput(this, "ApiUrl", { value: this.api.url });
