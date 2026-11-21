@@ -26,6 +26,7 @@ export function SignUpPage(): React.JSX.Element {
       {step === "DETAILS" ? (
         <>
           <ProviderButtons
+            providers={service.providers}
             onChoose={(provider) => {
               void run((player) => player.signInWithProvider(provider)).then(() => navigate("/"));
             }}

@@ -42,6 +42,8 @@ export type SignInProvider = "GOOGLE" | "APPLE";
  * memory implementation is a prototype stand-in until AA-9 wires Cognito.
  */
 export interface PlayerService {
+  /** The federated providers offered on the sign-in screens. */
+  providers: SignInProvider[];
   me(): Promise<PlayerMe>;
   signIn(email: string, password?: string): Promise<PlayerMe>;
   signInWithProvider(provider: SignInProvider): Promise<PlayerMe>;

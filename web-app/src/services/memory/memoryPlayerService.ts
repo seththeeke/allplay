@@ -37,6 +37,7 @@ export function createMemoryPlayerService(store: MemoryStore): PlayerService {
     });
   };
   return {
+    providers: ["GOOGLE", "APPLE"],
     me: () => Promise.resolve(store.read<PlayerMe>(KEY, GUEST)),
     signIn: (email) => account(email),
     signInWithProvider: (provider) => account(`${provider.toLowerCase()}.player@example.com`),

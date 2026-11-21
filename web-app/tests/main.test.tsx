@@ -37,6 +37,33 @@ describe("bootstrap", () => {
     });
   });
 
+  it("retries a just-linked Google or Apple sign-in instead of rendering", async () => {
+    const redirect = vi.fn(() => Promise.resolve());
+    vi.doMock("aws-amplify/auth", async (original) => ({
+      ...(await original<object>()),
+      signInWithRedirect: redirect,
+    }));
+    stubFetch({
+      stage: "TEST",
+      dataMode: "MEMORY",
+      region: "us-east-1",
+      apiUrl: "https://api.example.com/",
+      userPoolId: "us-east-1_pool",
+      userPoolClientId: "client",
+      identityPoolId: "us-east-1:pool",
+      oauthDomain: "allplay-test-x.auth.us-east-1.amazoncognito.com",
+    });
+    sessionStorage.setItem("allplay.pendingProvider", "GOOGLE");
+    window.history.replaceState(null, "", "/?error_description=ALLPLAY_ACCOUNT_LINKED");
+    const { bootstrap } = await import("../src/bootstrap");
+    const container = document.createElement("div");
+    await bootstrap(container);
+    expect(redirect).toHaveBeenCalledWith({ provider: "Google" });
+    expect(container.innerHTML).toBe("");
+    window.history.replaceState(null, "", "/");
+    vi.doUnmock("aws-amplify/auth");
+  });
+
   it("fails fast without a root element", async () => {
     const { bootstrap } = await import("../src/bootstrap");
     await expect(bootstrap(null)).rejects.toThrow("Missing #root element");

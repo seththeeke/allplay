@@ -11,7 +11,7 @@ import type { PlayerMe } from "../models/api";
 
 /** Sign in with Google, Apple, or email and password (authn-authz.md section 7.1). */
 export function SignInPage(): React.JSX.Element {
-  const { run } = usePlayer();
+  const { run, service } = usePlayer();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +32,7 @@ export function SignInPage(): React.JSX.Element {
         lead="Signing in keeps your games and settings on every device."
       />
       <ProviderButtons
+        providers={service.providers}
         onChoose={(provider) => {
           attempt((service) => service.signInWithProvider(provider));
         }}

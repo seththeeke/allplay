@@ -1,5 +1,11 @@
 import type { AppConfig } from "../config";
 import type { PlayerMe } from "../models/api";
+import {
+  cognitoConfigOf,
+  configureAmplify,
+  createAmplifyPlayerService,
+  createAmplifyPreferencesService,
+} from "./live/amplifyServices";
 import { createApiClient } from "./live/apiClient";
 import { DEV_CALLER_HEADER, devCallerFor } from "./live/devCaller";
 import {
@@ -48,7 +54,11 @@ export function createServices(
   store: MemoryStore = createMemoryStore(),
   seed: () => number = () => Math.floor(Math.random() * 2 ** 31),
 ): Services {
-  const preferences = createMemoryPreferencesService(store);
+  /* Deployed stages sign in with Cognito and save preferences through the signed API (AA-9). */
+  const cognito = config.stage === "LOCAL" ? null : cognitoConfigOf(config);
+  if (cognito !== null) configureAmplify(cognito, globalThis.location.origin);
+  const preferences =
+    cognito === null ? createMemoryPreferencesService(store) : createAmplifyPreferencesService();
   let live: Pick<Services, "games" | "sessions" | "decisions"> | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
@@ -82,7 +92,8 @@ export function createServices(
     games: createMemoryGameService(),
     sessions,
     preferences,
-    player: createMemoryPlayerService(store),
+    player:
+      cognito === null ? createMemoryPlayerService(store) : createAmplifyPlayerService(cognito),
     decisions: createMemoryDecisionService(sessions, preferences),
     stats: { list: () => Promise.resolve(readStats(store)) },
     ...live,

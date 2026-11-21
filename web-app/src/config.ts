@@ -12,6 +12,8 @@ export const AppConfigSchema = z.object({
   userPoolId: z.string().min(1).optional(),
   userPoolClientId: z.string().min(1).optional(),
   identityPoolId: z.string().min(1).optional(),
+  /* Google and Apple sign-in once the stage's identity providers exist (AA-3); absent means email only. */
+  socialProviders: z.array(z.enum(["GOOGLE", "APPLE"])).optional(),
   oauthDomain: z.string().min(1).optional(),
   transcribeVocabularyName: z.string().min(1).optional(),
   /* Voice providers (action-decision.md section 16); absent means the in-memory prototype path. */
