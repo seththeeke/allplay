@@ -5,6 +5,7 @@
  * stops both. `npm run dev -- --dry-run` only lists what would be stopped.
  */
 import { execFileSync, spawn } from "node:child_process";
+import { rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -95,7 +96,46 @@ export function serverEnv(argv, env) {
   const at = argv.indexOf("--preset");
   const preset = at === -1 ? undefined : argv[at + 1];
   if (preset === undefined) return { ...env };
-  return { ...env, ALLPLAY_PRESET: preset, ...(preset === "local-aws" ? { AWS_PROFILE: "allplays" } : {}) };
+  const usesAws = preset === "local-aws" || preset === "local-aws-auth";
+  return { ...env, ALLPLAY_PRESET: preset, ...(usesAws ? { AWS_PROFILE: PROFILE } : {}) };
+}
+
+/** The project's only AWS profile (CLAUDE.md section 4). */
+const PROFILE = "allplays";
+/** The git-ignored override the web app merges over config.json (authn-authz.md section 11). */
+export const LOCAL_CONFIG = join(ROOT, "web-app", "public", "config.local.json");
+
+/**
+ * For `local-aws-auth`: the Test stage's Cognito settings as a web config
+ * override, and the variables the local server verifies tokens with. Built
+ * from the Test stage's public config.json.
+ */
+export function cognitoTestSetup(testConfig) {
+  const fields = ["region", "userPoolId", "userPoolClientId", "identityPoolId", "oauthDomain"];
+  const missing = fields.filter((field) => typeof testConfig[field] !== "string");
+  if (missing.length > 0) throw new Error(`The Test stage config has no ${missing.join(", ")}; deploy AA-1 and AA-4 first.`);
+  return {
+    webOverride: { localAuth: "COGNITO_TEST", ...Object.fromEntries(fields.map((field) => [field, testConfig[field]])) },
+    env: {
+      ALLPLAY_AUTH_REGION: testConfig.region,
+      ALLPLAY_AUTH_USER_POOL_ID: testConfig.userPoolId,
+      ALLPLAY_AUTH_CLIENT_ID: testConfig.userPoolClientId,
+    },
+  };
+}
+
+/** Reads the Test web URL from the AllPlayApp-Test stack outputs and fetches its config.json. */
+async function fetchTestConfig() {
+  const outputs = JSON.parse(
+    execFileSync(
+      "aws",
+      ["cloudformation", "describe-stacks", "--stack-name", "AllPlayApp-Test", "--query", "Stacks[0].Outputs", "--output", "json", "--profile", PROFILE, "--region", "us-east-1"],
+      { encoding: "utf8" },
+    ),
+  );
+  const webUrl = outputs.find((output) => output.OutputKey === "WebUrl")?.OutputValue;
+  if (webUrl === undefined) throw new Error("AllPlayApp-Test has no WebUrl output.");
+  return (await fetch(`${webUrl}/config.json`)).json();
 }
 
 /** Starts one npm script with each output line prefixed. */
@@ -126,7 +166,14 @@ async function main() {
     process.stdout.write(`Stopping All Play processes: ${running.join(", ")}\n`);
     await stop(running);
   }
-  const env = serverEnv(process.argv, process.env);
+  let env = serverEnv(process.argv, process.env);
+  rmSync(LOCAL_CONFIG, { force: true });
+  if (env.ALLPLAY_PRESET === "local-aws-auth") {
+    const setup = cognitoTestSetup(await fetchTestConfig());
+    writeFileSync(LOCAL_CONFIG, `${JSON.stringify(setup.webOverride, null, 2)}\n`);
+    env = { ...env, ...setup.env };
+    process.stdout.write("Signing in with the Test stage's Cognito (config.local.json written).\n");
+  }
   const children = [
     start("api", join(ROOT, "backend"), ["run", "dev:server"], env),
     start("web", join(ROOT, "web-app"), ["run", "dev", "--", "--force"], env),

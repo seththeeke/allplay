@@ -21,7 +21,6 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 | Seeded shuffles from `Math.random` | `createServices.ts` seed argument | Server-side seed per session, stored for replay (`game-engine.md`) | GE-1, GE-10 |
 | Stats recorded on win or abandon | `services/memory/memoryStats.ts` | `PlayerStats` table updated by the session service | DM-3, GE-10, WP-1 |
 | Preferences | `services/memory/memoryPreferencesService.ts`, now only in `MEMORY` mode and on the local server; deployed stages use the `Preferences` table through the signed API since AA-9 | `Preferences` table through `/v1/players/me/preferences` | WP-1 (local `LIVE` mode) |
-| Player identity | `services/memory/memoryPlayerService.ts` (fixed `GUEST#local-prototype`), now only in `MEMORY` mode and locally (the mock of `authn-authz.md` Section 11); deployed stages use the Identity Pool guest identity since AA-9 | Identity Pool guest identity, `resolveCaller` (`authn-authz.md`) | AA-11b (`local-aws-auth`) |
 | Admin tier from the email prefix `admin` | `memoryPlayerService.ts` | `ADMIN` Cognito group (`scripts/grant-admin.sh`) | AA-8, AA-9 |
 | Google and Apple sign in | `memoryPlayerService.ts` `signInWithProvider` (fake `<provider>.player@example.com` account) | Cognito federation with Google and Apple | AA-3, AA-9 |
 | Account deletion | `memoryPlayerService.ts` `deleteAccount` (resets to guest) | `DELETE /v1/players/me` | AA-7, WP-3 |

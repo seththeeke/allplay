@@ -3,6 +3,7 @@ import { del, get, patch, post } from "aws-amplify/api";
 import {
   autoSignIn,
   confirmResetPassword,
+  fetchAuthSession,
   confirmSignUp,
   resetPassword,
   signIn,
@@ -95,6 +96,23 @@ export function accountMessage(failure: unknown): Error {
   return failure instanceof Error ? failure : new Error(text);
 }
 
+/** Extra headers for each call; the local server's `cognito-test` auth reads them instead of a signature. */
+export type CallHeaders = () => Promise<Record<string, string>>;
+
+/**
+ * The caller for the local server under `cognito-test` (authn-authz.md
+ * section 11): the Test ID token when signed in, else the guest's Test
+ * Identity Pool identity. A bearer header also stops Amplify from signing.
+ */
+export const localAuthHeaders: CallHeaders = async () => {
+  const session = await fetchAuthSession();
+  const token = session.tokens?.idToken?.toString();
+  if (token !== undefined) return { authorization: `Bearer ${token}` };
+  return session.identityId === undefined ? {} : { "x-allplay-identity-id": session.identityId };
+};
+
+const none: CallHeaders = () => Promise.resolve({});
+
 /** The JSON body of a signed API call. */
 async function json(call: {
   response: Promise<{ body: { json: () => Promise<unknown> } }>;
@@ -103,9 +121,16 @@ async function json(call: {
 }
 
 /** Player and account flows over Cognito with Amplify (authn-authz.md section 7.1). */
-export function createAmplifyPlayerService(config: CognitoConfig): PlayerService {
+export function createAmplifyPlayerService(
+  config: CognitoConfig,
+  headers: CallHeaders = none,
+): PlayerService {
   const me = async (): Promise<PlayerMe> =>
-    PlayerMeSchema.parse(await json(get({ apiName: API, path: "/v1/players/me" })));
+    PlayerMeSchema.parse(
+      await json(
+        get({ apiName: API, path: "/v1/players/me", options: { headers: await headers() } }),
+      ),
+    );
   const guarded = async <T>(work: () => Promise<T>): Promise<T> => {
     try {
       return await work();
@@ -151,12 +176,18 @@ export function createAmplifyPlayerService(config: CognitoConfig): PlayerService
       guarded(() => confirmResetPassword({ username: email, confirmationCode: code, newPassword })),
     signOut: async () => {
       /* The server records the sign-out and revokes refresh tokens everywhere (authn-authz.md section 12). */
-      await post({ apiName: API, path: "/v1/players/me/sign-out" }).response.catch(() => undefined);
+      const signOutHeaders = await headers();
+      await post({
+        apiName: API,
+        path: "/v1/players/me/sign-out",
+        options: { headers: signOutHeaders },
+      }).response.catch(() => undefined);
       await signOut({ global: true });
       return me();
     },
     deleteAccount: async () => {
-      await del({ apiName: API, path: "/v1/players/me" }).response;
+      await del({ apiName: API, path: "/v1/players/me", options: { headers: await headers() } })
+        .response;
       await signOut();
       return me();
     },
@@ -164,21 +195,27 @@ export function createAmplifyPlayerService(config: CognitoConfig): PlayerService
 }
 
 /** Preferences over the signed API (authn-authz.md section 5). */
-export function createAmplifyPreferencesService(): PreferencesService {
+export function createAmplifyPreferencesService(headers: CallHeaders = none): PreferencesService {
   const scoped = async (scope: string, body: object) =>
     PreferencesResponseSchema.parse(
       await json(
         patch({
           apiName: API,
           path: `/v1/players/me/preferences/${encodeURIComponent(scope)}`,
-          options: { body: body as Record<string, string> },
+          options: { body: body as Record<string, string>, headers: await headers() },
         }),
       ),
     );
   return {
     get: async () =>
       PreferencesResponseSchema.parse(
-        await json(get({ apiName: API, path: "/v1/players/me/preferences" })),
+        await json(
+          get({
+            apiName: API,
+            path: "/v1/players/me/preferences",
+            options: { headers: await headers() },
+          }),
+        ),
       ),
     patchApp: (changes) => scoped("APP", changes),
     patchGame: (gameId, changes) => scoped(`GAME#${gameId}`, changes),

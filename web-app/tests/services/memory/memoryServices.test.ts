@@ -95,6 +95,27 @@ describe("createServices", () => {
     vi.unstubAllGlobals();
   });
 
+  it("uses Test's Cognito locally when config.local.json asks for it", () => {
+    const local = createServices({
+      stage: "LOCAL",
+      dataMode: "LIVE",
+      apiUrl: "http://localhost:4000/",
+      region: "us-east-1",
+      userPoolId: "us-east-1_pool",
+      userPoolClientId: "client",
+      identityPoolId: "us-east-1:pool",
+      oauthDomain: "allplay-test-x.auth.us-east-1.amazoncognito.com",
+      localAuth: "COGNITO_TEST",
+    });
+    expect(local.player.providers).toEqual([]);
+    const mock = createServices({
+      stage: "LOCAL",
+      dataMode: "LIVE",
+      apiUrl: "http://localhost:4000/",
+    });
+    expect(mock.player.providers).toEqual(["GOOGLE", "APPLE"]);
+  });
+
   it("checks health live when the stage config has an API URL", async () => {
     const local = createServices({ stage: "LOCAL", dataMode: "MEMORY" });
     await expect(local.health.check()).resolves.toMatchObject({ body: { stage: "LOCAL" } });

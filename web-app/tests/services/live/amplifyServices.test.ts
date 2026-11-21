@@ -9,6 +9,7 @@ const auth = vi.hoisted(() => ({
   resetPassword: vi.fn(),
   confirmResetPassword: vi.fn(),
   signOut: vi.fn(),
+  fetchAuthSession: vi.fn(),
 }));
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), del: vi.fn(), post: vi.fn() }));
 const configure = vi.hoisted(() => vi.fn());
@@ -22,6 +23,7 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyPreferencesService,
+  localAuthHeaders,
   PENDING_PROVIDER_KEY,
   retryLinkedSignIn,
 } from "../../../src/services/live/amplifyServices";
@@ -89,7 +91,11 @@ describe("Amplify player service", () => {
       username: "pat@example.com",
       password: "Secret123",
     });
-    expect(api.get).toHaveBeenCalledWith({ apiName: "AllPlay", path: "/v1/players/me" });
+    expect(api.get).toHaveBeenCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/players/me",
+      options: { headers: {} },
+    });
     auth.signIn.mockResolvedValue({ nextStep: { signInStep: "CONFIRM_SIGN_UP" } });
     await expect(service().signIn("pat@example.com")).rejects.toThrow("Confirm your email");
   });
@@ -159,11 +165,19 @@ describe("Amplify player service", () => {
     auth.signOut.mockResolvedValue(undefined);
     await service().signOut();
     expect(auth.signOut).toHaveBeenCalledWith({ global: true });
-    expect(api.post).toHaveBeenCalledWith({ apiName: "AllPlay", path: "/v1/players/me/sign-out" });
+    expect(api.post).toHaveBeenCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/players/me/sign-out",
+      options: { headers: {} },
+    });
     api.post.mockReturnValue({ response: Promise.reject(new Error("guest")) });
     await service().signOut();
     await service().deleteAccount();
-    expect(api.del).toHaveBeenCalledWith({ apiName: "AllPlay", path: "/v1/players/me" });
+    expect(api.del).toHaveBeenCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/players/me",
+      options: { headers: {} },
+    });
   });
 });
 
@@ -176,12 +190,12 @@ describe("Amplify preferences service", () => {
     expect(api.patch).toHaveBeenCalledWith({
       apiName: "AllPlay",
       path: "/v1/players/me/preferences/APP",
-      options: { body: { zoomLevel: 2 } },
+      options: { body: { zoomLevel: 2 }, headers: {} },
     });
     expect(api.patch).toHaveBeenLastCalledWith({
       apiName: "AllPlay",
       path: "/v1/players/me/preferences/GAME%23spider-solitaire",
-      options: { body: { helpSeen: true } },
+      options: { body: { helpSeen: true }, headers: {} },
     });
   });
 });
@@ -204,5 +218,31 @@ describe("linked sign-in retry", () => {
     auth.signInWithRedirect.mockResolvedValue(undefined);
     expect(await retryLinkedSignIn(linked, storage("APPLE"))).toBe(true);
     expect(auth.signInWithRedirect).toHaveBeenCalledWith({ provider: "Apple" });
+  });
+});
+
+describe("local Cognito headers", () => {
+  it("send the ID token when signed in, else the guest identity, else nothing", async () => {
+    auth.fetchAuthSession.mockResolvedValueOnce({
+      tokens: { idToken: { toString: () => "id-token" } },
+    });
+    expect(await localAuthHeaders()).toEqual({ authorization: "Bearer id-token" });
+    auth.fetchAuthSession.mockResolvedValueOnce({ identityId: "us-east-1:guest" });
+    expect(await localAuthHeaders()).toEqual({ "x-allplay-identity-id": "us-east-1:guest" });
+    auth.fetchAuthSession.mockResolvedValueOnce({});
+    expect(await localAuthHeaders()).toEqual({});
+  });
+
+  it("are sent on every player and preferences call", async () => {
+    const headers = () => Promise.resolve({ authorization: "Bearer t" });
+    const player = createAmplifyPlayerService(cognitoConfigOf(CONFIG) ?? ({} as never), headers);
+    await player.me();
+    expect(api.get).toHaveBeenLastCalledWith(
+      expect.objectContaining({ options: { headers: { authorization: "Bearer t" } } }),
+    );
+    await createAmplifyPreferencesService(headers).get();
+    expect(api.get).toHaveBeenLastCalledWith(
+      expect.objectContaining({ options: { headers: { authorization: "Bearer t" } } }),
+    );
   });
 });

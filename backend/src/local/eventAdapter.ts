@@ -61,6 +61,8 @@ export function devPlayerId(caller: DevCaller): string {
 export interface LocalRequest {
   method: string;
   path: string;
+  /** The caller, when the server resolved it itself (the `cognito-test` setting); otherwise the development header. */
+  caller?: DevCaller;
   /** The matched route's path template, for example `/v1/sessions/{sessionId}`. */
   template?: string;
   pathParameters?: Record<string, string>;
@@ -99,7 +101,7 @@ export function toHttpApiEvent(
     requestContext: {
       requestId: newId(),
       http: { method: request.method, path: request.path, sourceIp: "127.0.0.1" },
-      authorizer: { iam: devIdentity(devCaller(request.headers)) },
+      authorizer: { iam: devIdentity(request.caller ?? devCaller(request.headers)) },
     },
   };
 }

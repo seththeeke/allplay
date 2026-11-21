@@ -37,7 +37,10 @@ import { createKokoro } from "../service/speech/kokoro";
 import { createPolly } from "../service/speech/polly";
 import { createRecordingTts, type TextToSpeech } from "../service/speech/textToSpeech";
 import { createWhisperCpp } from "../service/speech/whisperCpp";
+import { createCognitoTokenVerifier, type VerifiedAccount } from "./cognitoTokens";
+import { devCaller, type DevCaller } from "./eventAdapter";
 import type { LocalSettings } from "./settings";
+import type { IncomingHttpHeaders } from "node:http";
 
 export const LOCAL_DIR = fileURLToPath(new URL("../../.local/", import.meta.url));
 
@@ -62,6 +65,8 @@ export interface LocalProviders {
   reset(): void;
   /** Fixes the seed of every game started from now on, or clears it (POST /local/seed). */
   setSeed(seed: string | null): void;
+  /** The caller of a request under the `auth` setting (authn-authz.md section 11). */
+  callerOf(headers: IncomingHttpHeaders): Promise<DevCaller>;
 }
 
 export interface ProviderOverrides {
@@ -69,6 +74,8 @@ export interface ProviderOverrides {
   logger?: Logger;
   llm?: LlmClient;
   textToSpeech?: TextToSpeech;
+  /** Replaces the Test pool's ID token verification, for tests. */
+  verifyToken?: (token: string) => Promise<VerifiedAccount | null>;
   /** The seed of games started while no seed is fixed; random by default. */
   newSeed?: () => string;
   now?: () => Date;
@@ -94,6 +101,28 @@ function speechOutput(
     voices: `${LOCAL_DIR}kokoro/voices-v1.0.bin`,
     voice: env["ALLPLAY_KOKORO_VOICE"] ?? "af_heart",
   });
+}
+
+/**
+ * The caller under `cognito-test`: a verified Test pool ID token in
+ * `Authorization: Bearer`, else the guest's Test Identity Pool identity in
+ * `x-allplay-identity-id`, else the default local guest.
+ */
+export function cognitoCaller(
+  verifyToken: (token: string) => Promise<VerifiedAccount | null>,
+): (headers: IncomingHttpHeaders) => Promise<DevCaller> {
+  return async (headers) => {
+    const bearer = /^Bearer (.+)$/.exec(headers.authorization ?? "")?.[1];
+    if (bearer !== undefined) {
+      const account = await verifyToken(bearer);
+      if (account !== null)
+        return { tier: account.groups.includes("ADMIN") ? "admin" : "player", id: account.sub };
+    }
+    const identityId = headers["x-allplay-identity-id"];
+    if (typeof identityId === "string" && /^[\w-]+:[0-9a-f-]+$/.test(identityId))
+      return { tier: "guest", id: identityId };
+    return devCaller({});
+  };
 }
 
 /** The language model for a setting (action-decision.md section 8). */
@@ -158,6 +187,21 @@ export async function createLocalProviders(
       ? (candidates[0] as SpeechToText)
       : speechToText;
   const llm = overrides.llm ?? languageModel(settings, env);
+  const authRegion = env["ALLPLAY_AUTH_REGION"] ?? "us-east-1";
+  const authPool = env["ALLPLAY_AUTH_USER_POOL_ID"];
+  const authClient = env["ALLPLAY_AUTH_CLIENT_ID"];
+  const cognitoReady = authPool !== undefined && authClient !== undefined;
+  const callerOf =
+    settings.auth === "cognito-test" && (cognitoReady || overrides.verifyToken !== undefined)
+      ? cognitoCaller(
+          overrides.verifyToken ??
+            createCognitoTokenVerifier({
+              region: authRegion,
+              userPoolId: authPool ?? "",
+              userPoolClientId: authClient ?? "",
+            }),
+        )
+      : (headers: IncomingHttpHeaders) => Promise.resolve(devCaller(headers));
   const textToSpeech = overrides.textToSpeech ?? speechOutput(settings, env);
   /* Kokoro loads its model on first use; warm it now so the first reply is quick. */
   if (textToSpeech.name === "kokoro" && (await textToSpeech.status()).available)
@@ -237,6 +281,22 @@ export async function createLocalProviders(
         provider: unavailable.name,
         ...(await unavailable.status()),
       },
+      auth:
+        settings.auth === "mock"
+          ? {
+              setting: "mock",
+              provider: "development header",
+              available: true,
+              detail: "Guest, player or admin from x-allplay-dev-caller.",
+            }
+          : {
+              setting: "cognito-test",
+              provider: "cognito",
+              available: cognitoReady || overrides.verifyToken !== undefined,
+              detail: cognitoReady
+                ? `Test User Pool ${authPool}.`
+                : "Set ALLPLAY_AUTH_USER_POOL_ID and ALLPLAY_AUTH_CLIENT_ID (npm run dev:aws-auth does).",
+            },
       speechOut: {
         setting: settings.speechOut,
         provider: textToSpeech.name,
@@ -250,6 +310,7 @@ export async function createLocalProviders(
     setSeed: (seed) => {
       fixedSeed = seed;
     },
+    callerOf,
   };
   return providers;
 }

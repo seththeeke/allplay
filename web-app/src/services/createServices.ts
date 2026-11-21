@@ -5,6 +5,7 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyPreferencesService,
+  localAuthHeaders,
 } from "./live/amplifyServices";
 import { createApiClient } from "./live/apiClient";
 import { DEV_CALLER_HEADER, devCallerFor } from "./live/devCaller";
@@ -55,19 +56,25 @@ export function createServices(
   seed: () => number = () => Math.floor(Math.random() * 2 ** 31),
 ): Services {
   /* Deployed stages sign in with Cognito and save preferences through the signed API (AA-9). */
-  const cognito = config.stage === "LOCAL" ? null : cognitoConfigOf(config);
+  /* Locally, `localAuth: COGNITO_TEST` signs in with Test's Cognito and calls the local server (AA-11b). */
+  const localCognito = config.stage === "LOCAL" && config.localAuth === "COGNITO_TEST";
+  const cognito = config.stage !== "LOCAL" || localCognito ? cognitoConfigOf(config) : null;
   if (cognito !== null) configureAmplify(cognito, globalThis.location.origin);
+  const callHeaders = localCognito ? localAuthHeaders : undefined;
   const preferences =
-    cognito === null ? createMemoryPreferencesService(store) : createAmplifyPreferencesService();
+    cognito === null
+      ? createMemoryPreferencesService(store)
+      : createAmplifyPreferencesService(callHeaders);
   let live: Pick<Services, "games" | "sessions" | "decisions"> | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
     /* Locally the mock sign-in picks the caller (authn-authz.md section 11); deployed stages sign with Amplify (AA-9). */
-    const api = createApiClient(config.apiUrl, undefined, () =>
-      config.stage === "LOCAL"
+    const api = createApiClient(config.apiUrl, undefined, () => {
+      if (localCognito) return localAuthHeaders();
+      return config.stage === "LOCAL"
         ? { [DEV_CALLER_HEADER]: devCallerFor(store.read<PlayerMe | null>(PLAYER_KEY, null)) }
-        : {},
-    );
+        : {};
+    });
     live = {
       games: createLiveGameService(api),
       sessions: createLiveSessionService(api),
@@ -93,7 +100,9 @@ export function createServices(
     sessions,
     preferences,
     player:
-      cognito === null ? createMemoryPlayerService(store) : createAmplifyPlayerService(cognito),
+      cognito === null
+        ? createMemoryPlayerService(store)
+        : createAmplifyPlayerService(cognito, callHeaders),
     decisions: createMemoryDecisionService(sessions, preferences),
     stats: { list: () => Promise.resolve(readStats(store)) },
     ...live,

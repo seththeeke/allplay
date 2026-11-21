@@ -58,6 +58,8 @@ Each capability is chosen by an environment variable. A preset sets all of them,
 
 `ALLPLAY_CLAUDE_MODEL` overrides the model of Claude Code and the Claude API, and `ALLPLAY_CLAUDE_BIN` the Claude Code executable (`action-decision.md` Section 8).
 
+`local-aws-auth` is `local-aws` with the Test stage's Cognito for sign-in: `npm run dev:aws-auth` at the root writes the git-ignored `web-app/public/config.local.json` override (which `loadConfig` merges over `config.json`) and passes the Test pool to the local server (`authn-authz.md` Section 11). Any other preset removes that override.
+
 `local-aws` (built by `transcribe-polly-bedrock.md`) calls AWS with the `allplays` profile (CLAUDE.md Section 4). `continuous-integration` needs nothing installed beyond Node.js and is what GitHub Actions runs.
 
 ## 3. Identity

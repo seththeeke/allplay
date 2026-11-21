@@ -14,6 +14,8 @@ export const AppConfigSchema = z.object({
   identityPoolId: z.string().min(1).optional(),
   /* Google and Apple sign-in once the stage's identity providers exist (AA-3); absent means email only. */
   socialProviders: z.array(z.enum(["GOOGLE", "APPLE"])).optional(),
+  /* Locally, sign in with the Test stage's Cognito against the local server (authn-authz.md section 11); absent means the mock. */
+  localAuth: z.enum(["MOCK", "COGNITO_TEST"]).optional(),
   oauthDomain: z.string().min(1).optional(),
   transcribeVocabularyName: z.string().min(1).optional(),
   /* Voice providers (action-decision.md section 16); absent means the in-memory prototype path. */
@@ -37,7 +39,13 @@ export async function loadConfig(
   if (!response.ok) {
     throw new ConfigLoadError(`config.json request failed with status ${response.status}`);
   }
-  const parsed = AppConfigSchema.safeParse(await response.json());
+  /* A git-ignored config.local.json, written by `npm run dev:aws-auth`, overrides fields locally. */
+  const local = await fetchImpl("/config.local.json").catch(() => null);
+  const override: unknown = local?.ok === true ? await local.json().catch(() => ({})) : {};
+  const parsed = AppConfigSchema.safeParse({
+    ...((await response.json()) as object),
+    ...(typeof override === "object" && override !== null ? override : {}),
+  });
   if (!parsed.success) {
     throw new ConfigLoadError(`config.json is invalid: ${parsed.error.message}`);
   }

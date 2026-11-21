@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigLoadError, loadConfig } from "../src/config";
 
-function respond(body: unknown, ok = true, status = 200) {
+function respond(body: unknown, ok = true, status = 200, local?: unknown) {
   return (input: string) => {
+    if (input === "/config.local.json")
+      return local === undefined
+        ? Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) })
+        : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(local) });
     expect(input).toBe("/config.json");
     return Promise.resolve({ ok, status, json: () => Promise.resolve(body) });
   };
@@ -29,6 +33,40 @@ describe("loadConfig", () => {
       transcribeVocabularyName: "allplay-vocabulary-test",
     };
     await expect(loadConfig(respond(live))).resolves.toEqual(live);
+  });
+
+  it("applies a local override from config.local.json, ignoring a broken one", async () => {
+    await expect(
+      loadConfig(
+        respond({ stage: "LOCAL", dataMode: "LIVE" }, true, 200, { localAuth: "COGNITO_TEST" }),
+      ),
+    ).resolves.toEqual({ stage: "LOCAL", dataMode: "LIVE", localAuth: "COGNITO_TEST" });
+    await expect(
+      loadConfig(respond({ stage: "LOCAL", dataMode: "LIVE" }, true, 200, "nope")),
+    ).resolves.toEqual({
+      stage: "LOCAL",
+      dataMode: "LIVE",
+    });
+    const unreachable = (input: string) =>
+      input === "/config.local.json"
+        ? Promise.reject(new Error("offline"))
+        : Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ stage: "LOCAL", dataMode: "MEMORY" }),
+          });
+    await expect(loadConfig(unreachable)).resolves.toEqual({ stage: "LOCAL", dataMode: "MEMORY" });
+    const unreadable = (input: string) =>
+      Promise.resolve(
+        input === "/config.local.json"
+          ? { ok: true, status: 200, json: () => Promise.reject(new Error("bad json")) }
+          : {
+              ok: true,
+              status: 200,
+              json: () => Promise.resolve({ stage: "LOCAL", dataMode: "MEMORY" }),
+            },
+      );
+    await expect(loadConfig(unreadable)).resolves.toEqual({ stage: "LOCAL", dataMode: "MEMORY" });
   });
 
   it("rejects a failed request", async () => {

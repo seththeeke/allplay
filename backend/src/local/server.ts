@@ -6,7 +6,7 @@ import { playersRoutes } from "../controller/web-api/players/playersRoutes";
 import { SEED_PATTERN } from "../game-engine";
 import { isWav, SpeechUnavailableError } from "../service/speech/speechToText";
 import { MAX_SPEECH_CHARS, SpeechOutputUnavailableError } from "../service/speech/textToSpeech";
-import { devCaller, devPlayerId, toHttpApiEvent } from "./eventAdapter";
+import { devPlayerId, toHttpApiEvent } from "./eventAdapter";
 import type { Handler, LocalProviders } from "./providers";
 
 /** Request bodies above this size are refused; ten seconds of 16 kHz PCM is about 320 KB. */
@@ -110,7 +110,8 @@ export function createLocalServer(providers: LocalProviders): Server {
   const cors = {
     "access-control-allow-origin": providers.settings.webOrigin,
     "access-control-allow-methods": "GET, POST, PATCH, OPTIONS",
-    "access-control-allow-headers": "content-type, x-allplay-dev-caller",
+    "access-control-allow-headers":
+      "authorization, content-type, x-allplay-dev-caller, x-allplay-identity-id",
   };
 
   const send = (
@@ -156,7 +157,7 @@ export function createLocalServer(providers: LocalProviders): Server {
           200,
           {
             decisions: await providers.decisions.recent(
-              devPlayerId(devCaller(request.headers)),
+              devPlayerId(await providers.callerOf(request.headers)),
               20,
             ),
           },
@@ -231,6 +232,7 @@ export function createLocalServer(providers: LocalProviders): Server {
         if (matched !== null) {
           const result = await matched.route.handler(
             toHttpApiEvent({
+              caller: await providers.callerOf(request.headers),
               method,
               path: url.pathname,
               template: matched.route.template,

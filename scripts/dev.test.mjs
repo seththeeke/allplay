@@ -39,3 +39,24 @@ test("adds port listeners whose working directory is inside the checkout", () =>
     [201, 203],
   );
 });
+
+test("builds the local-aws-auth override and server variables from the Test config", async () => {
+  const { cognitoTestSetup, serverEnv: env } = await import("./dev.mjs");
+  const setup = cognitoTestSetup({
+    stage: "TEST",
+    region: "us-east-1",
+    userPoolId: "us-east-1_pool",
+    userPoolClientId: "client",
+    identityPoolId: "us-east-1:pool",
+    oauthDomain: "allplay-test-x.auth.us-east-1.amazoncognito.com",
+  });
+  assert.equal(setup.webOverride.localAuth, "COGNITO_TEST");
+  assert.equal(setup.webOverride.stage, undefined);
+  assert.deepEqual(setup.env, {
+    ALLPLAY_AUTH_REGION: "us-east-1",
+    ALLPLAY_AUTH_USER_POOL_ID: "us-east-1_pool",
+    ALLPLAY_AUTH_CLIENT_ID: "client",
+  });
+  assert.throws(() => cognitoTestSetup({ region: "us-east-1" }), /deploy AA-1 and AA-4 first/);
+  assert.equal(env(["node", "dev.mjs", "--preset", "local-aws-auth"], {}).AWS_PROFILE, "allplays");
+});
