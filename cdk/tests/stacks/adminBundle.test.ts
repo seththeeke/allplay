@@ -1,0 +1,55 @@
+import { Match, Template } from "aws-cdk-lib/assertions";
+import { describe, expect, it } from "vitest";
+import { AllPlayStage } from "../../lib/stage";
+import { WEB_FIXTURE, testApp } from "../testApp";
+
+describe("admin bundle", () => {
+  const stage = new AllPlayStage(testApp(), "Test", {
+    stageName: "Test",
+    webAssetPath: WEB_FIXTURE,
+    env: { region: "us-east-1" },
+  });
+  const app = Template.fromStack(stage.app);
+
+  it("serves the deployment routes from AllPlay-AdminApi behind AWS_IAM", () => {
+    app.hasResourceProperties("AWS::Lambda::Function", {
+      FunctionName: "AllPlay-AdminApi-Test",
+      MemorySize: 512,
+      Timeout: 10,
+      Environment: { Variables: Match.objectLike({ IDENTITY_POOL_ID: Match.anyValue() }) },
+    });
+    for (const routeKey of ["GET /v1/admin/deployments", "POST /v1/admin/deployments"])
+      app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+        RouteKey: routeKey,
+        AuthorizationType: "AWS_IAM",
+      });
+  });
+
+  it("gives only the admin Lambda the pipeline calls, on the All Play pipeline", () => {
+    const policies = Object.entries(app.findResources("AWS::IAM::Policy")).filter(([, policy]) =>
+      JSON.stringify(policy).includes("codepipeline:"),
+    );
+    expect(policies).toHaveLength(1);
+    const [[logicalId, policy]] = policies as [[string, unknown]];
+    expect(logicalId).toContain("AdminApi");
+    const text = JSON.stringify(policy);
+    expect(text).toContain(
+      '"codepipeline:ListActionExecutions","codepipeline:ListPipelineExecutions","codepipeline:StartPipelineExecution"',
+    );
+    expect(text).toContain('{"Ref":"AWS::AccountId"},":AllPlay"');
+  });
+
+  it("lets only the admin role invoke admin routes", () => {
+    const roles = app.findResources("AWS::IAM::Role");
+    const invokers = Object.entries(app.findResources("AWS::IAM::Policy"))
+      .filter(([, policy]) => JSON.stringify(policy).includes("/v1/admin/deployments"))
+      .map(([, policy]) =>
+        JSON.stringify((policy as { Properties: { Roles: unknown } }).Properties.Roles),
+      );
+    expect(invokers).toHaveLength(1);
+    const adminRoleId = Object.entries(roles).find(([, role]) =>
+      JSON.stringify(role).includes("AllPlay-AdminRole-Test"),
+    )?.[0];
+    expect(invokers[0]).toContain(String(adminRoleId));
+  });
+});

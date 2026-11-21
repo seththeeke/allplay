@@ -4,10 +4,14 @@ import {
   cognitoConfigOf,
   configureAmplify,
   createAmplifyPlayerService,
+  createAmplifyAdminService,
   createAmplifyPreferencesService,
+  type CallHeaders,
+  type CognitoConfig,
   localAuthHeaders,
 } from "./live/amplifyServices";
-import { createApiClient } from "./live/apiClient";
+import { createApiClient, type ApiClient } from "./live/apiClient";
+import { createLiveAdminService } from "./live/liveAdminService";
 import { DEV_CALLER_HEADER, devCallerFor } from "./live/devCaller";
 import {
   createLiveDecisionService,
@@ -26,7 +30,7 @@ import { createMemorySessionService } from "./memory/memorySessionService";
 import { createMemoryPreferencesService } from "./memory/memoryPreferencesService";
 import { readStats } from "./memory/memoryStats";
 import { createMemoryStore, type MemoryStore } from "./memory/memoryStore";
-import type { Services } from "./types";
+import type { AdminService, Services } from "./types";
 import { createLocalServerSpeechInput, typedSpeechInput } from "../voice/speechInput";
 import {
   createBrowserSpeechOutput,
@@ -45,9 +49,22 @@ function speechOutputFor(config: AppConfig): SpeechOutput {
 }
 
 /**
+ * The admin API: signed with Amplify wherever Cognito is configured, through
+ * the local server with the mock caller in local LIVE mode, else sample data.
+ */
+function adminFor(
+  cognito: CognitoConfig | null,
+  headers: CallHeaders | undefined,
+  api: ApiClient | null,
+): AdminService {
+  if (cognito !== null) return createAmplifyAdminService(headers);
+  return api === null ? createMemoryAdminService() : createLiveAdminService(api);
+}
+
+/**
  * Builds every service for the configured data mode. `LIVE` calls the API for
- * the game catalog, sessions and decisions; preferences, player, stats and
- * admin stay in memory until WP-1 (prototype-mocks.md section 1). The health
+ * the game catalog, sessions and decisions; stats stay in memory until WP-1
+ * (prototype-mocks.md section 1). Player, preferences and admin are live wherever Cognito is. The health
  * check and Voice Lab are live whenever the config has an API URL.
  */
 export function createServices(
@@ -66,6 +83,7 @@ export function createServices(
       ? createMemoryPreferencesService(store)
       : createAmplifyPreferencesService(callHeaders);
   let live: Pick<Services, "games" | "sessions" | "decisions"> | null = null;
+  let liveApi: ApiClient | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
     /* Locally the mock sign-in picks the caller (authn-authz.md section 11); deployed stages sign with Amplify (AA-9). */
@@ -75,6 +93,7 @@ export function createServices(
         ? { [DEV_CALLER_HEADER]: devCallerFor(store.read<PlayerMe | null>(PLAYER_KEY, null)) }
         : {};
     });
+    liveApi = api;
     live = {
       games: createLiveGameService(api),
       sessions: createLiveSessionService(api),
@@ -95,7 +114,7 @@ export function createServices(
     health:
       config.apiUrl === undefined ? memoryHealthService : createLiveHealthService(config.apiUrl),
     voiceLab,
-    admin: createMemoryAdminService(),
+    admin: adminFor(cognito, callHeaders, liveApi),
     games: createMemoryGameService(),
     sessions,
     preferences,

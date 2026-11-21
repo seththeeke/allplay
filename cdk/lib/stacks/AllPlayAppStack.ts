@@ -2,6 +2,7 @@ import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
+import { adminRoutes } from "../../../backend/src/controller/web-api/admin/adminRoutes";
 import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
 import { gameRoutes } from "../../../backend/src/controller/web-api/game/gameRoutes";
 import { healthRoutes } from "../../../backend/src/controller/web-api/health/healthRoutes";
@@ -9,7 +10,7 @@ import {
   appleNotificationsRoute,
   playersRoutes,
 } from "../../../backend/src/controller/web-api/players/playersRoutes";
-import { resourceName, type StageName } from "../config";
+import { PROJECT_NAME, resourceName, type StageName } from "../config";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
 import { IdentityAccess } from "../constructs/IdentityAccess";
@@ -76,7 +77,13 @@ export class AllPlayAppStack extends Stack {
       userPool: users.userPool,
       clients: [this.webClient, this.iosClient],
       api: this.api.api,
-      routes: [...healthRoutes, ...gameRoutes, ...decisionsRoutes, ...playersRoutes],
+      routes: [
+        ...healthRoutes,
+        ...gameRoutes,
+        ...decisionsRoutes,
+        ...playersRoutes,
+        ...adminRoutes,
+      ],
     });
     const { players, preferences } = props.stateful;
     const playerApi = new AllPlayFunction(this, "PlayerApi", {
@@ -126,6 +133,26 @@ export class AllPlayAppStack extends Stack {
     );
     this.api.addPublicRoute("AppleNotifications", appleNotificationsRoute, playerApi.function);
     this.api.addBundle("Players", playersRoutes, playerApi.function);
+    const adminApi = new AllPlayFunction(this, "AdminApi", {
+      stage: props.stage,
+      name: "AdminApi",
+      entry: "controller/web-api/admin/handler.ts",
+      memorySize: 512,
+      timeout: Duration.seconds(10),
+      environment: { IDENTITY_POOL_ID: this.identity.identityPool.ref },
+    });
+    /* Only the admin Lambda may read and start the pipeline (authn-authz.md section 5). */
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: [
+          "codepipeline:ListPipelineExecutions",
+          "codepipeline:ListActionExecutions",
+          "codepipeline:StartPipelineExecution",
+        ],
+        resources: [this.formatArn({ service: "codepipeline", resource: PROJECT_NAME })],
+      }),
+    );
+    this.api.addBundle("Admin", adminRoutes, adminApi.function);
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",

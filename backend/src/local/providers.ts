@@ -4,6 +4,9 @@ import { createDecisionsHandler } from "../controller/web-api/decisions/decision
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
 import { createPlayersHandler } from "../controller/web-api/players/playersController";
+import { createAdminHandler } from "../controller/web-api/admin/adminController";
+import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploymentPipeline";
+import { createDeploymentService } from "../service/admin/deploymentService";
 import type { HttpResult } from "../controller/web-api/shared/response";
 import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
 import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
@@ -59,7 +62,13 @@ export interface LocalProviders {
   llm: LlmClient;
   decisions: DecisionService;
   sessions: GameSessionService;
-  handlers: { health: Handler; decisions: Handler; game: Handler; players: Handler };
+  handlers: {
+    health: Handler;
+    decisions: Handler;
+    game: Handler;
+    players: Handler;
+    admin: Handler;
+  };
   status(): Promise<Record<string, CapabilityStatus>>;
   /** Drops all in-memory state and the fixed seed, for tests (POST /local/reset). */
   reset(): void;
@@ -229,6 +238,10 @@ export async function createLocalProviders(
       decisions,
       sessions,
       handlers: {
+        admin: createAdminHandler({
+          deployments: createDeploymentService(createInMemoryDeploymentPipeline(overrides.now)),
+          logger: logger.child({ bundle: "admin" }),
+        }),
         players: createPlayersHandler({
           players: createPlayerService({
             players: createInMemoryPlayerDao(),

@@ -22,6 +22,7 @@ import {
   cognitoConfigOf,
   configureAmplify,
   createAmplifyPlayerService,
+  createAmplifyAdminService,
   createAmplifyPreferencesService,
   localAuthHeaders,
   PENDING_PROVIDER_KEY,
@@ -244,5 +245,27 @@ describe("local Cognito headers", () => {
     expect(api.get).toHaveBeenLastCalledWith(
       expect.objectContaining({ options: { headers: { authorization: "Bearer t" } } }),
     );
+  });
+});
+
+describe("Amplify admin service", () => {
+  it("lists and starts deployments through the signed API", async () => {
+    api.get.mockReturnValue(reply({ deployments: [] }));
+    api.post.mockReturnValue(reply({ executionId: "e-1" }));
+    const admin = createAmplifyAdminService();
+    expect(await admin.deployments()).toEqual({ deployments: [] });
+    expect(api.get).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/deployments",
+      options: { headers: {} },
+    });
+    expect(await admin.startDeployment()).toEqual({ executionId: "e-1" });
+    expect(api.post).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/deployments",
+      options: { headers: {} },
+    });
+    expect(await admin.metrics("a", "b")).toEqual({ days: [] });
+    expect(await admin.failures("a")).toEqual({ decisions: [] });
   });
 });
