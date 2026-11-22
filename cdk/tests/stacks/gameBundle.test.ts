@@ -32,7 +32,7 @@ describe("game bundle", () => {
       });
   });
 
-  it("grants the game Lambda only the item calls of play, and no deletes or scans", () => {
+  it("grants the game Lambda only the item calls of play and its counters, and no deletes or scans", () => {
     const statements = Object.entries(app.findResources("AWS::IAM::Policy"))
       .filter(([logicalId]) => logicalId.startsWith("GameApi"))
       .flatMap(
@@ -41,14 +41,15 @@ describe("game bundle", () => {
             .PolicyDocument.Statement,
       )
       .map((statement) => JSON.stringify(statement));
-    /* Three table statements, plus the log grant every AllPlayFunction carries. */
-    expect(statements).toHaveLength(4);
+    /* Three table statements and the counters, plus the log grant every AllPlayFunction carries. */
+    expect(statements).toHaveLength(5);
     const on = (text: string) => statements.find((statement) => statement.includes(text));
     expect(on("GameSessions")).toContain('"Action":["dynamodb:GetItem","dynamodb:PutItem"]');
     expect(on("GameSessions")).toContain("PlayerStats");
     expect(on('"dynamodb:Query"')).toContain("/index/ByPlayerGame");
     expect(on('"Action":"dynamodb:PutItem"')).toContain("SeatAssignments");
+    expect(on("MetricRollups")).toContain('"Action":["dynamodb:PutItem","dynamodb:UpdateItem"]');
     const all = statements.join();
-    for (const action of ["DeleteItem", "Scan", "UpdateItem"]) expect(all).not.toContain(action);
+    for (const action of ["DeleteItem", "Scan"]) expect(all).not.toContain(action);
   });
 });

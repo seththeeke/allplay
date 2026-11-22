@@ -6,7 +6,14 @@ import {
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { PlayerSchema, type Player } from "../../models/player";
-import { conditionFailed, documentClient, updateExpression, type DocumentSender } from "../dynamo";
+
+import {
+  conditionFailed,
+  documentClient,
+  queryAll,
+  updateExpression,
+  type DocumentSender,
+} from "../dynamo";
 import {
   PlayerExistsError,
   PlayerMissingError,
@@ -15,6 +22,14 @@ import {
   type EmailMatch,
   type PlayerDao,
 } from "./playerDao";
+
+/** A rollup scan row (data-model.md section 11). */
+const RollupPlayerSchema = PlayerSchema.pick({
+  kind: true,
+  status: true,
+  lastActiveAt: true,
+  createdAt: true,
+});
 
 /** Attributes stored as DynamoDB string sets (data-model.md section 4). */
 const SET_FIELDS = [
@@ -164,6 +179,19 @@ export function createDynamoPlayerDao(
       } while (start !== undefined);
       return matches;
     },
+    listForRollup: async () =>
+      (
+        await queryAll(
+          client,
+          (start) =>
+            new ScanCommand({
+              TableName: tableName,
+              ProjectionExpression: "#kind, #status, lastActiveAt, createdAt",
+              ExpressionAttributeNames: { "#kind": "kind", "#status": "status" },
+              ExclusiveStartKey: start,
+            }),
+        )
+      ).map((item) => RollupPlayerSchema.parse(item)),
     listAllEmails: async () => {
       const entries: EmailEntry[] = [];
       let start: Record<string, unknown> | undefined;

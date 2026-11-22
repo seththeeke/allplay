@@ -64,8 +64,14 @@ export function setupDecider(
   const llm = createFakeLlm((request) => answers[request.tool.name]?.(request), "fake-model");
   const log = { decided: [] as Decision[], resolved: [] as TurnResolved[] };
   const turns: TurnLog = {
-    decided: (turn) => log.decided.push(turn),
-    resolved: (event) => log.resolved.push(event),
+    decided: (turn) => {
+      log.decided.push(turn);
+      return Promise.resolve();
+    },
+    resolved: (event) => {
+      log.resolved.push(event);
+      return Promise.resolve();
+    },
   };
   let tick = 0;
   const decider = createDecisionService({

@@ -5,7 +5,9 @@ import { createDynamoMergeTokenDao } from "../../src/dao/mergeToken/dynamoMergeT
 import { createDynamoPlayerDao } from "../../src/dao/player/dynamoPlayerDao";
 import { createDynamoGameSessionDao } from "../../src/dao/gameSession/dynamoGameSessionDao";
 import { createDynamoPlayerStatsDao } from "../../src/dao/playerStats/dynamoPlayerStatsDao";
+import { createDynamoMetricRollupDao } from "../../src/dao/metricRollup/dynamoMetricRollupDao";
 import { createDynamoPreferenceDao } from "../../src/dao/preference/dynamoPreferenceDao";
+import { metricRollupDaoContract } from "../dao/metricRollup/metricRollupDaoContract";
 import { createDynamoRateLimitCounterDao } from "../../src/dao/rateLimitCounter/dynamoRateLimitCounterDao";
 import { rateLimitCounterDaoContract } from "../dao/rateLimitCounter/rateLimitCounterDaoContract";
 import { createDynamoSeatAssignmentDao } from "../../src/dao/seatAssignment/dynamoSeatAssignmentDao";
@@ -132,4 +134,18 @@ describeWrites("RateLimits table", () => {
     ),
   );
   rateLimitCounterDaoContract(() => createDynamoRateLimitCounterDao(tableName(), client), id);
+});
+
+/* A day long before All Play existed, so the contract never touches a real day's counters. */
+describeWrites("MetricRollups table", () => {
+  const tableName = (): string => table("METRIC_ROLLUPS_TABLE");
+  const PERIOD = "2000-01-01";
+  cleanUp(() =>
+    client.send(
+      new DeleteCommand({ TableName: tableName(), Key: { rollupType: "DAY", period: PERIOD } }),
+    ),
+  );
+  /* One DAO for the file: a container writes each day empty once, as the deployed one does. */
+  let dao: ReturnType<typeof createDynamoMetricRollupDao> | undefined;
+  metricRollupDaoContract(() => (dao ??= createDynamoMetricRollupDao(tableName(), client)), PERIOD);
 });

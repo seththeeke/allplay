@@ -33,6 +33,8 @@ export class AllPlayStatefulStack extends Stack {
   readonly playerStats: AllPlayTable;
   /** Per-player decision counters (data-model.md section 10). */
   readonly rateLimits: AllPlayTable;
+  /** Daily aggregates for /admin (data-model.md section 11). */
+  readonly metricRollups: AllPlayTable;
   /** Accounts and groups (authn-authz.md section 3). */
   readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
@@ -42,6 +44,7 @@ export class AllPlayStatefulStack extends Stack {
   readonly seatAssignmentsTableName: CfnOutput;
   readonly playerStatsTableName: CfnOutput;
   readonly rateLimitsTableName: CfnOutput;
+  readonly metricRollupsTableName: CfnOutput;
   readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
@@ -109,6 +112,12 @@ export class AllPlayStatefulStack extends Stack {
       partitionKey: { name: "counterKey" },
       timeToLiveAttribute: "ttl",
     });
+    this.metricRollups = new AllPlayTable(this, "MetricRollups", {
+      stage: props.stage,
+      entity: "MetricRollups",
+      partitionKey: { name: "rollupType" },
+      sortKey: { name: "period" },
+    });
     const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
     if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
     this.users = new AllPlayUserPool(this, "Users", {
@@ -137,6 +146,9 @@ export class AllPlayStatefulStack extends Stack {
     });
     this.rateLimitsTableName = new CfnOutput(this, "RateLimitsTableName", {
       value: this.rateLimits.table.tableName,
+    });
+    this.metricRollupsTableName = new CfnOutput(this, "MetricRollupsTableName", {
+      value: this.metricRollups.table.tableName,
     });
     this.userPoolId = new CfnOutput(this, "UserPoolId", { value: this.users.userPool.userPoolId });
     if (props.stage === "Test") {

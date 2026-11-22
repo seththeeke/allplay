@@ -18,6 +18,7 @@ import {
 import type { HintResponse, SessionEnvelope } from "../../models/api";
 import type { GameSession } from "../../models/gameSession";
 import { statsKeyOf } from "../../models/playerStats";
+import { logger } from "../../logger";
 import {
   gameOver,
   illegalAction,
@@ -26,6 +27,11 @@ import {
   notSeated,
   versionConflict,
 } from "./errors";
+import {
+  createMetricRollupDaoFor,
+  createMetricsRecorder,
+  type MetricsRecorder,
+} from "../metrics/metricsRecorder";
 import { createDeployedGameTables, withStatsRetry } from "./playerGameData";
 import { foldResult } from "./playerStats";
 import { abandonedCopy, isGuest, seatsOf, withSessionTtl } from "./sessionRecords";
@@ -38,6 +44,8 @@ export interface GameSessionServiceDeps {
   dao: GameSessionDao;
   seats: SeatAssignmentDao;
   stats: PlayerStatsDao;
+  /** Game starts, wins and abandons on the day's rollup (data-model.md section 11); absent locally. */
+  metrics?: Pick<MetricsRecorder, "gameStarted" | "gameEnded">;
   /** The compiled game for an id and optional pinned version; throws UnknownGameError. */
   games: (gameId: string, version?: number) => CompiledGame;
   now?: () => Date;
@@ -192,6 +200,8 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
           stats: await statsWrites(updated),
         });
       });
+      if (updated.status !== "IN_PROGRESS")
+        await deps.metrics?.gameEnded(updated.gameId, updated.status);
       return updated;
     } catch (error) {
       if (error instanceof SessionVersionConflictError) {
@@ -266,6 +276,7 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         started,
       );
       await deps.dao.create(session, seatsOf(session, started));
+      await deps.metrics?.gameStarted(session.gameId);
       return envelope(session);
     },
     get: async (playerId, sessionId) => envelope(await load(playerId, sessionId)),
@@ -312,8 +323,10 @@ export function createDeployedGameSessionService(
   repository: { compiled(gameId: string, version?: number): CompiledGame },
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): GameSessionService {
+  const rollups = createMetricRollupDaoFor(env);
   return createGameSessionService({
     ...createDeployedGameTables(env),
+    ...(rollups === null ? {} : { metrics: createMetricsRecorder(rollups, logger) }),
     games: (gameId, version) => repository.compiled(gameId, version),
   });
 }

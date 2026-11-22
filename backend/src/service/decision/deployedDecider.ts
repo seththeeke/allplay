@@ -10,6 +10,11 @@ import { createFixedResponseLlm } from "./llm/fixedResponses";
 import type { LlmClient } from "./llm/llmClient";
 import { createRateLimiter } from "./rateLimiter";
 import { createLoggerTurnLog } from "./turnLog";
+import {
+  createMetricRollupDaoFor,
+  createMetricsRecorder,
+  withTurnMetrics,
+} from "../metrics/metricsRecorder";
 
 /**
  * The stage's model: Bedrock with the configured model (action-decision.md
@@ -37,8 +42,11 @@ export function createDeployedDecisionService(
 ): DecisionService {
   const repository = createBundledRulesRepository();
   const preferences = createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? "");
+  const rollups = createMetricRollupDaoFor(env);
+  const turnLog = createLoggerTurnLog(logger);
   return createDecisionService({
-    log: createLoggerTurnLog(logger),
+    log:
+      rollups === null ? turnLog : withTurnMetrics(turnLog, createMetricsRecorder(rollups, logger)),
     llm: deployedLanguageModel(env, logger),
     sessions: createDeployedGameSessionService(repository, env),
     catalog: () => repository.list(),

@@ -17,6 +17,7 @@ import { PROJECT_NAME, resourceName, type StageName } from "../config";
 import { AllPlayAlarm } from "../constructs/AllPlayAlarm";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
+import { ScheduledJob } from "../constructs/ScheduledJob";
 import { IdentityAccess } from "../constructs/IdentityAccess";
 import { WebHosting } from "../constructs/WebHosting";
 import type { AllPlayStatefulStack } from "./AllPlayStatefulStack";
@@ -96,7 +97,7 @@ export class AllPlayAppStack extends Stack {
       ],
     });
     const { players, preferences, mergeTokens } = props.stateful;
-    const { gameSessions, seatAssignments, playerStats } = props.stateful;
+    const { gameSessions, seatAssignments, playerStats, metricRollups } = props.stateful;
     const gameTables = {
       GAME_SESSIONS_TABLE: gameSessions.table.tableName,
       SEAT_ASSIGNMENTS_TABLE: seatAssignments.table.tableName,
@@ -262,7 +263,7 @@ export class AllPlayAppStack extends Stack {
       entry: "controller/web-api/game/handler.ts",
       memorySize: 1024,
       timeout: Duration.seconds(10),
-      environment: gameTables,
+      environment: { ...gameTables, METRIC_ROLLUPS_TABLE: metricRollups.table.tableName },
     });
     gameApi.function.addToRolePolicy(
       new PolicyStatement({
@@ -300,6 +301,7 @@ export class AllPlayAppStack extends Stack {
         ...gameTables,
         PREFERENCES_TABLE: preferences.table.tableName,
         RATE_LIMITS_TABLE: props.stateful.rateLimits.table.tableName,
+        METRIC_ROLLUPS_TABLE: metricRollups.table.tableName,
         DECIDER_MODEL_ID,
         ...(props.stage === "Test" ? { DECIDER_FIXED_RESPONSES: "ENABLED" } : {}),
       },
@@ -350,8 +352,60 @@ export class AllPlayAppStack extends Stack {
       }),
     );
     this.api.addBundle("Decisions", decisionsRoutes, decisionApi.function);
+    /* Live counters: the first write of a day creates it, later ones add (data-model.md section 11). */
+    for (const fn of [gameApi, decisionApi])
+      fn.function.addToRolePolicy(
+        new PolicyStatement({
+          actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
+          resources: [metricRollups.table.tableArn],
+        }),
+      );
+    /* The daily rollup scans players once and writes the previous day's totals. */
+    const rollup = new AllPlayFunction(this, "MetricsRollup", {
+      stage: props.stage,
+      name: "MetricsRollup",
+      entry: "controller/scheduled/metricsRollup.ts",
+      memorySize: 512,
+      timeout: Duration.minutes(5),
+      environment: {
+        PLAYERS_TABLE: players.table.tableName,
+        METRIC_ROLLUPS_TABLE: metricRollups.table.tableName,
+      },
+    });
+    rollup.function.addToRolePolicy(
+      new PolicyStatement({ actions: ["dynamodb:Scan"], resources: [players.table.tableArn] }),
+    );
+    rollup.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+        resources: [metricRollups.table.tableArn],
+      }),
+    );
+    const rollupJob = new ScheduledJob(this, "MetricsRollupJob", {
+      stage: props.stage,
+      name: "MetricsRollup",
+      cron: "cron(15 0 * * ? *)",
+      target: rollup,
+    });
     this.api.throttleRoutes({ "POST /v1/decisions": { rateLimit: 50, burstLimit: 100 } });
     this.addAlarms(props.stage, { decisionApi, gameApi });
+    new AllPlayAlarm(this, "MetricsRollupErrors", {
+      stage: props.stage,
+      name: "MetricsRollupErrors",
+      metric: rollup.function.metricErrors({ period: Duration.days(1), statistic: "Sum" }),
+      threshold: 1,
+      description: "The daily metrics rollup failed.",
+    });
+    new AllPlayAlarm(this, "MetricsRollupDeadLetters", {
+      stage: props.stage,
+      name: "MetricsRollupDeadLetters",
+      metric: rollupJob.deadLetters.metricApproximateNumberOfMessagesVisible({
+        period: Duration.minutes(5),
+        statistic: "Maximum",
+      }),
+      threshold: 1,
+      description: "A metrics rollup run is in the dead-letter queue.",
+    });
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",

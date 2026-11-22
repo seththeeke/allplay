@@ -83,14 +83,14 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
   const preferences = deps.preferences ?? (() => Promise.resolve({ autoConfirm: false }));
 
   /** Logs how a pending turn ended (`TURN_RESOLVED`). */
-  const settle = (
+  const settle = async (
     playerId: string,
     decisionId: string,
     resolution: string,
     outcome: Decision["outcome"],
     extra: { sessionId?: string | undefined; clientLatencyMs?: number } = {},
-  ): void => {
-    deps.log.resolved({
+  ): Promise<void> => {
+    await deps.log.resolved({
       decisionId,
       playerId,
       resolution,
@@ -125,7 +125,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       return await perform(playerId, target.sessionId, target.actionId, target.expectedVersion);
     } catch (error) {
       if (error instanceof GameSessionError)
-        settle(
+        await settle(
           playerId,
           decisionId,
           resolution,
@@ -148,7 +148,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
   ): Promise<Turn> => {
     const { sessionId, expectedVersion } = request.context;
     if (response === "REJECT") {
-      settle(playerId, prompt.decisionId, "REJECTED", "REJECTED");
+      await settle(playerId, prompt.decisionId, "REJECTED", "REJECTED");
       return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.cancelled) };
     }
     const wantsChoice = prompt.kind === "CHOICES";
@@ -159,7 +159,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       };
     }
     if (prompt.appAction !== null) {
-      settle(playerId, prompt.decisionId, "CONFIRMED", "CONFIRMED");
+      await settle(playerId, prompt.decisionId, "CONFIRMED", "CONFIRMED");
       return {
         outcome: "RESOLVED",
         response: reply("RESOLVED", appActionText(prompt.appAction), {
@@ -177,7 +177,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       actionId,
       expectedVersion: expectedVersion ?? 0,
     });
-    settle(playerId, prompt.decisionId, resolution, resolution, { sessionId });
+    await settle(playerId, prompt.decisionId, resolution, resolution, { sessionId });
     return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.done, { session }) };
   };
 
@@ -395,7 +395,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
           pending !== null &&
           (classified.category === "GAME" || classified.category === "APPLICATION")
         )
-          settle(playerId, pending.decisionId, "SUPERSEDED", "EXPIRED");
+          await settle(playerId, pending.decisionId, "SUPERSEDED", "EXPIRED");
         if (classified.category === "RESPONSE" && pending !== null) {
           turn = await answer(
             playerId,
@@ -430,7 +430,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       const outcome = turn.outcome;
       const failureClass = failureClassOf(outcome);
       const gameId = envelope?.session.gameId;
-      deps.log.decided({
+      await deps.log.decided({
         decisionId,
         playerId,
         ...(request.context.sessionId === null ? {} : { sessionId: request.context.sessionId }),
@@ -462,7 +462,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       const applies =
         resolution === "CHOSE_OPTION" || (resolution === "CONFIRMED" && actionId !== null);
       if (!applies) {
-        settle(playerId, decisionId, resolution, resolution, {
+        await settle(playerId, decisionId, resolution, resolution, {
           ...(sessionId === null ? {} : { sessionId }),
           clientLatencyMs,
         });
@@ -475,7 +475,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         actionId,
         expectedVersion: request.expectedVersion ?? 0,
       });
-      settle(playerId, decisionId, resolution, resolution, { sessionId, clientLatencyMs });
+      await settle(playerId, decisionId, resolution, resolution, { sessionId, clientLatencyMs });
       return { session };
     },
   };

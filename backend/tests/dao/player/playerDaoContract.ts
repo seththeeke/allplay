@@ -122,4 +122,16 @@ export function playerDaoContract(create: () => PlayerDao, id: (name: string) =>
       )
       .toEqual([`ACCT#${id("dup-new")}`, `ACCT#${id("dup-old")}`]);
   });
+
+  it("lists every player's counting fields for the rollup", async () => {
+    const dao = create();
+    const player = guest(`GUEST#${id("rollup")}`);
+    await dao.create(player);
+    expect(await dao.listForRollup()).toContainEqual({
+      kind: "GUEST",
+      status: "ACTIVE",
+      lastActiveAt: player.lastActiveAt,
+      createdAt: player.createdAt,
+    });
+  });
 }

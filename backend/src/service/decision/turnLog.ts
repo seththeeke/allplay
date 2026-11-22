@@ -14,8 +14,8 @@ export interface TurnResolved {
 
 /** Where turns are recorded: the only record of them (action-decision.md section 9.1). */
 export interface TurnLog {
-  decided(turn: Decision): void;
-  resolved(event: TurnResolved): void;
+  decided(turn: Decision): Promise<void>;
+  resolved(event: TurnResolved): Promise<void>;
 }
 
 /** The turn log as structured events through the backend logger, kept with the log group. */
@@ -23,9 +23,11 @@ export function createLoggerTurnLog(logger: Logger): TurnLog {
   return {
     decided: (turn) => {
       logger.info("TURN_DECIDED", { event: "TURN_DECIDED", ...turn });
+      return Promise.resolve();
     },
     resolved: (event) => {
       logger.info("TURN_RESOLVED", { event: "TURN_RESOLVED", ...event });
+      return Promise.resolve();
     },
   };
 }
@@ -37,13 +39,13 @@ export function createRecentTurnLog(
 ): TurnLog & { recent(playerId: string, limit: number): Decision[] } {
   const turns: Decision[] = [];
   return {
-    decided: (turn) => {
-      inner.decided(turn);
+    decided: async (turn) => {
+      await inner.decided(turn);
       turns.unshift(structuredClone(turn));
       turns.splice(keep);
     },
-    resolved: (event) => {
-      inner.resolved(event);
+    resolved: async (event) => {
+      await inner.resolved(event);
       const turn = turns.find((held) => held.decisionId === event.decisionId);
       if (turn !== undefined) {
         turn.outcome = event.outcome as Decision["outcome"];

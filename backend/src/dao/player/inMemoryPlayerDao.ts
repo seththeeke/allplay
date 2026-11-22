@@ -56,6 +56,15 @@ export function createInMemoryPlayerDao(): PlayerDao {
         });
         return true;
       }),
+    listForRollup: () =>
+      run(() =>
+        [...items.values()].map(({ kind, status, lastActiveAt, createdAt }) => ({
+          kind,
+          status,
+          lastActiveAt,
+          createdAt,
+        })),
+      ),
     listAllEmails: () =>
       run(() =>
         [...items.values()].flatMap((item) =>

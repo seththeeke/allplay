@@ -54,4 +54,14 @@ export interface PlayerDao {
   listByEmail(emailKey: string): Promise<EmailMatch[]>;
   /** Every account with an email, for the admin duplicate list (a scan of `ByEmail`). */
   listAllEmails(): Promise<EmailEntry[]>;
+  /** Every player's counting fields, for the daily rollup's one scan (data-model.md section 11). */
+  listForRollup(): Promise<RollupPlayer[]>;
+}
+
+/** The fields the daily rollup counts. */
+export interface RollupPlayer {
+  kind: Player["kind"];
+  status: Player["status"];
+  lastActiveAt: string;
+  createdAt: string;
 }
