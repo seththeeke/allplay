@@ -52,6 +52,8 @@ const ACCESS_LOG = AccessLogFormat.custom(
 export class AllPlayApi extends Construct {
   readonly api: HttpApi;
   readonly stage: HttpStage;
+  /** Bundle routes by route key, for settings that name them. */
+  private readonly routes = new Map<string, HttpRoute>();
 
   constructor(scope: Construct, id: string, props: AllPlayApiProps) {
     super(scope, id);
@@ -98,6 +100,12 @@ export class AllPlayApi extends Construct {
    */
   throttleRoutes(limits: Record<string, { rateLimit: number; burstLimit: number }>): void {
     const stage = this.stage.node.defaultChild as CfnStage;
+    /* The stage's settings name each route, so the route must exist first, on deploy and on rollback. */
+    for (const routeKey of Object.keys(limits)) {
+      const route = this.routes.get(routeKey);
+      if (route === undefined) throw new Error(`Add ${routeKey} before throttling it.`);
+      this.stage.node.addDependency(route);
+    }
     stage.routeSettings = Object.fromEntries(
       Object.entries(limits).map(([routeKey, limit]) => [
         routeKey,
@@ -142,7 +150,7 @@ export class AllPlayApi extends Construct {
     return routes.map((route, index) => {
       if (route.auth !== "IAM")
         throw new Error(`${route.method} ${route.path} is not an IAM route.`);
-      return new HttpRoute(this, `${id}Route${String(index)}`, {
+      const added = new HttpRoute(this, `${id}Route${String(index)}`, {
         httpApi: this.api,
         routeKey: HttpRouteKey.with(
           route.path,
@@ -150,6 +158,8 @@ export class AllPlayApi extends Construct {
         ),
         integration,
       });
+      this.routes.set(`${route.method} ${route.path}`, added);
+      return added;
     });
   }
 }
