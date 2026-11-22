@@ -13,11 +13,13 @@ function isTextEntry(target: EventTarget | null): boolean {
 /**
  * The key map (action-decision.md section 3.3): Space talks, Enter confirms,
  * Escape cancels, 1 to 4 pick a choice. Keys typed into form fields are left
- * alone, and Enter on a focused button keeps its normal meaning.
+ * alone, and Enter on a focused button keeps its normal meaning. Nothing
+ * listens unless voice is active, which is only while a game is open.
  */
-export function useVoiceKeys(controls: VoiceControls): void {
+export function useVoiceKeys(controls: VoiceControls, active = true): void {
   const { phase, startListening, confirm, cancel, choose } = controls;
   useEffect(() => {
+    if (!active) return undefined;
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape" && phase !== "IDLE") {
         event.preventDefault();
@@ -46,5 +48,5 @@ export function useVoiceKeys(controls: VoiceControls): void {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [phase, startListening, confirm, cancel, choose]);
+  }, [active, phase, startListening, confirm, cancel, choose]);
 }

@@ -53,6 +53,7 @@ export function VoiceProvider({
   const [phase, setPhase] = useState<VoicePhase>("IDLE");
   const [decision, setDecision] = useState<DecisionResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [active, setActive] = useState(false);
   const target = useRef<VoiceGameTarget | null>(null);
   const captureEnded = useRef(0);
   const capture = useRef<SpeechCapture | null>(null);
@@ -233,7 +234,8 @@ export function VoiceProvider({
     setGameTarget: (next) => {
       target.current = next;
     },
+    setActive,
   };
-  useVoiceKeys(controls);
+  useVoiceKeys(controls, active);
   return <VoiceContext.Provider value={controls}>{children}</VoiceContext.Provider>;
 }

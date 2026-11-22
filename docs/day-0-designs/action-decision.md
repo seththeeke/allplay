@@ -57,6 +57,8 @@ The iOS client uses `SFSpeechRecognizer` with on-device recognition required, `c
 
 ### 3.3 Keys
 
+Voice is offered only in a game session: the voice bar and these keys exist while a game is on screen. Every other page (home, stats, settings, help, account and the sign-in screens) is used with the pointer, touch and keyboard. Spoken application actions, such as zoom, theme, navigation and sign-out, work from within a game, and leaving the game ends any voice turn in progress.
+
 | Key | Idle | Listening | Proposal or choices shown |
 |---|---|---|---|
 | Space | Start listening | Stop listening | Start listening (a spoken "yes", "no" or number answers the prompt) |

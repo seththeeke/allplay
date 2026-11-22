@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useVoice } from "../hooks/useVoice";
 import type { AppAction } from "../models/api";
 import { Button } from "./Button";
@@ -9,10 +10,22 @@ const CONFIRM_TEXT: Partial<Record<AppAction["action"], string>> = {
   SIGN_OUT: "Sign out?",
 };
 
-/** The voice controls pinned to the bottom of every page (action-decision.md section 3.3). */
+/** The voice controls pinned to the bottom of a game page (action-decision.md section 3.3). */
 export function VoiceBar(): React.JSX.Element {
   const voice = useVoice();
-  const { phase, decision } = voice;
+  const { phase, decision, setActive } = voice;
+  const cancel = useRef(voice.cancel);
+  useEffect(() => {
+    cancel.current = voice.cancel;
+  });
+  /* Voice is active only while this bar is on screen; leaving the game ends any turn in progress. */
+  useEffect(() => {
+    setActive(true);
+    return () => {
+      setActive(false);
+      cancel.current();
+    };
+  }, [setActive]);
   const confirmText = decision?.appAction
     ? (CONFIRM_TEXT[decision.appAction.action] ?? "Are you sure?")
     : null;

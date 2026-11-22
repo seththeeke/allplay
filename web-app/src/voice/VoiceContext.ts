@@ -33,6 +33,8 @@ export interface VoiceControls extends VoiceState {
   cancel: () => void;
   choose: (number: number) => void;
   setGameTarget: (target: VoiceGameTarget | null) => void;
+  /** Voice is offered only while its controls are on screen (a game); the keys listen only then. */
+  setActive: (active: boolean) => void;
 }
 
 export const VoiceContext = createContext<VoiceControls | null>(null);

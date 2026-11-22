@@ -30,6 +30,6 @@ export const GAME_HELP_STEPS: HelpStep[] = [
   {
     target: "settings",
     title: "Make it easier to see",
-    body: 'Say "zoom in", "zoom out" or "high contrast" at any time, or open Settings.',
+    body: 'Say "zoom in", "zoom out" or "high contrast" while you play, or open Settings.',
   },
 ];

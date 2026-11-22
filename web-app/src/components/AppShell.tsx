@@ -1,13 +1,19 @@
 import { NavLink, Outlet } from "react-router";
 import { tierAtLeast, usePlayer } from "../hooks/usePlayer";
 import { VoiceProvider } from "../voice/VoiceProvider";
-import { VoiceBar } from "./VoiceBar";
+import { GearIcon } from "./GearIcon";
 
 const LINK = "rounded-lg px-3 py-2 text-xl font-semibold underline-offset-4 hover:underline";
 const ACTIVE = "bg-accent text-on-accent";
 
 function navClass({ isActive }: { isActive: boolean }): string {
   return `${LINK} ${isActive ? ACTIVE : "text-ink"}`;
+}
+
+/** "Hello, pat" from pat@example.com; just "Hello" when the account has no email. */
+export function greeting(email: string | null): string {
+  const name = email?.split("@")[0] ?? "";
+  return name === "" ? "Hello" : `Hello, ${name}`;
 }
 
 /** Page frame: skip link, primary navigation and the routed page. */
@@ -43,16 +49,31 @@ export function AppShell(): React.JSX.Element {
             </NavLink>
           ) : null}
           <span className="ml-auto" />
-          <NavLink to={signedIn ? "/account" : "/sign-in"} className={navClass}>
-            {signedIn ? "Account" : "Sign in"}
-          </NavLink>
+          {signedIn ? (
+            <>
+              <span className="px-3 text-xl font-semibold">{greeting(player.email)}</span>
+              <NavLink
+                to="/account"
+                aria-label="Account"
+                title="Account"
+                className={({ isActive }) =>
+                  `${navClass({ isActive })} inline-flex min-h-14 min-w-14 items-center justify-center`
+                }
+              >
+                <GearIcon />
+              </NavLink>
+            </>
+          ) : (
+            <NavLink to="/sign-in" className={navClass}>
+              Sign in
+            </NavLink>
+          )}
         </nav>
       </header>
       <VoiceProvider>
-        <div id="main" className="mx-auto max-w-6xl p-4 pb-64">
+        <div id="main" className="mx-auto max-w-6xl p-4">
           <Outlet />
         </div>
-        <VoiceBar />
       </VoiceProvider>
     </div>
   );

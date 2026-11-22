@@ -7,6 +7,7 @@ import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
 import { usePreferences } from "../hooks/usePreferences";
+import { VoiceBar } from "../components/VoiceBar";
 import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
 import { isMove } from "../hooks/selection";
 import type { GameCatalogEntry } from "../models/api";
@@ -78,7 +79,9 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
   };
 
   return (
-    <main>
+    /* Room below the board for the voice bar fixed to the bottom of the game. */
+    <main className="pb-64">
+      <VoiceBar />
       {envelope === undefined ? (
         <p className="text-2xl">Dealing the cards...</p>
       ) : (

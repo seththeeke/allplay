@@ -118,8 +118,16 @@ describe("voice turns in a game", () => {
 });
 
 describe("voice application actions", () => {
+  it("offers no voice outside a game, and Space does nothing there", async () => {
+    renderApp("/", seeded());
+    await screen.findByRole("heading", { level: 1, name: "All Play" });
+    expect(screen.queryByRole("region", { name: "Voice control" })).not.toBeInTheDocument();
+    fireEvent.keyDown(document.body, { key: " " });
+    expect(screen.queryByLabelText("Listening. Say what you want to do:")).not.toBeInTheDocument();
+  });
+
   it("zooms and changes theme", async () => {
-    const { user } = await open("/");
+    const { user } = await open();
     await say(user, "zoom in");
     await waitFor(() => {
       expect(document.documentElement.style.fontSize).toBe("150%");
@@ -142,19 +150,18 @@ describe("voice application actions", () => {
     ["open settings", "Settings"],
     ["help", "Help"],
     ["sign in", "Sign in"],
-  ])("navigates for %s", async (words, heading) => {
-    const { user } = await open("/");
+  ])("navigates for %s from a game", async (words, heading) => {
+    const { user } = await open();
     await say(user, words);
     if (words === "sign in") fireEvent.keyDown(document.body, { key: "Enter" });
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   });
 
-  it("opens a game and goes home", async () => {
-    const { user } = await open("/stats");
-    await say(user, "play spider");
-    await screen.findByRole("region", { name: "Card table" });
+  it("goes home from a game, where voice ends", async () => {
+    const { user } = await open();
     await say(user, "go home");
     expect(await screen.findByRole("heading", { level: 1, name: "All Play" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Voice control" })).not.toBeInTheDocument();
   });
 
   it("confirms a new game, with options in a game and by opening the game elsewhere", async () => {
@@ -163,8 +170,6 @@ describe("voice application actions", () => {
     expect(await within(voiceBar()).findByText("Start a new game?")).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: "Enter" });
     expect(await screen.findByText("four suits, standard deal")).toBeInTheDocument();
-    await say(user, "go home");
-    await screen.findByRole("heading", { level: 1, name: "All Play" });
     await say(user, "new game");
     await say(user, "yes");
     expect(await screen.findByRole("region", { name: "Card table" })).toBeInTheDocument();
@@ -176,7 +181,7 @@ describe("voice application actions", () => {
   it("signs out after confirmation", async () => {
     const services = seeded();
     await services.player.signIn("pat@example.com");
-    const { user } = await open("/", services);
+    const { user } = await open("/spider", services);
     await screen.findByRole("link", { name: "Account" });
     await say(user, "sign out");
     expect(await within(voiceBar()).findByText("Sign out?")).toBeInTheDocument();
@@ -194,13 +199,13 @@ describe("voice application actions", () => {
         constructor(readonly text: string) {}
       },
     );
-    const { user } = await open("/");
+    const { user } = await open();
     await say(user, "auto confirm on");
     expect(speak).not.toHaveBeenCalled();
     await say(user, "repeat");
     expect(speak).toHaveBeenCalledTimes(1);
     await say(user, "turn voice on");
-    await say(user, "show my stats");
+    await say(user, "zoom in");
     await waitFor(() => {
       expect(speak).toHaveBeenCalledTimes(2);
     });
