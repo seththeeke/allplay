@@ -122,7 +122,16 @@ export class WebHosting extends Construct {
         contentSecurityPolicy: {
           contentSecurityPolicy: [
             "default-src 'self'",
-            `connect-src 'self' https://*.execute-api.${region}.amazonaws.com`,
+            /* The API, Cognito (credentials, sign-in, the managed login token exchange), Transcribe streaming and Polly (cdk-stacks.md section 4). */
+            [
+              "connect-src 'self'",
+              `https://*.execute-api.${region}.amazonaws.com`,
+              `https://cognito-identity.${region}.amazonaws.com`,
+              `https://cognito-idp.${region}.amazonaws.com`,
+              `https://*.auth.${region}.amazoncognito.com`,
+              `wss://transcribestreaming.${region}.amazonaws.com:8443`,
+              `https://polly.${region}.amazonaws.com`,
+            ].join(" "),
             "img-src 'self' data:",
             "style-src 'self' 'unsafe-inline'",
             "script-src 'self'",

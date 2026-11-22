@@ -60,6 +60,19 @@ describe("WebHosting", () => {
     });
   });
 
+  it("lets the page reach Cognito, Transcribe streaming and Polly as well as the API", () => {
+    const { template } = synth();
+    const policy = JSON.stringify(template.findResources("AWS::CloudFront::ResponseHeadersPolicy"));
+    for (const host of [
+      "https://cognito-identity.us-east-1.amazonaws.com",
+      "https://cognito-idp.us-east-1.amazonaws.com",
+      "https://*.auth.us-east-1.amazoncognito.com",
+      "wss://transcribestreaming.us-east-1.amazonaws.com:8443",
+      "https://polly.us-east-1.amazonaws.com",
+    ])
+      expect(policy).toContain(host);
+  });
+
   it("sets security headers with a CSP that allows the stage API", () => {
     const { template } = synth();
     template.hasResourceProperties("AWS::CloudFront::ResponseHeadersPolicy", {
