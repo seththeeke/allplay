@@ -228,11 +228,11 @@ describe("players controller", () => {
       "GUEST",
       "GUEST",
       "GUEST",
-      "GUEST",
       "PLAYER",
       "PLAYER",
       "GUEST",
       "PLAYER",
+      "GUEST",
     ]);
     const { handler } = await import("../../../../src/controller/web-api/players/handler");
     expect(typeof handler).toBe("function");

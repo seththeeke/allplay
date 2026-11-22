@@ -114,7 +114,9 @@ export class AllPlayApi extends Construct {
   /**
    * Adds a bundle's routes from its route list (cdk-stacks.md section 5),
    * every one behind AWS_IAM and served by the bundle's Lambda through one
-   * integration. Public routes are refused here.
+   * integration. Public routes are refused here. Route ids are positions in
+   * the list, so lists only grow at the end: CloudFormation creates a renamed
+   * route before deleting the old one, and the two collide on the route key.
    */
   addBundle(
     id: string,

@@ -60,7 +60,7 @@ Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedro
 
 ## 5. API
 
-`AllPlay-Api-<Stage>` is one HTTP API. Each bundle has an import-free route list at `backend/src/controller/web-api/<bundle>/<bundle>Routes.ts` (method, path, minimum tier). `cdk/` imports these files to create routes; it is the only sanctioned import from `cdk/` into `backend/`, legal because those files import nothing. The same lists generate the IAM route policies for each Identity Pool role from each route's minimum tier, so route authorization is defined in one place.
+`AllPlay-Api-<Stage>` is one HTTP API. Each bundle has an import-free route list at `backend/src/controller/web-api/<bundle>/<bundle>Routes.ts` (method, path, minimum tier). `cdk/` imports these files to create routes; it is the only sanctioned import from `cdk/` into `backend/`, legal because those files import nothing. A route's CloudFormation id is its position in its list, so a list only grows at its end: a moved route would be created again under a new id and collide with itself on its route key. The same lists generate the IAM route policies for each Identity Pool role from each route's minimum tier, so route authorization is defined in one place.
 
 `POST /v1/decisions` has its own throttling: 50 requests per second, burst 100.
 
