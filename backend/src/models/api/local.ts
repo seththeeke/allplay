@@ -25,13 +25,13 @@ export const TranscriptionResponseSchema = z.object({
 });
 export type TranscriptionResponse = z.infer<typeof TranscriptionResponseSchema>;
 
-/** A decision as the Voice Lab shows it; the stored item has more fields. */
+/** A turn as the Voice Lab shows it; its TURN_DECIDED event has more fields. */
 export const RecordedDecisionSchema = z.object({
   decisionId: z.string(),
   playerId: z.string(),
   transcript: z.string(),
   transcriptSource: TranscriptSourceSchema,
-  uiContext: z.object({ screen: ScreenSchema, pendingPrompt: z.string().nullable() }),
+  uiContext: z.object({ screen: ScreenSchema, pendingDecisionId: z.string().nullable() }),
   outcome: z.union([DecisionOutcomeSchema, z.string()]),
   createdAt: z.string(),
 });

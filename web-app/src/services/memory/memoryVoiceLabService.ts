@@ -26,7 +26,7 @@ export function createMemoryVoiceLabService(now: () => Date = () => new Date()):
         playerId: "GUEST#local-prototype",
         transcript,
         transcriptSource,
-        uiContext: { screen: "HOME", pendingPrompt: null },
+        uiContext: { screen: "HOME", pendingDecisionId: null },
         outcome: "UNRECOGNIZED",
         createdAt: now().toISOString(),
       });

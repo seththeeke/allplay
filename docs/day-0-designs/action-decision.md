@@ -430,3 +430,4 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 | AD-6 to AD-9 | Open | Rate limits, Test stage tests, evaluation set, and Transcribe capture and Polly playback in the browser |
 
 Local development legs LD-1 (local server) and LD-3 (development caller) are done; see `local-development.md`.
+| Stateless turns | Done | The `Decision` entity and `DecisionDao` are gone. `POST /v1/decisions` takes the on-screen prompt as `context.pendingPrompt`, resolutions carry `sessionId` and `actionId`, and every turn is logged as `TURN_DECIDED` and `TURN_RESOLVED` (`service/decision/turnLog.ts`). The local server keeps each player's latest turns in memory for the Voice Lab. The 30 day `DecisionApi` log group comes with CDK-9 |

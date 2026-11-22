@@ -1,13 +1,13 @@
 import type { AppAction } from "../../models/api";
 import type { Decision } from "../../models/decision";
 
-/** Failure class of an outcome (action-decision.md section 9); open outcomes are PENDING. */
+/** Failure class of an outcome (action-decision.md section 9); open outcomes have none yet. */
 export function failureClassOf(outcome: Decision["outcome"]): Decision["failureClass"] {
   switch (outcome) {
     case "PROPOSED":
     case "CHOICES":
     case "APP_ACTION":
-      return "PENDING";
+      return undefined;
     case "UNRECOGNIZED":
     case "INVALID":
     case "REJECTED":

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DecisionRequest } from "../../../src/models/api";
+import type { DecisionRequest, DecisionResponse } from "../../../src/models/api";
+import { pendingPromptOf, resolutionFor } from "../../../src/voice/turns";
 import { createServices } from "../../../src/services/createServices";
 import { createMemoryStore } from "../../../src/services/memory/memoryStore";
 import { must } from "../../must";
@@ -11,7 +12,7 @@ async function setup() {
   const envelope = await services.sessions.start("spider-solitaire");
   const request = (
     transcript: string,
-    pendingDecisionId: string | null = null,
+    pending: DecisionResponse | null = null,
     version = 0,
   ): DecisionRequest => ({
     transcript,
@@ -20,53 +21,52 @@ async function setup() {
       screen: "GAME",
       sessionId: envelope.session.sessionId,
       expectedVersion: version,
-      pendingDecisionId,
+      pendingPrompt: pendingPromptOf(pending),
     },
   });
-  return { services, envelope, request };
+  const game = { sessionId: envelope.session.sessionId, version: 0 };
+  return { services, envelope, request, game };
 }
 
 describe("memory decision service", () => {
   it("proposes a single move and applies it on confirmation", async () => {
-    const { services, request } = await setup();
+    const { services, request, game } = await setup();
     const proposal = await services.decisions.decide(request("deal"));
     expect(proposal).toMatchObject({ outcome: "PROPOSED", proposal: { actionId: "DEAL_ROW" } });
-    const { session } = await services.decisions.resolve(proposal.decisionId, {
-      resolution: "CONFIRMED",
-      optionNumber: null,
-      expectedVersion: 0,
-      clientLatencyMs: 900,
-    });
+    const { session } = await services.decisions.resolve(
+      proposal.decisionId,
+      resolutionFor(proposal, "CONFIRMED", game, 900),
+    );
     expect(session?.session.version).toBe(1);
   });
 
   it("applies a move when the player says yes", async () => {
     const { services, request } = await setup();
     const proposal = await services.decisions.decide(request("deal"));
-    const answer = await services.decisions.decide(request("yes", proposal.decisionId));
+    const answer = await services.decisions.decide(request("yes", proposal));
     expect(answer.outcome).toBe("RESOLVED");
     expect(answer.session?.session.version).toBe(1);
   });
 
   it("cancels on no, and rejects resolutions without applying anything", async () => {
-    const { services, request } = await setup();
+    const { services, request, game } = await setup();
     const proposal = await services.decisions.decide(request("deal"));
-    expect((await services.decisions.decide(request("no", proposal.decisionId))).displayText).toBe(
+    expect((await services.decisions.decide(request("no", proposal))).displayText).toBe(
       "Cancelled.",
     );
     const another = await services.decisions.decide(request("deal"));
-    const rejected = await services.decisions.resolve(another.decisionId, {
-      resolution: "REJECTED",
-      optionNumber: null,
-      expectedVersion: 0,
-      clientLatencyMs: 0,
-    });
+    const rejected = await services.decisions.resolve(
+      another.decisionId,
+      resolutionFor(another, "REJECTED", game, 0),
+    );
     expect(rejected.session).toBeNull();
+    /* A confirmation without an action (an application action) applies nothing. */
     expect(
       (
         await services.decisions.resolve("unknown", {
           resolution: "CONFIRMED",
-          optionNumber: null,
+          sessionId: game.sessionId,
+          actionId: null,
           expectedVersion: 0,
           clientLatencyMs: 0,
         })
@@ -100,7 +100,7 @@ describe("memory decision service", () => {
         screen: "GAME",
         sessionId: envelope.session.sessionId,
         expectedVersion: 0,
-        pendingDecisionId: null,
+        pendingPrompt: null,
       },
     };
     const decision = await services.decisions.decide(request);
@@ -109,17 +109,19 @@ describe("memory decision service", () => {
     const answer = await services.decisions.decide({
       ...request,
       transcript: "two",
-      context: { ...request.context, pendingDecisionId: decision.decisionId },
+      context: { ...request.context, pendingPrompt: pendingPromptOf(decision) },
     });
     expect(answer.session?.session.version).toBe(1);
     const chooseAgain = await services.decisions.decide(request);
-    const viaResolve = await services.decisions.resolve(chooseAgain.decisionId, {
-      resolution: "CHOSE_OPTION",
-      optionNumber: 9,
-      expectedVersion: 1,
-      clientLatencyMs: 10,
-    });
-    expect(viaResolve.session).toBeNull();
+    const game = { sessionId: envelope.session.sessionId, version: 1 };
+    const missing = resolutionFor(chooseAgain, "CHOSE_OPTION", game, 10, 9);
+    expect(missing.actionId).toBeNull();
+    expect((await services.decisions.resolve(chooseAgain.decisionId, missing)).session).toBeNull();
+    const viaResolve = await services.decisions.resolve(
+      chooseAgain.decisionId,
+      resolutionFor(chooseAgain, "CHOSE_OPTION", game, 10, 1),
+    );
+    expect(viaResolve.session?.session.version).toBe(2);
   });
 
   it("asks before destructive application actions and returns the action on yes", async () => {
@@ -130,7 +132,7 @@ describe("memory decision service", () => {
       appAction: { action: "NEW_GAME" },
       displayText: "Are you sure?",
     });
-    const answer = await services.decisions.decide(request("yes", decision.decisionId));
+    const answer = await services.decisions.decide(request("yes", decision));
     expect(answer.appAction?.action).toBe("NEW_GAME");
     expect((await services.decisions.decide(request("zoom in"))).displayText).toBe("OK.");
   });
@@ -158,13 +160,13 @@ describe("memory decision service", () => {
     const { services, request } = await setup();
     const home = await services.decisions.decide({
       ...request("deal"),
-      context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingDecisionId: null },
+      context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingPrompt: null },
     });
     expect(home.outcome).toBe("UNRECOGNIZED");
     expect((await services.decisions.decide(request("sing a song"))).outcome).toBe("UNRECOGNIZED");
     const decision = await services.decisions.decide(request("deal"));
-    expect(
-      (await services.decisions.decide(request("number four", decision.decisionId))).outcome,
-    ).not.toBe("RESOLVED");
+    expect((await services.decisions.decide(request("number four", decision))).outcome).not.toBe(
+      "RESOLVED",
+    );
   });
 });

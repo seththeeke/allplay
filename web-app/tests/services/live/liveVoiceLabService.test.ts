@@ -28,7 +28,7 @@ describe("live Voice Lab service", () => {
               playerId: "GUEST#x",
               transcript: "deal",
               transcriptSource: "TYPED",
-              uiContext: { screen: "HOME", pendingPrompt: null },
+              uiContext: { screen: "HOME", pendingDecisionId: null },
               outcome: "UNRECOGNIZED",
               createdAt: "2026-11-20T12:00:00.000Z",
             },

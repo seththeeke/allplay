@@ -56,6 +56,28 @@ export const TranscriptSourceSchema = z.enum([
 ]);
 export type TranscriptSource = z.infer<typeof TranscriptSourceSchema>;
 
+/**
+ * The prompt on screen when the player speaks again (action-decision.md
+ * section 4.1): a confirmation of one action or application action, or two to
+ * four choices in order. It is client input, so an action it names is applied
+ * only if the engine finds it legal.
+ */
+export const PendingPromptSchema = z
+  .object({
+    decisionId: z.string().min(1),
+    kind: z.enum(["CONFIRMATION", "CHOICES"]),
+    actionIds: z.array(z.string().min(1).max(200)).max(4),
+    appAction: AppActionSchema.nullable(),
+  })
+  .refine(
+    (prompt) =>
+      prompt.kind === "CHOICES"
+        ? prompt.actionIds.length >= 2 && prompt.appAction === null
+        : (prompt.actionIds.length === 1) !== (prompt.appAction !== null),
+    { message: "A confirmation holds one action; choices hold two to four." },
+  );
+export type PendingPrompt = z.infer<typeof PendingPromptSchema>;
+
 export const DecisionRequestSchema = z.object({
   transcript: z.string().min(1).max(500),
   alternatives: z
@@ -69,7 +91,7 @@ export const DecisionRequestSchema = z.object({
     screen: ScreenSchema,
     sessionId: z.string().min(1).nullable(),
     expectedVersion: z.number().int().min(0).nullable(),
-    pendingDecisionId: z.string().min(1).nullable(),
+    pendingPrompt: PendingPromptSchema.nullable(),
   }),
 });
 export type DecisionRequest = z.input<typeof DecisionRequestSchema>;
@@ -103,9 +125,11 @@ export const DecisionResponseSchema = z.object({
 });
 export type DecisionResponse = z.infer<typeof DecisionResponseSchema>;
 
+/** A resolution carries everything it needs, because the server keeps no turn (action-decision.md section 4.2). */
 export const ResolutionRequestSchema = z.object({
   resolution: z.enum(["CONFIRMED", "CHOSE_OPTION", "REJECTED", "ACKNOWLEDGED"]),
-  optionNumber: z.number().int().min(1).max(4).nullable(),
+  sessionId: z.string().min(1).nullable(),
+  actionId: z.string().min(1).max(200).nullable(),
   expectedVersion: z.number().int().min(0).nullable(),
   clientLatencyMs: z.number().int().min(0),
 });

@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import type { SessionEnvelope } from "../../../src/models/api";
 import { LlmUnavailableError } from "../../../src/service/decision/llm/llmClient";
 import { GameSessionError } from "../../../src/service/gameSession/errors";
-import { ask, FIRST_MOVE, heard, numberOf, PLAYER, setupDecider, type Answers } from "./decider";
+import {
+  ask,
+  FIRST_MOVE,
+  heard,
+  numberOf,
+  PLAYER,
+  promptFor,
+  setupDecider,
+  type Answers,
+} from "./decider";
 
 const texts = (envelope: SessionEnvelope) =>
   new Map<string, string>([
@@ -76,7 +85,7 @@ async function started() {
 }
 
 describe("action decider: game turns", () => {
-  it("proposes one move, records both layers, and applies it on confirmation", async () => {
+  it("proposes one move, logs both layers, and applies it on confirmation", async () => {
     const t = await started();
     const proposed = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
     expect(proposed).toMatchObject({
@@ -84,7 +93,7 @@ describe("action decider: game turns", () => {
       proposal: { actionId: FIRST_MOVE },
       speech: expect.stringContaining("Say yes to confirm") as string,
     });
-    const stored = await t.dao.get(proposed.decisionId);
+    const stored = t.turn(proposed.decisionId);
     expect(stored).toMatchObject({
       gameId: "spider-solitaire",
       sessionVersion: 0,
@@ -92,9 +101,9 @@ describe("action decider: game turns", () => {
       selection: { selectedIds: [FIRST_MOVE], confidence: "HIGH" },
       proposal: { kind: "PROPOSED", actionIds: [FIRST_MOVE] },
       outcome: "PROPOSED",
-      failureClass: "PENDING",
-      dayOutcomeKey: "2026-11-20#PENDING",
+      createdAt: "2026-11-20T12:00:00.000Z",
     });
+    expect(stored?.failureClass).toBeUndefined();
     expect(stored?.candidateCount).toBeGreaterThan(1);
     expect(stored?.candidatesDigest).toMatch(/^[0-9a-f]{64}$/);
     const prompt = t.llm.requests.find((r) => r.tool.name === "select_actions");
@@ -104,16 +113,20 @@ describe("action decider: game turns", () => {
 
     const resolved = await t.decider.resolve(PLAYER, proposed.decisionId, {
       resolution: "CONFIRMED",
-      optionNumber: null,
+      sessionId: t.current().session.sessionId,
+      actionId: FIRST_MOVE,
       expectedVersion: 0,
       clientLatencyMs: 900,
     });
     expect(resolved.session?.session.version).toBe(1);
-    expect(await t.dao.get(proposed.decisionId)).toMatchObject({
+    expect(t.settled(proposed.decisionId)).toEqual({
+      decisionId: proposed.decisionId,
+      playerId: PLAYER,
+      sessionId: t.current().session.sessionId,
+      resolution: "CONFIRMED",
       outcome: "CONFIRMED",
       failureClass: "NONE",
       clientLatencyMs: 900,
-      dayOutcomeKey: "2026-11-20#NONE",
     });
   });
 
@@ -122,11 +135,12 @@ describe("action decider: game turns", () => {
     const proposed = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
     const yes = await t.decider.decide(
       PLAYER,
-      ask("yes", { ...t.inGame(), pendingDecisionId: proposed.decisionId }),
+      ask("yes", { ...t.inGame(), pendingPrompt: promptFor(proposed) }),
     );
     expect(yes.outcome).toBe("RESOLVED");
     expect(yes.session?.session.version).toBe(1);
-    expect((await t.dao.get(proposed.decisionId))?.outcome).toBe("CONFIRMED");
+    expect(t.settled(proposed.decisionId)?.outcome).toBe("CONFIRMED");
+    expect(t.turn(yes.decisionId)?.uiContext.pendingDecisionId).toBe(proposed.decisionId);
     const classify = t.llm.requests.filter((r) => r.tool.name === "classify").at(-1);
     expect(classify?.user).toContain("CONFIRMATION");
     expect(classify?.user).toContain("RESPONSE");
@@ -140,7 +154,7 @@ describe("action decider: game turns", () => {
     expect(choices.displayText).toContain("1: Move");
     const yes = await t.decider.decide(
       PLAYER,
-      ask("yes", { ...t.inGame(), pendingDecisionId: choices.decisionId }),
+      ask("yes", { ...t.inGame(), pendingPrompt: promptFor(choices) }),
     );
     expect(yes).toMatchObject({
       outcome: "UNRECOGNIZED",
@@ -148,20 +162,20 @@ describe("action decider: game turns", () => {
     });
     const three = await t.decider.decide(
       PLAYER,
-      ask("three", { ...t.inGame(), pendingDecisionId: choices.decisionId }),
+      ask("three", { ...t.inGame(), pendingPrompt: promptFor(choices) }),
     );
     expect(three.displayText).toBe("There is no choice with that number.");
     const seven = await t.decider.decide(
       PLAYER,
-      ask("seven", { ...t.inGame(), pendingDecisionId: choices.decisionId }),
+      ask("seven", { ...t.inGame(), pendingPrompt: promptFor(choices) }),
     );
     expect(seven.outcome).toBe("UNRECOGNIZED");
     const two = await t.decider.decide(
       PLAYER,
-      ask("two", { ...t.inGame(), pendingDecisionId: choices.decisionId }),
+      ask("two", { ...t.inGame(), pendingPrompt: promptFor(choices) }),
     );
     expect(two.outcome).toBe("RESOLVED");
-    expect(await t.dao.get(choices.decisionId)).toMatchObject({
+    expect(t.settled(choices.decisionId)).toMatchObject({
       outcome: "CHOSE_OPTION",
       failureClass: "SOFT",
     });
@@ -171,8 +185,9 @@ describe("action decider: game turns", () => {
     expect(again.proposal?.actionId).toBe("UNDO");
     const undone = await t.decider.resolve(PLAYER, again.decisionId, {
       resolution: "CONFIRMED",
-      optionNumber: null,
-      expectedVersion: null,
+      sessionId: t.current().session.sessionId,
+      actionId: "UNDO",
+      expectedVersion: t.current().session.version,
       clientLatencyMs: 1,
     });
     expect(undone.session?.view.status.canUndo).toBe(false);
@@ -182,14 +197,27 @@ describe("action decider: game turns", () => {
     await expect(
       t.decider.resolve(PLAYER, picked.decisionId, {
         resolution: "CHOSE_OPTION",
-        optionNumber: 4,
+        sessionId: t.current().session.sessionId,
+        actionId: null,
         expectedVersion: null,
         clientLatencyMs: 1,
       }),
-    ).rejects.toThrow("no choice");
+    ).rejects.toThrow("Send the session and the action");
+    /* The client names the action; the engine, not a stored turn, decides whether it is legal. */
+    await expect(
+      t.decider.resolve(PLAYER, picked.decisionId, {
+        resolution: "CHOSE_OPTION",
+        sessionId: t.current().session.sessionId,
+        actionId: "MOVE_UNIT|from=tableau.9|depth=9|to=tableau.1",
+        expectedVersion: t.current().session.version,
+        clientLatencyMs: 1,
+      }),
+    ).rejects.toMatchObject({ code: "ILLEGAL_ACTION" });
+    expect(t.settled(picked.decisionId)?.outcome).toBe("INVALID");
     const chosen = await t.decider.resolve(PLAYER, picked.decisionId, {
       resolution: "CHOSE_OPTION",
-      optionNumber: 1,
+      sessionId: t.current().session.sessionId,
+      actionId: picked.choices?.[0]?.actionId ?? null,
       expectedVersion: t.current().session.version,
       clientLatencyMs: 1,
     });
@@ -201,15 +229,15 @@ describe("action decider: game turns", () => {
     const proposed = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
     const one = await t.decider.decide(
       PLAYER,
-      ask("one", { ...t.inGame(), pendingDecisionId: proposed.decisionId }),
+      ask("one", { ...t.inGame(), pendingPrompt: promptFor(proposed) }),
     );
     expect(one.displayText).toBe("Say yes to confirm, or no to cancel.");
     const no = await t.decider.decide(
       PLAYER,
-      ask("no", { ...t.inGame(), pendingDecisionId: proposed.decisionId }),
+      ask("no", { ...t.inGame(), pendingPrompt: promptFor(proposed) }),
     );
     expect(no).toMatchObject({ outcome: "RESOLVED", displayText: "Cancelled." });
-    expect(await t.dao.get(proposed.decisionId)).toMatchObject({
+    expect(t.settled(proposed.decisionId)).toMatchObject({
       outcome: "REJECTED",
       failureClass: "HARD",
     });
@@ -217,25 +245,24 @@ describe("action decider: game turns", () => {
     const next = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
     await t.decider.decide(
       PLAYER,
-      ask("move the card", { ...t.inGame(), pendingDecisionId: next.decisionId }),
+      ask("move the card", { ...t.inGame(), pendingPrompt: promptFor(next) }),
     );
-    expect((await t.dao.get(next.decisionId))?.outcome).toBe("EXPIRED");
+    expect(t.settled(next.decisionId)).toMatchObject({
+      resolution: "SUPERSEDED",
+      outcome: "EXPIRED",
+    });
 
     const last = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
     expect(
       await t.decider.resolve(PLAYER, last.decisionId, {
         resolution: "REJECTED",
-        optionNumber: null,
+        sessionId: null,
+        actionId: null,
         expectedVersion: null,
         clientLatencyMs: 5,
       }),
     ).toEqual({ session: null });
-    /* A finished decision is no longer a pending prompt. */
-    const stale = await t.decider.decide(
-      PLAYER,
-      ask("yes", { ...t.inGame(), pendingDecisionId: last.decisionId }),
-    );
-    expect(stale.outcome).toBe("UNRECOGNIZED");
+    expect(t.settled(last.decisionId)).toMatchObject({ outcome: "REJECTED", clientLatencyMs: 5 });
   });
 
   it("proposes the hinted move, says why a move is refused, and refuses over-broad selections", async () => {
@@ -250,7 +277,7 @@ describe("action decider: game turns", () => {
     expect(t.current().legalActions.map((a) => a.actionId)).toContain(hinted);
     const made = await t.decider.decide(
       PLAYER,
-      ask("yes", { ...t.inGame(), pendingDecisionId: hint.decisionId }),
+      ask("yes", { ...t.inGame(), pendingPrompt: promptFor(hint) }),
     );
     expect(made.session?.session.version).toBe(1);
     await t.refresh();
@@ -288,7 +315,8 @@ describe("action decider: game turns", () => {
     expect(
       await auto.decider.resolve(PLAYER, applied.decisionId, {
         resolution: "ACKNOWLEDGED",
-        optionNumber: null,
+        sessionId: t.current().session.sessionId,
+        actionId: null,
         expectedVersion: null,
         clientLatencyMs: 3,
       }),
@@ -303,12 +331,14 @@ describe("action decider: game turns", () => {
       expectedVersion: 0,
     });
     await expect(
-      t.decider.decide(
-        PLAYER,
-        ask("yes", { ...t.inGame(), pendingDecisionId: proposed.decisionId }),
-      ),
+      t.decider.decide(PLAYER, ask("yes", { ...t.inGame(), pendingPrompt: promptFor(proposed) })),
     ).rejects.toBeInstanceOf(GameSessionError);
-    expect((await t.dao.get(proposed.decisionId))?.outcome).toBe("EXPIRED");
+    expect(t.settled(proposed.decisionId)?.outcome).toBe("EXPIRED");
+    const voiceless = await t.decider.decide(
+      PLAYER,
+      ask("yes", { screen: "HOME", pendingPrompt: promptFor(proposed) }),
+    );
+    expect(voiceless.displayText).toBe("There is no choice with that number.");
   });
 
   it("does not offer game moves off the game screen or without a live game", async () => {
@@ -337,7 +367,8 @@ describe("action decider: application turns", () => {
     expect(
       await t.decider.resolve(PLAYER, bigger.decisionId, {
         resolution: "ACKNOWLEDGED",
-        optionNumber: null,
+        sessionId: null,
+        actionId: null,
         expectedVersion: null,
         clientLatencyMs: 1,
       }),
@@ -353,9 +384,20 @@ describe("action decider: application turns", () => {
     });
     const yes = await t.decider.decide(
       PLAYER,
-      ask("yes", { ...t.inGame(), pendingDecisionId: fresh.decisionId }),
+      ask("yes", { ...t.inGame(), pendingPrompt: promptFor(fresh) }),
     );
     expect(yes).toMatchObject({ outcome: "RESOLVED", appAction: { action: "NEW_GAME" } });
+    expect(t.settled(fresh.decisionId)?.outcome).toBe("CONFIRMED");
+    const confirmedApp = await t.decider.decide(PLAYER, ask("app new game", t.inGame()));
+    expect(
+      await t.decider.resolve(PLAYER, confirmedApp.decisionId, {
+        resolution: "CONFIRMED",
+        sessionId: null,
+        actionId: null,
+        expectedVersion: null,
+        clientLatencyMs: 2,
+      }),
+    ).toEqual({ session: null });
 
     for (const words of ["app chess", "app broken", "app garbage", "app nothing"]) {
       const reply = await t.decider.decide(PLAYER, ask(words, t.inGame()));
@@ -406,30 +448,15 @@ describe("action decider: failures and resolution rules", () => {
     await expect(failing.decider.decide(PLAYER, ask("x", t.inGame()))).rejects.toThrow("disk");
   });
 
-  it("checks owner, state and resolution kind", async () => {
-    const t = await started();
-    const resolution = {
-      resolution: "CONFIRMED" as const,
-      optionNumber: null,
-      expectedVersion: null,
-      clientLatencyMs: 1,
-    };
-    await expect(t.decider.resolve(PLAYER, "missing", resolution)).rejects.toThrow("not found");
-    const proposed = await t.decider.decide(PLAYER, ask("one to six", t.inGame()));
-    await expect(t.decider.resolve("GUEST#other", proposed.decisionId, resolution)).rejects.toThrow(
-      "not found",
-    );
-    await expect(
-      t.decider.resolve(PLAYER, proposed.decisionId, { ...resolution, resolution: "CHOSE_OPTION" }),
-    ).rejects.toThrow("does not apply");
-    await t.decider.resolve(PLAYER, proposed.decisionId, resolution);
-    await expect(t.decider.resolve(PLAYER, proposed.decisionId, resolution)).rejects.toThrow(
-      "already resolved",
-    );
-    const unrecognized = await t.decider.decide(PLAYER, ask("gibberish", t.inGame()));
-    await expect(t.decider.resolve(PLAYER, unrecognized.decisionId, resolution)).rejects.toThrow(
-      "already resolved",
-    );
-    expect((await t.decider.recent(PLAYER, 10)).length).toBe(2);
+  it("refuses a pending prompt that is not a confirmation of one action or two to four choices", () => {
+    const decisionId = "01JEX5B2R4T6Y8U0I2O4P6A8S0";
+    const bad = [
+      { decisionId, kind: "CHOICES", actionIds: ["a"], appAction: null },
+      { decisionId, kind: "CONFIRMATION", actionIds: ["a", "b"], appAction: null },
+      { decisionId, kind: "CONFIRMATION", actionIds: ["a"], appAction: { action: "ZOOM_IN" } },
+      { decisionId, kind: "CONFIRMATION", actionIds: [], appAction: null },
+    ];
+    for (const pendingPrompt of bad)
+      expect(() => ask("yes", { pendingPrompt } as unknown as Parameters<typeof ask>[1])).toThrow();
   });
 });

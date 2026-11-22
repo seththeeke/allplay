@@ -11,6 +11,7 @@ import {
 } from "../models/api";
 import type { SpeechCapture } from "./speechInput";
 import type { SpeechOutput } from "./speechOutput";
+import { pendingPromptOf, resolutionFor } from "./turns";
 import { useAppActions } from "./useAppActions";
 import { useVoiceKeys } from "./useVoiceKeys";
 import {
@@ -85,12 +86,7 @@ export function VoiceProvider({
     setPhase("IDLE");
     setDecision(null);
     if (current === null) return;
-    const request: ResolutionRequest = {
-      resolution,
-      optionNumber,
-      expectedVersion: target.current?.version ?? null,
-      clientLatencyMs: latency(),
-    };
+    const request = resolutionFor(current, resolution, target.current, latency(), optionNumber);
     void decisions
       .resolve(current.decisionId, request)
       .then((result) => {
@@ -118,12 +114,10 @@ export function VoiceProvider({
     setPhase("IDLE");
     if (response.appAction !== null) runApp(response.appAction);
     if (response.outcome === "AUTO_APPLIED" || response.outcome === "APP_ACTION") {
-      void decisions.resolve(response.decisionId, {
-        resolution: "ACKNOWLEDGED",
-        optionNumber: null,
-        expectedVersion: null,
-        clientLatencyMs: latency(),
-      });
+      void decisions.resolve(
+        response.decisionId,
+        resolutionFor(response, "ACKNOWLEDGED", target.current, latency()),
+      );
     }
   };
 
@@ -183,7 +177,7 @@ export function VoiceProvider({
           screen: SCREENS[pathname] ?? (target.current === null ? "HOME" : "GAME"),
           sessionId: target.current?.sessionId ?? null,
           expectedVersion: target.current?.version ?? null,
-          pendingDecisionId: decision?.decisionId ?? null,
+          pendingPrompt: pendingPromptOf(decision),
         },
       })
       .then(handle)

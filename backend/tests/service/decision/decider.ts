@@ -1,9 +1,12 @@
-import { createInMemoryDecisionDao } from "../../../src/dao/decision/inMemoryDecisionDao";
 import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createBundledRulesRepository } from "../../../src/game-catalog";
-import { DecisionRequestSchema } from "../../../src/models/api";
+import {
+  DecisionRequestSchema,
+  type DecisionResponse,
+  type PendingPrompt,
+} from "../../../src/models/api";
+import type { Decision } from "../../../src/models/decision";
 import type { z } from "zod";
-import type { DecisionDao } from "../../../src/dao/decision/decisionDao";
 import {
   createDecisionService,
   type DecisionService,
@@ -11,6 +14,7 @@ import {
 } from "../../../src/service/decision/decisionService";
 import { createFakeLlm } from "../../../src/service/decision/llm/fakeLlm";
 import type { LlmRequest } from "../../../src/service/decision/llm/llmClient";
+import type { TurnLog, TurnResolved } from "../../../src/service/decision/turnLog";
 import {
   createGameSessionService,
   type GameSessionService,
@@ -45,7 +49,11 @@ export function setupDecider(
   decider: DecisionService;
   sessions: GameSessionService;
   llm: ReturnType<typeof createFakeLlm>;
-  dao: DecisionDao;
+  /** The TURN_DECIDED event of a decision. */
+  turn: (decisionId: string) => Decision | undefined;
+  /** The last TURN_RESOLVED event of a decision. */
+  settled: (decisionId: string) => TurnResolved | undefined;
+  log: { decided: Decision[]; resolved: TurnResolved[] };
 } {
   const repository = createBundledRulesRepository();
   const sessions = createGameSessionService({
@@ -54,10 +62,14 @@ export function setupDecider(
     newSeed: () => SEED,
   });
   const llm = createFakeLlm((request) => answers[request.tool.name]?.(request), "fake-model");
-  const dao = createInMemoryDecisionDao();
+  const log = { decided: [] as Decision[], resolved: [] as TurnResolved[] };
+  const turns: TurnLog = {
+    decided: (turn) => log.decided.push(turn),
+    resolved: (event) => log.resolved.push(event),
+  };
   let tick = 0;
   const decider = createDecisionService({
-    dao,
+    log: turns,
     llm,
     sessions,
     catalog: () => repository.list(),
@@ -66,7 +78,31 @@ export function setupDecider(
     now: () => new Date(Date.UTC(2026, 10, 20, 12, 0, tick++)),
     ...extra,
   });
-  return { decider, sessions, llm, dao };
+  return {
+    decider,
+    sessions,
+    llm,
+    log,
+    turn: (id) => log.decided.find((turn) => turn.decisionId === id),
+    settled: (id) => log.resolved.filter((event) => event.decisionId === id).at(-1),
+  };
+}
+
+/** The prompt a client sends back while a decision waits for an answer (action-decision.md section 4.1). */
+export function promptFor(response: DecisionResponse): PendingPrompt {
+  if (response.choices !== null)
+    return {
+      decisionId: response.decisionId,
+      kind: "CHOICES",
+      actionIds: response.choices.map((choice) => choice.actionId),
+      appAction: null,
+    };
+  return {
+    decisionId: response.decisionId,
+    kind: "CONFIRMATION",
+    actionIds: response.proposal === null ? [] : [response.proposal.actionId],
+    appAction: response.proposal === null ? response.appAction : null,
+  };
 }
 
 export const ask = (
@@ -75,7 +111,7 @@ export const ask = (
     screen: string;
     sessionId: string | null;
     expectedVersion: number | null;
-    pendingDecisionId: string | null;
+    pendingPrompt: PendingPrompt | null;
   }> = {},
 ): z.output<typeof DecisionRequestSchema> =>
   DecisionRequestSchema.parse({
@@ -85,7 +121,7 @@ export const ask = (
       screen: "GAME",
       sessionId: null,
       expectedVersion: null,
-      pendingDecisionId: null,
+      pendingPrompt: null,
       ...context,
     },
   });

@@ -38,17 +38,17 @@ describe("decisions controller", () => {
     const body = ask("deal", { sessionId: envelope.session.sessionId, expectedVersion: 0 });
     const decided = await handler(apiEvent("POST /v1/decisions", { body, identity: "p1" }));
     expect(decided.statusCode).toBe(200);
-    const reply = JSON.parse(decided.body) as { decisionId: string; outcome: string };
+    const reply = JSON.parse(decided.body) as {
+      decisionId: string;
+      outcome: string;
+      proposal: { actionId: string };
+    };
     expect(reply.outcome).toBe("PROPOSED");
+    const target = { sessionId: envelope.session.sessionId, actionId: reply.proposal.actionId };
     const resolved = await handler(
       apiEvent("POST /v1/decisions/{decisionId}/resolution", {
         pathParameters: { decisionId: reply.decisionId },
-        body: {
-          resolution: "CONFIRMED",
-          optionNumber: null,
-          expectedVersion: 0,
-          clientLatencyMs: 10,
-        },
+        body: { resolution: "CONFIRMED", ...target, expectedVersion: 0, clientLatencyMs: 10 },
       }),
     );
     expect(resolved.statusCode).toBe(200);
@@ -59,19 +59,15 @@ describe("decisions controller", () => {
     const again = await handler(
       apiEvent("POST /v1/decisions/{decisionId}/resolution", {
         pathParameters: { decisionId: reply.decisionId },
-        body: {
-          resolution: "CONFIRMED",
-          optionNumber: null,
-          expectedVersion: 1,
-          clientLatencyMs: 10,
-        },
+        body: { resolution: "CONFIRMED", ...target, expectedVersion: 0, clientLatencyMs: 10 },
       }),
     );
-    expect(again.statusCode).toBe(422);
+    /* Nothing remembers the turn; the stale version is what refuses a repeat. */
+    expect(again.statusCode).toBe(409);
     expect(write).toHaveBeenCalled();
   });
 
-  it("refuses unreadable bodies and unknown decisions", async () => {
+  it("refuses unreadable bodies, and logs a rejection without any stored turn", async () => {
     const { handler } = await setup();
     expect(
       (await handler(apiEvent("POST /v1/decisions", { body: { transcript: "" } }))).statusCode,
@@ -86,18 +82,19 @@ describe("decisions controller", () => {
         )
       ).statusCode,
     ).toBe(400);
-    const missing = await handler(
+    const rejected = await handler(
       apiEvent("POST /v1/decisions/{decisionId}/resolution", {
         pathParameters: { decisionId: "x" },
         body: {
           resolution: "REJECTED",
-          optionNumber: null,
+          sessionId: null,
+          actionId: null,
           expectedVersion: null,
           clientLatencyMs: 1,
         },
       }),
     );
-    expect(missing.statusCode).toBe(404);
+    expect(JSON.parse(rejected.body)).toEqual({ session: null });
     expect(decisionsRoutes).toHaveLength(2);
   });
 });

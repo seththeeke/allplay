@@ -169,9 +169,9 @@ describe("outcomes", () => {
         "EXPIRED",
       ].map((o) => failureClassOf(o as never)),
     ).toEqual([
-      "PENDING",
-      "PENDING",
-      "PENDING",
+      undefined,
+      undefined,
+      undefined,
       "HARD",
       "HARD",
       "HARD",

@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import type { Decision } from "../models/decision";
+import { createLoggerTurnLog, createRecentTurnLog } from "../service/decision/turnLog";
 import { createDecisionsHandler } from "../controller/web-api/decisions/decisionsController";
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
@@ -12,7 +14,6 @@ import { createInMemoryMergeTokenDao } from "../dao/mergeToken/inMemoryMergeToke
 import { createPlayerGameData } from "../service/gameSession/playerGameData";
 import { createMergeService, mergeSteps } from "../service/player/mergeService";
 import type { HttpResult } from "../controller/web-api/shared/response";
-import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
 import { createInMemoryGameTables } from "../dao/gameSession/inMemoryGameSessionDao";
 import { createInMemoryPlayerDao } from "../dao/player/inMemoryPlayerDao";
 import { createInMemoryPreferenceDao } from "../dao/preference/inMemoryPreferenceDao";
@@ -64,6 +65,8 @@ export interface LocalProviders {
   textToSpeech: TextToSpeech;
   llm: LlmClient;
   decisions: DecisionService;
+  /** The latest turns per player, for the Voice Lab (`GET /local/decisions`). */
+  turns: { recent(playerId: string, limit: number): Decision[] };
   sessions: GameSessionService;
   handlers: {
     health: Handler;
@@ -230,8 +233,9 @@ export async function createLocalProviders(
       ...(overrides.now ? { now: overrides.now } : {}),
       newSeed: () => fixedSeed ?? (overrides.newSeed ?? randomSeed)(),
     });
+    const turns = createRecentTurnLog(createLoggerTurnLog(logger.child({ bundle: "decisions" })));
     const decisions = createDecisionService({
-      dao: createInMemoryDecisionDao(),
+      log: turns,
       llm,
       sessions,
       catalog: () => repository.list(),
@@ -249,6 +253,7 @@ export async function createLocalProviders(
     });
     return {
       decisions,
+      turns,
       sessions,
       handlers: {
         admin: createAdminHandler({
@@ -290,6 +295,9 @@ export async function createLocalProviders(
     llm,
     get decisions() {
       return built.decisions;
+    },
+    get turns() {
+      return built.turns;
     },
     get sessions() {
       return built.sessions;

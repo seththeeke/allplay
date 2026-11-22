@@ -52,7 +52,7 @@ export function createLiveVoiceLabService(
               screen: "HOME",
               sessionId: null,
               expectedVersion: null,
-              pendingDecisionId: null,
+              pendingPrompt: null,
             },
           }),
         }),

@@ -1,32 +1,31 @@
 import type { z } from "zod";
-import type { DecisionDao } from "../../dao/decision/decisionDao";
 import {
   CONFIRMED_APP_ACTIONS,
   type Choice,
   type DecisionRequestSchema,
   type DecisionResponse,
   type GameCatalogEntry,
+  type PendingPrompt,
   type ResolutionRequest,
   type ResolutionResponse,
   type SessionEnvelope,
 } from "../../models/api";
-import { OPEN_OUTCOMES, type Decision, type DecisionCategory } from "../../models/decision";
-import { GameSessionError, notApplicable, notFound } from "../gameSession/errors";
+import type { Decision, DecisionCategory } from "../../models/decision";
+import { GameSessionError, invalidRequest } from "../gameSession/errors";
 import type { GameSessionService } from "../gameSession/gameSessionService";
 import { newUlid } from "../gameSession/ulid";
 import { selectAppAction } from "./appSelector";
-import { classify, type PendingPrompt } from "./classifier";
+import { classify } from "./classifier";
 import { HINT_ID, selectGameActions, UNDO_ID } from "./gameSelector";
 import { LlmUnavailableError, type LlmClient } from "./llm/llmClient";
 import { appActionText, failureClassOf, TEXT } from "./outcomes";
+import type { TurnLog } from "./turnLog";
 
 type ParsedDecisionRequest = z.output<typeof DecisionRequestSchema>;
 
-/** Decisions expire 30 days after creation (data-model.md section 9). */
-const TTL_SECONDS = 30 * 24 * 60 * 60;
-
 export interface DecisionServiceDeps {
-  dao: DecisionDao;
+  /** The only record of a turn (action-decision.md section 9.1). */
+  log: TurnLog;
   llm: LlmClient;
   sessions: GameSessionService;
   catalog: () => Promise<GameCatalogEntry[]>;
@@ -45,7 +44,6 @@ export interface DecisionService {
     decisionId: string,
     request: ResolutionRequest,
   ): Promise<ResolutionResponse>;
-  recent(playerId: string, limit: number): Promise<Decision[]>;
 }
 
 /** What a turn decided, before it is recorded and answered. */
@@ -72,27 +70,30 @@ const reply = (
 
 /**
  * The action decider (action-decision.md section 2): classify, select, verify
- * against the session, and record every turn. Game state changes only through
- * the game session service.
+ * against the session, and log every turn. It keeps no turn state: a pending
+ * prompt comes back with the client's next request. Game state changes only
+ * through the game session service.
  */
 export function createDecisionService(deps: DecisionServiceDeps): DecisionService {
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => newUlid(now().getTime()));
   const preferences = deps.preferences ?? (() => Promise.resolve({ autoConfirm: false }));
 
-  const finalize = async (
-    decision: Decision,
+  /** Logs how a pending turn ended (`TURN_RESOLVED`). */
+  const settle = (
+    playerId: string,
+    decisionId: string,
+    resolution: string,
     outcome: Decision["outcome"],
-    extra: Partial<Decision> = {},
-  ): Promise<void> => {
-    const failureClass = failureClassOf(outcome);
-    await deps.dao.update({
-      ...decision,
-      ...extra,
+    extra: { sessionId?: string | undefined; clientLatencyMs?: number } = {},
+  ): void => {
+    deps.log.resolved({
+      decisionId,
+      playerId,
+      resolution,
       outcome,
-      failureClass,
-      dayOutcomeKey: `${decision.createdAt.slice(0, 10)}#${failureClass}`,
-      updatedAt: now().toISOString(),
+      failureClass: failureClassOf(outcome) ?? "NONE",
+      ...extra,
     });
   };
 
@@ -107,67 +108,74 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       ? deps.sessions.undo(playerId, sessionId, { expectedVersion })
       : deps.sessions.applyAction(playerId, sessionId, { actionId, expectedVersion });
 
-  const openDecision = async (playerId: string, decisionId: string | null) => {
-    if (decisionId === null) return null;
-    const decision = await deps.dao.get(decisionId);
-    return decision !== null &&
-      decision.playerId === playerId &&
-      OPEN_OUTCOMES.has(decision.outcome)
-      ? decision
-      : null;
+  /**
+   * Applies a pending action. A stale version logs the turn as `EXPIRED` and
+   * an illegal action as `INVALID` before the error goes back (section 4.2).
+   */
+  const applyPending = async (
+    playerId: string,
+    decisionId: string,
+    resolution: string,
+    target: { sessionId: string; actionId: string; expectedVersion: number },
+  ): Promise<SessionEnvelope> => {
+    try {
+      return await perform(playerId, target.sessionId, target.actionId, target.expectedVersion);
+    } catch (error) {
+      if (error instanceof GameSessionError)
+        settle(
+          playerId,
+          decisionId,
+          resolution,
+          error.code === "ILLEGAL_ACTION" ? "INVALID" : "EXPIRED",
+          {
+            sessionId: target.sessionId,
+          },
+        );
+      throw error;
+    }
   };
 
-  /** A spoken answer to the open prompt (action-decision.md section 5). */
+  /** A spoken answer to the prompt the client sent back (action-decision.md section 5). */
   const answer = async (
     playerId: string,
-    pending: Decision,
+    request: ParsedDecisionRequest,
+    prompt: PendingPrompt,
     response: "CONFIRM" | "REJECT" | "OPTION" | null,
     optionNumber: number | null,
   ): Promise<Turn> => {
-    const proposal = pending.proposal;
+    const { sessionId, expectedVersion } = request.context;
     if (response === "REJECT") {
-      await finalize(pending, "REJECTED");
+      settle(playerId, prompt.decisionId, "REJECTED", "REJECTED");
       return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.cancelled) };
     }
-    const index = response === "OPTION" ? (optionNumber ?? 0) - 1 : 0;
-    const wantsChoice = proposal?.kind === "CHOICES";
-    if (proposal === undefined || wantsChoice !== (response === "OPTION")) {
+    const wantsChoice = prompt.kind === "CHOICES";
+    if (wantsChoice !== (response === "OPTION")) {
       return {
         outcome: "UNRECOGNIZED",
         response: reply("UNRECOGNIZED", wantsChoice ? TEXT.sayNumber : TEXT.sayYesOrNo),
       };
     }
-    if (proposal.appAction !== null) {
-      await finalize(pending, "CONFIRMED");
+    if (prompt.appAction !== null) {
+      settle(playerId, prompt.decisionId, "CONFIRMED", "CONFIRMED");
       return {
         outcome: "RESOLVED",
-        response: reply("RESOLVED", appActionText(proposal.appAction), {
-          appAction: proposal.appAction,
+        response: reply("RESOLVED", appActionText(prompt.appAction), {
+          appAction: prompt.appAction,
         }),
       };
     }
-    const actionId = proposal.actionIds[index];
-    if (actionId === undefined || pending.sessionId === undefined) {
+    const actionId = prompt.actionIds[wantsChoice ? (optionNumber ?? 0) - 1 : 0];
+    if (actionId === undefined || sessionId === null) {
       return { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.noSuchChoice) };
     }
-    const session = await applyFor(playerId, pending, actionId, pending.sessionVersion ?? 0);
-    await finalize(pending, wantsChoice ? "CHOSE_OPTION" : "CONFIRMED");
+    const resolution = wantsChoice ? "CHOSE_OPTION" : "CONFIRMED";
+    const session = await applyPending(playerId, prompt.decisionId, resolution, {
+      sessionId,
+      actionId,
+      expectedVersion: expectedVersion ?? 0,
+    });
+    settle(playerId, prompt.decisionId, resolution, resolution, { sessionId });
     return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.done, { session }) };
-  };
-
-  /** Applies an open decision's action; a stale version expires the decision before the 409 goes back. */
-  const applyFor = async (
-    playerId: string,
-    decision: Decision,
-    actionId: string,
-    expectedVersion: number,
-  ): Promise<SessionEnvelope> => {
-    try {
-      return await perform(playerId, decision.sessionId ?? "", actionId, expectedVersion);
-    } catch (error) {
-      if (error instanceof GameSessionError) await finalize(decision, "EXPIRED");
-      throw error;
-    }
   };
 
   const gameTurn = async (
@@ -345,21 +353,14 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
     decide: async (playerId, request) => {
       const started = now();
       const transcript = request.transcript.trim();
-      const pending = await openDecision(playerId, request.context.pendingDecisionId);
-      const prompt: PendingPrompt | null =
-        pending?.proposal === undefined
-          ? null
-          : {
-              kind: pending.proposal.kind === "CHOICES" ? "CHOICES" : "CONFIRMATION",
-              choiceCount: pending.proposal.choices?.length ?? 0,
-            };
+      const pending = request.context.pendingPrompt;
       /* GAME is offered on the game screen; the session loads in parallel with layer 1 (section 11). */
       const inGame = request.context.screen === "GAME" && request.context.sessionId !== null;
       const envelopePromise = loadSession(playerId, request);
       const categories: DecisionCategory[] = [
         ...(inGame ? (["GAME"] as const) : []),
         "APPLICATION",
-        ...(prompt === null ? [] : (["RESPONSE"] as const)),
+        ...(pending === null ? [] : (["RESPONSE"] as const)),
         "UNRECOGNIZED",
       ];
 
@@ -372,7 +373,10 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
             transcript,
             alternatives: request.alternatives,
             categories,
-            pending: prompt,
+            pending:
+              pending === null
+                ? null
+                : { kind: pending.kind, choiceCount: pending.actionIds.length },
           }),
           envelopePromise,
         ]);
@@ -386,9 +390,15 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
           pending !== null &&
           (classified.category === "GAME" || classified.category === "APPLICATION")
         )
-          await finalize(pending, "EXPIRED");
+          settle(playerId, pending.decisionId, "SUPERSEDED", "EXPIRED");
         if (classified.category === "RESPONSE" && pending !== null) {
-          turn = await answer(playerId, pending, classified.response, classified.optionNumber);
+          turn = await answer(
+            playerId,
+            request,
+            pending,
+            classified.response,
+            classified.optionNumber,
+          );
         } else if (classified.category === "GAME") {
           turn =
             envelope === null
@@ -415,7 +425,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       const outcome = turn.outcome;
       const failureClass = failureClassOf(outcome);
       const gameId = envelope?.session.gameId;
-      await deps.dao.create({
+      deps.log.decided({
         decisionId,
         playerId,
         ...(request.context.sessionId === null ? {} : { sessionId: request.context.sessionId }),
@@ -430,58 +440,38 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         alternatives: request.alternatives,
         uiContext: {
           screen: request.context.screen,
-          pendingPrompt: request.context.pendingDecisionId,
+          pendingDecisionId: pending?.decisionId ?? null,
         },
         ...(classification === undefined ? {} : { classification }),
         ...turn.record,
         outcome,
-        failureClass,
+        ...(failureClass === undefined ? {} : { failureClass }),
         serverLatencyMs: Math.max(0, now().getTime() - started.getTime()),
-        dayOutcomeKey: `${at.slice(0, 10)}#${failureClass}`,
-        ttl: Math.floor(started.getTime() / 1000) + TTL_SECONDS,
-        entityVersion: 1,
         createdAt: at,
-        updatedAt: at,
       });
       return { decisionId, ...turn.response };
     },
 
     resolve: async (playerId, decisionId, request) => {
-      const decision = await deps.dao.get(decisionId);
-      if (decision?.playerId !== playerId) throw notFound("Decision");
-      const kind = decision.outcome;
-      if (!OPEN_OUTCOMES.has(kind) && kind !== "AUTO_APPLIED")
-        throw notApplicable("This decision is already resolved.");
-      const allowed: Record<ResolutionRequest["resolution"], readonly string[]> = {
-        CONFIRMED: ["PROPOSED", "APP_ACTION"],
-        CHOSE_OPTION: ["CHOICES"],
-        REJECTED: ["PROPOSED", "CHOICES", "APP_ACTION"],
-        ACKNOWLEDGED: ["AUTO_APPLIED", "APP_ACTION"],
-      };
-      if (!allowed[request.resolution].includes(kind))
-        throw notApplicable(`${request.resolution} does not apply to a ${kind} decision.`);
-      const latency = { clientLatencyMs: request.clientLatencyMs };
-      const actionIndex =
-        request.resolution === "CHOSE_OPTION" ? (request.optionNumber ?? 0) - 1 : 0;
-      const actionId = decision.proposal?.actionIds[actionIndex];
-      if (
-        (request.resolution === "CONFIRMED" && kind === "PROPOSED") ||
-        request.resolution === "CHOSE_OPTION"
-      ) {
-        if (actionId === undefined) throw notApplicable("There is no choice with that number.");
-        const session = await applyFor(
-          playerId,
-          decision,
-          actionId,
-          request.expectedVersion ?? decision.sessionVersion ?? 0,
-        );
-        await finalize(decision, request.resolution, latency);
-        return { session };
+      const { resolution, sessionId, actionId, clientLatencyMs } = request;
+      const applies =
+        resolution === "CHOSE_OPTION" || (resolution === "CONFIRMED" && actionId !== null);
+      if (!applies) {
+        settle(playerId, decisionId, resolution, resolution, {
+          ...(sessionId === null ? {} : { sessionId }),
+          clientLatencyMs,
+        });
+        return { session: null };
       }
-      await finalize(decision, request.resolution, latency);
-      return { session: null };
+      if (sessionId === null || actionId === null)
+        throw invalidRequest("Send the session and the action to apply.");
+      const session = await applyPending(playerId, decisionId, resolution, {
+        sessionId,
+        actionId,
+        expectedVersion: request.expectedVersion ?? 0,
+      });
+      settle(playerId, decisionId, resolution, resolution, { sessionId, clientLatencyMs });
+      return { session };
     },
-
-    recent: (playerId, limit) => deps.dao.listByPlayer(playerId, limit),
   };
 }

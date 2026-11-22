@@ -27,12 +27,12 @@ export const FinalOutcomeSchema = z.enum([
   "ACKNOWLEDGED",
 ]);
 
-/** Outcomes that still wait for the player (action-decision.md section 4.2). */
-export const OPEN_OUTCOMES: ReadonlySet<string> = new Set(["PROPOSED", "CHOICES", "APP_ACTION"]);
+export const FailureClassSchema = z.enum(["HARD", "SOFT", "NONE"]);
 
 /**
- * One voice turn (data-model.md section 9). An open decision keeps what was
- * shown in `proposal`, so a resolution or a spoken answer can act on it.
+ * One voice turn as its `TURN_DECIDED` event logs it (action-decision.md
+ * section 9.1). Nothing stores it; `failureClass` is absent while the
+ * outcome waits for the player.
  */
 export const DecisionSchema = z.object({
   decisionId: z.string().min(1),
@@ -43,7 +43,7 @@ export const DecisionSchema = z.object({
   transcriptSource: TranscriptSourceSchema,
   transcript: z.string().min(1),
   alternatives: z.array(z.object({ transcript: z.string(), confidence: z.number() })),
-  uiContext: z.object({ screen: ScreenSchema, pendingPrompt: z.string().nullable() }),
+  uiContext: z.object({ screen: ScreenSchema, pendingDecisionId: z.string().nullable() }),
   classification: ModelCallSchema.extend({
     category: DecisionCategorySchema,
     response: z.enum(["CONFIRM", "REJECT", "OPTION"]).nullable(),
@@ -64,13 +64,8 @@ export const DecisionSchema = z.object({
     })
     .optional(),
   outcome: z.union([DecisionOutcomeSchema, FinalOutcomeSchema]),
-  failureClass: z.enum(["PENDING", "HARD", "SOFT", "NONE"]),
+  failureClass: FailureClassSchema.optional(),
   serverLatencyMs: z.number().int().min(0),
-  clientLatencyMs: z.number().int().min(0).optional(),
-  dayOutcomeKey: z.string().min(1),
-  ttl: z.number().int(),
-  entityVersion: z.literal(1),
   createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
 });
 export type Decision = z.infer<typeof DecisionSchema>;

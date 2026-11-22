@@ -184,7 +184,7 @@ describe("decision contracts", () => {
     const parsed = DecisionRequestSchema.parse({
       transcript: "three to seven",
       transcriptSource: "TRANSCRIBE",
-      context: { screen: "GAME", sessionId: "s1", expectedVersion: 3, pendingDecisionId: null },
+      context: { screen: "GAME", sessionId: "s1", expectedVersion: 3, pendingPrompt: null },
     });
     expect(parsed.alternatives).toEqual([]);
   });
@@ -223,7 +223,8 @@ describe("decision contracts", () => {
     expect(
       ResolutionRequestSchema.safeParse({
         resolution: "CHOSE_OPTION",
-        optionNumber: 2,
+        sessionId: "s1",
+        actionId: "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.9",
         expectedVersion: 37,
         clientLatencyMs: 1615,
       }).success,

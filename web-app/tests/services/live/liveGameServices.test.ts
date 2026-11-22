@@ -112,13 +112,14 @@ describe("live game services", () => {
       await decisions.decide({
         transcript: "deal",
         transcriptSource: "TYPED",
-        context: { screen: "GAME", sessionId: "s", expectedVersion: 0, pendingDecisionId: null },
+        context: { screen: "GAME", sessionId: "s", expectedVersion: 0, pendingPrompt: null },
       }),
     ).toEqual(reply);
     expect(
       await decisions.resolve("d1", {
         resolution: "CONFIRMED",
-        optionNumber: null,
+        sessionId: "s",
+        actionId: "DEAL_ROW",
         expectedVersion: 0,
         clientLatencyMs: 4,
       }),

@@ -1,7 +1,6 @@
 import { mockDecide } from "../../../test-data/decider";
 import {
   CONFIRMED_APP_ACTIONS,
-  type AppAction,
   type DecisionResponse,
   type SessionEnvelope,
 } from "../../models/api";
@@ -11,22 +10,15 @@ import type { DecisionService, PreferencesService, SessionService } from "../typ
 export const UNDO_ACTION_ID = "UNDO";
 const SPIDER = "spider-solitaire";
 
-interface Pending {
-  outcome: DecisionResponse["outcome"];
-  actionIds: string[];
-  appAction: AppAction | null;
-  sessionId: string | null;
-}
-
 /**
  * In-memory action decider: a rule-based stand-in for the Bedrock layers,
- * with the real API's outcomes, confirmation rules and resolution flow.
+ * with the real API's outcomes, confirmation rules and stateless resolution:
+ * a pending prompt comes back in the request (action-decision.md section 4).
  */
 export function createMemoryDecisionService(
   sessions: SessionService,
   preferences: PreferencesService,
 ): DecisionService {
-  const pending = new Map<string, Pending>();
   let counter = 0;
 
   const perform = (
@@ -44,11 +36,9 @@ export function createMemoryDecisionService(
     extra: Partial<
       Omit<DecisionResponse, "decisionId" | "outcome" | "displayText" | "speech">
     > = {},
-    remember: Omit<Pending, "outcome"> | null = null,
   ): DecisionResponse => {
     counter += 1;
     const decisionId = `decision-${String(counter)}`;
-    if (remember !== null) pending.set(decisionId, { outcome, ...remember });
     return {
       decisionId,
       outcome,
@@ -65,21 +55,18 @@ export function createMemoryDecisionService(
   return {
     decide: async (request) => {
       const { context } = request;
-      const prior =
-        context.pendingDecisionId === null ? undefined : pending.get(context.pendingDecisionId);
+      const prior = context.pendingPrompt;
       const envelope = context.screen === "GAME" ? await sessions.current(SPIDER) : null;
       const decision = mockDecide({
         transcript: request.transcript,
-        pending:
-          prior === undefined ? null : prior.outcome === "CHOICES" ? "CHOICES" : "CONFIRMATION",
+        pending: prior?.kind ?? null,
         legalActions: envelope?.legalActions ?? null,
         gameId: envelope === null ? null : SPIDER,
       });
       const version = context.expectedVersion ?? envelope?.session.version ?? 0;
       const sessionId = envelope?.session.sessionId ?? null;
 
-      if (decision.kind === "RESPONSE" && prior !== undefined) {
-        if (context.pendingDecisionId !== null) pending.delete(context.pendingDecisionId);
+      if (decision.kind === "RESPONSE" && prior !== null) {
         if (decision.response === "REJECT") return respond("RESOLVED", "Cancelled.");
         const chosen =
           decision.response === "OPTION"
@@ -87,20 +74,15 @@ export function createMemoryDecisionService(
             : prior.actionIds[0];
         if (prior.appAction !== null)
           return respond("RESOLVED", "Done.", { appAction: prior.appAction });
-        if (chosen === undefined || prior.sessionId === null)
+        if (chosen === undefined || context.sessionId === null)
           return respond("UNRECOGNIZED", "There is no choice with that number.");
-        const session = await perform(prior.sessionId, chosen, version);
+        const session = await perform(context.sessionId, chosen, version);
         return respond("RESOLVED", "Done.", { session });
       }
       if (decision.kind === "APP") {
         const confirm = CONFIRMED_APP_ACTIONS.has(decision.action.action);
         const text = confirm ? "Are you sure?" : "OK.";
-        return respond(
-          "APP_ACTION",
-          text,
-          { appAction: decision.action },
-          confirm ? { actionIds: [], appAction: decision.action, sessionId: null } : null,
-        );
+        return respond("APP_ACTION", text, { appAction: decision.action });
       }
       if (decision.kind === "META" && decision.meta === "HINT" && sessionId !== null) {
         const hint = await sessions.hint(sessionId);
@@ -129,12 +111,7 @@ export function createMemoryDecisionService(
           text: texts.get(actionId) ?? actionId,
         }));
         const text = `There are ${String(ids.length)} matching moves. Say the number you want.`;
-        return respond(
-          "CHOICES",
-          text,
-          { choices },
-          { actionIds: ids, appAction: null, sessionId },
-        );
+        return respond("CHOICES", text, { choices });
       }
       const actionId = ids[0] ?? UNDO_ACTION_ID;
       const text = texts.get(actionId) ?? actionId;
@@ -144,20 +121,12 @@ export function createMemoryDecisionService(
           session: await perform(sessionId, actionId, version),
         });
       }
-      return respond(
-        "PROPOSED",
-        `${text}?`,
-        { proposal: { actionId, text } },
-        { actionIds: [actionId], appAction: null, sessionId },
-      );
+      return respond("PROPOSED", `${text}?`, { proposal: { actionId, text } });
     },
-    resolve: async (decisionId, request) => {
-      const prior = pending.get(decisionId);
-      pending.delete(decisionId);
+    resolve: async (_decisionId, request) => {
       const applies = request.resolution === "CONFIRMED" || request.resolution === "CHOSE_OPTION";
-      const sessionId = prior?.sessionId ?? null;
-      const actionId = prior?.actionIds[(request.optionNumber ?? 1) - 1];
-      if (!applies || sessionId === null || actionId === undefined) return { session: null };
+      const { sessionId, actionId } = request;
+      if (!applies || sessionId === null || actionId === null) return { session: null };
       return { session: await perform(sessionId, actionId, request.expectedVersion ?? 0) };
     },
   };

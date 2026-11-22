@@ -46,7 +46,7 @@ const decide = (transcript: string, caller?: string) =>
     body: JSON.stringify({
       transcript,
       transcriptSource: "TYPED",
-      context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingDecisionId: null },
+      context: { screen: "HOME", sessionId: null, expectedVersion: null, pendingPrompt: null },
     }),
   });
 
@@ -326,13 +326,14 @@ describe("local server", () => {
         screen: "GAME",
         sessionId: envelope.session.sessionId,
         expectedVersion: 0,
-        pendingDecisionId: null,
+        pendingPrompt: null,
       },
     });
     expect(decided["outcome"]).toBe("PROPOSED");
     const resolved = await post(`/v1/decisions/${decided.decisionId}/resolution`, {
       resolution: "CONFIRMED",
-      optionNumber: null,
+      sessionId: envelope.session.sessionId,
+      actionId: (decided["proposal"] as { actionId: string }).actionId,
       expectedVersion: 0,
       clientLatencyMs: 5,
     });

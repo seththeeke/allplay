@@ -158,7 +158,7 @@ export function createLocalServer(providers: LocalProviders): Server {
         return [
           200,
           {
-            decisions: await providers.decisions.recent(
+            decisions: providers.turns.recent(
               devPlayerId(await providers.callerOf(request.headers)),
               20,
             ),
