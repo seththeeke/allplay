@@ -71,12 +71,10 @@ describe("password field", () => {
     expect(input).toHaveAttribute("type", "password");
     const toggle = screen.getByRole("button", { name: "Show password" });
     expect(toggle.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-    expect(toggle.querySelector("line")).toBeNull();
+    const openEye = toggle.innerHTML;
     await userEvent.click(toggle);
     expect(input).toHaveAttribute("type", "text");
-    expect(
-      screen.getByRole("button", { name: "Hide password" }).querySelector("line"),
-    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Hide password" }).innerHTML).not.toBe(openEye);
     expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute(
       "aria-pressed",
       "true",

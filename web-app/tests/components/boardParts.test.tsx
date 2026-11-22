@@ -99,15 +99,7 @@ describe("GameBoard and GameHeader", () => {
 
   it("shows zeros when the summary is empty and a deal count of zero", () => {
     const empty = { ...envelope, session: { ...envelope.session, summary: {} } };
-    render(
-      <GameHeader
-        game={must(CATALOG.games[0])}
-        envelope={empty}
-        onUndo={vi.fn()}
-        onHint={vi.fn()}
-        onNewGame={vi.fn()}
-      />,
-    );
+    render(<GameHeader game={must(CATALOG.games[0])} envelope={empty} />);
     render(
       <GameBoard
         envelope={empty}

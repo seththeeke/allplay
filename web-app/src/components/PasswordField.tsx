@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button";
-import { EyeIcon } from "./EyeIcon";
+import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 
 export interface PasswordFieldProps {
   id: string;
@@ -57,7 +57,11 @@ export function PasswordField({
             setShown(!shown);
           }}
         >
-          <EyeIcon crossed={shown} />
+          {shown ? (
+            <IoEyeOffOutline aria-hidden="true" className="size-8" />
+          ) : (
+            <IoEyeOutline aria-hidden="true" className="size-8" />
+          )}
         </Button>
       </div>
     </div>

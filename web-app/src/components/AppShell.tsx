@@ -1,9 +1,9 @@
 import { NavLink, Outlet } from "react-router";
 import { tierAtLeast, usePlayer } from "../hooks/usePlayer";
 import { VoiceProvider } from "../voice/VoiceProvider";
-import { GearIcon } from "./GearIcon";
+import { IoSettingsSharp } from "react-icons/io5";
 
-const LINK = "rounded-lg px-3 py-2 text-xl font-semibold underline-offset-4 hover:underline";
+const LINK = "rounded-lg px-3 py-1 text-lg font-semibold underline-offset-4 hover:underline";
 const ACTIVE = "bg-accent text-on-accent";
 
 function navClass({ isActive }: { isActive: boolean }): string {
@@ -30,7 +30,10 @@ export function AppShell(): React.JSX.Element {
         Skip to content
       </a>
       <header className="border-b-4 border-line bg-surface">
-        <nav aria-label="Main" className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 p-3">
+        <nav
+          aria-label="Main"
+          className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-3 py-1"
+        >
           <NavLink to="/" end className={navClass}>
             All Play
           </NavLink>
@@ -51,16 +54,16 @@ export function AppShell(): React.JSX.Element {
           <span className="ml-auto" />
           {signedIn ? (
             <>
-              <span className="px-3 text-xl font-semibold">{greeting(player.email)}</span>
+              <span className="px-2 text-lg font-semibold">{greeting(player.email)}</span>
               <NavLink
                 to="/account"
                 aria-label="Account"
                 title="Account"
                 className={({ isActive }) =>
-                  `${navClass({ isActive })} inline-flex min-h-14 min-w-14 items-center justify-center`
+                  `${navClass({ isActive })} inline-flex min-h-10 min-w-10 items-center justify-center`
                 }
               >
-                <GearIcon />
+                <IoSettingsSharp aria-hidden="true" className="size-6" />
               </NavLink>
             </>
           ) : (

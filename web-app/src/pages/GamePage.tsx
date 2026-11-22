@@ -1,3 +1,4 @@
+import { GameActions } from "../components/GameActions";
 import { GameBoard } from "../components/GameBoard";
 import { GameHeader } from "../components/GameHeader";
 import { HelpWalkthrough } from "../components/HelpWalkthrough";
@@ -79,21 +80,26 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
   };
 
   return (
-    /* Room below the board for the voice bar fixed to the bottom of the game. */
-    <main className="pb-64">
-      <VoiceBar />
+    /* Room below the board for the compact voice bar fixed to the bottom of the game. */
+    <main className="pb-24">
+      <VoiceBar
+        actions={
+          envelope === undefined ? undefined : (
+            <GameActions
+              envelope={envelope}
+              onUndo={run(() => session.undo("POINTER"))}
+              onHint={run(() => session.requestHint())}
+              onNewGame={run(() => session.newGame())}
+            />
+          )
+        }
+      />
       {envelope === undefined ? (
         <p className="text-2xl">Dealing the cards...</p>
       ) : (
         <>
-          <GameHeader
-            game={game}
-            envelope={envelope}
-            onUndo={run(() => session.undo("POINTER"))}
-            onHint={run(() => session.requestHint())}
-            onNewGame={run(() => session.newGame())}
-          />
-          <p aria-live="polite" className="mb-3 min-h-9 text-2xl font-semibold">
+          <GameHeader game={game} envelope={envelope} />
+          <p aria-live="polite" className="mb-2 min-h-7 text-lg font-semibold">
             {session.message}
           </p>
           <StatusBanner

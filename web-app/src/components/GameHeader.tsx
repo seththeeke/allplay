@@ -1,12 +1,8 @@
 import type { GameCatalogEntry, SessionEnvelope } from "../models/api";
-import { Button } from "./Button";
 
 export interface GameHeaderProps {
   game: GameCatalogEntry;
   envelope: SessionEnvelope;
-  onUndo: () => void;
-  onHint: () => void;
-  onNewGame: () => void;
 }
 
 /** Spoken labels for the current options, for example "one suit". */
@@ -23,43 +19,25 @@ export function optionLabels(
     .join(", ");
 }
 
-export function GameHeader({
-  game,
-  envelope,
-  onUndo,
-  onHint,
-  onNewGame,
-}: GameHeaderProps): React.JSX.Element {
+/** The game's name and options on the left, score and moves small at the far right. */
+export function GameHeader({ game, envelope }: GameHeaderProps): React.JSX.Element {
   const { summary, options } = envelope.session;
-  const canUndo = envelope.metaActions.some((meta) => meta.id === "UNDO" && meta.available);
-  const canHint = envelope.metaActions.some((meta) => meta.id === "HINT" && meta.available);
   return (
-    <header className="mb-4 flex flex-wrap items-center gap-4">
-      <div className="mr-auto">
-        <h1 className="text-4xl font-bold">{game.name}</h1>
-        <p className="text-xl text-muted">{optionLabels(game, options)}</p>
+    <header className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <div>
+        <h1 className="text-2xl font-bold">{game.name}</h1>
+        <p className="text-base text-muted">{optionLabels(game, options)}</p>
       </div>
-      <dl className="flex gap-6 text-2xl">
-        <div>
-          <dt className="text-lg text-muted">Score</dt>
+      <dl className="ml-auto flex gap-4 text-lg">
+        <div className="text-right">
+          <dt className="text-sm text-muted">Score</dt>
           <dd className="font-bold">{summary["score"] ?? 0}</dd>
         </div>
-        <div>
-          <dt className="text-lg text-muted">Moves</dt>
+        <div className="text-right">
+          <dt className="text-sm text-muted">Moves</dt>
           <dd className="font-bold">{summary["moveCount"] ?? 0}</dd>
         </div>
       </dl>
-      <div className="flex flex-wrap gap-2" data-help-id="game-actions">
-        <Button variant="secondary" disabled={!canUndo} onClick={onUndo}>
-          Undo
-        </Button>
-        <Button variant="secondary" disabled={!canHint} onClick={onHint}>
-          Hint
-        </Button>
-        <Button variant="secondary" onClick={onNewGame}>
-          New game
-        </Button>
-      </div>
     </header>
   );
 }

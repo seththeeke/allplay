@@ -9,6 +9,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   busy?: boolean;
   /** What the button says while busy, such as "Creating account". */
   busyLabel?: string;
+  /** `compact` for toolbars: 44 px tall, still a comfortable target. */
+  size?: "regular" | "compact";
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -28,6 +30,7 @@ export function Button({
   type = "button",
   busy = false,
   busyLabel,
+  size = "regular",
   disabled,
   children,
   ...rest
@@ -38,7 +41,7 @@ export function Button({
         type={type}
         disabled={disabled === true || busy}
         aria-busy={busy || undefined}
-        className={`inline-flex min-h-14 cursor-pointer items-center justify-center gap-3 rounded-xl border-4 px-6 py-2 text-xl font-semibold disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait aria-busy:opacity-80 ${VARIANTS[variant]} ${className}`}
+        className={`inline-flex cursor-pointer items-center justify-center gap-3 rounded-xl font-semibold ${size === "compact" ? "min-h-11 border-2 px-4 py-1 text-lg" : "min-h-14 border-4 px-6 py-2 text-xl"} disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait aria-busy:opacity-80 ${VARIANTS[variant]} ${className}`}
         {...rest}
       >
         {busy ? (
