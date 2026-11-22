@@ -16,7 +16,8 @@ export interface AppProps {
 }
 
 const browserRouter = (children: React.JSX.Element): React.JSX.Element => (
-  <BrowserRouter>{children}</BrowserRouter>
+  /* Navigations commit at once, before the player update that follows them, so a guarded page that sends the player elsewhere is never redirected first. */
+  <BrowserRouter useTransitions={false}>{children}</BrowserRouter>
 );
 
 function DocumentPreferences(): null {

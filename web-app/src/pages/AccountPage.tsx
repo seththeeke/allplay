@@ -2,21 +2,42 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../components/Button";
 import { PageHeading } from "../components/PageHeading";
+import { useBusy } from "../hooks/useBusy";
 import { usePlayer } from "../hooks/usePlayer";
 
 /** Account: sign out, link a second sign-in method, or delete the account (authn-authz.md sections 6.1 and 8). */
 export function AccountPage(): React.JSX.Element {
-  const { player, run } = usePlayer();
+  const { player, run, service } = usePlayer();
   const navigate = useNavigate();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const leave = (work: Parameters<typeof run>[0]) => () => {
-    void run(work).then(() => navigate("/"));
-  };
+  const { busy, track } = useBusy<"SIGN_OUT" | "LINK" | "DELETE">();
+  /*
+   * Each action leaves this page once the player is a guest. Navigating
+   * before the new player is published keeps this page's guard from
+   * redirecting first, which would swallow the navigation.
+   */
+  const leave =
+    (
+      key: "SIGN_OUT" | "LINK" | "DELETE",
+      work: () => Promise<Awaited<ReturnType<typeof service.me>>>,
+      to: string,
+    ) =>
+    () => {
+      void track(key, work()).then(async (guest) => {
+        void navigate(to);
+        await run(() => Promise.resolve(guest));
+      });
+    };
   return (
     <main className="flex flex-col gap-6">
       <PageHeading title="Account" lead={player?.email} />
       <div>
-        <Button variant="secondary" onClick={leave((service) => service.signOut())}>
+        <Button
+          variant="secondary"
+          busy={busy === "SIGN_OUT"}
+          busyLabel="Signing out"
+          onClick={leave("SIGN_OUT", () => service.signOut(), "/")}
+        >
           Sign out
         </Button>
       </div>
@@ -34,9 +55,9 @@ export function AccountPage(): React.JSX.Element {
         <Button
           className="mt-3"
           variant="secondary"
-          onClick={() => {
-            void run((service) => service.startLink()).then(() => navigate("/sign-in?link=1"));
-          }}
+          busy={busy === "LINK"}
+          busyLabel="Getting ready"
+          onClick={leave("LINK", () => service.startLink(), "/sign-in?link=1")}
         >
           Link another sign-in method
         </Button>
@@ -53,7 +74,11 @@ export function AccountPage(): React.JSX.Element {
         </p>
         {confirmingDelete ? (
           <div className="mt-3 flex flex-wrap gap-3">
-            <Button onClick={leave((service) => service.deleteAccount())}>
+            <Button
+              busy={busy === "DELETE"}
+              busyLabel="Deleting your account"
+              onClick={leave("DELETE", () => service.deleteAccount(), "/")}
+            >
               Yes, delete my account
             </Button>
             <Button

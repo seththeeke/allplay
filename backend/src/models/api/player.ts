@@ -8,10 +8,20 @@ import { ThemeSchema } from "./decision";
 export const PASSWORD_RULE =
   "Use at least 8 characters, with an uppercase letter, a lowercase letter and a number.";
 
+/** The User Pool password policy, one rule at a time, so forms can check each as the player types. */
+export const PASSWORD_REQUIREMENTS: readonly {
+  text: string;
+  met: (password: string) => boolean;
+}[] = [
+  { text: "At least 8 characters", met: (password) => password.length >= 8 },
+  { text: "An uppercase letter", met: (password) => /[A-Z]/.test(password) },
+  { text: "A lowercase letter", met: (password) => /[a-z]/.test(password) },
+  { text: "A number", met: (password) => /\d/.test(password) },
+];
+
 /** Returns the policy text when a password breaks it, otherwise null. */
 export function passwordProblem(password: string): string | null {
-  const ok =
-    password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
+  const ok = PASSWORD_REQUIREMENTS.every((requirement) => requirement.met(password));
   return ok ? null : PASSWORD_RULE;
 }
 

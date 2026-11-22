@@ -5,6 +5,8 @@ export interface ProviderButtonsProps {
   /** The providers the stage offers; none renders nothing. */
   providers: SignInProvider[];
   onChoose: (provider: SignInProvider) => void;
+  /** The provider whose sign-in is starting, if any. */
+  busy?: SignInProvider | null;
 }
 
 const LABELS: Record<SignInProvider, string> = {
@@ -16,6 +18,7 @@ const LABELS: Record<SignInProvider, string> = {
 export function ProviderButtons({
   providers,
   onChoose,
+  busy = null,
 }: ProviderButtonsProps): React.JSX.Element | null {
   if (providers.length === 0) return null;
   return (
@@ -24,6 +27,9 @@ export function ProviderButtons({
         <Button
           key={provider}
           variant="secondary"
+          busy={busy === provider}
+          busyLabel="Opening sign-in"
+          disabled={busy !== null && busy !== provider}
           onClick={() => {
             onChoose(provider);
           }}

@@ -21,7 +21,11 @@ export function renderApp(
     <App
       config={LOCAL_CONFIG}
       services={services}
-      router={(children) => <MemoryRouter initialEntries={[path]}>{children}</MemoryRouter>}
+      router={(children) => (
+        <MemoryRouter initialEntries={[path]} useTransitions={false}>
+          {children}
+        </MemoryRouter>
+      )}
     />,
   );
   return { ...result, services };

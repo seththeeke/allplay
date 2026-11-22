@@ -1,7 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { PASSWORD_RULE } from "../../src/models/api";
 import { freshServices, renderApp } from "../renderApp";
 
 describe("sign in", () => {
@@ -45,13 +44,26 @@ describe("create an account", () => {
   it("checks the password, then the code, then signs in", async () => {
     const user = userEvent.setup();
     renderApp("/sign-up");
-    expect(screen.getByLabelText("Password")).toHaveAccessibleDescription(PASSWORD_RULE);
+    const checks = screen.getByRole("list", { name: "Your password needs:" });
+    expect(screen.getByLabelText("Password")).toHaveAccessibleDescription(
+      /Needed: At least 8 characters/,
+    );
     await user.type(screen.getByLabelText("Email"), "pat@example.com");
     await user.type(screen.getByLabelText("Password"), "weak");
+    expect(within(checks).getByText("A lowercase letter")).toHaveTextContent("Done");
+    expect(within(checks).getByText("A number")).toHaveTextContent("Needed");
+    await user.type(screen.getByLabelText("Confirm password"), "weak");
     await user.click(screen.getByRole("button", { name: "Create account" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(PASSWORD_RULE);
+    expect(await screen.findByText(/does not meet every requirement/)).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Confirm password"));
     await user.clear(screen.getByLabelText("Password"));
     await user.type(screen.getByLabelText("Password"), "Spider2026");
+    await user.type(screen.getByLabelText("Confirm password"), "Spider2025");
+    expect(within(checks).getByText("Both passwords match")).toHaveTextContent("Needed");
+    await user.clear(screen.getByLabelText("Confirm password"));
+    await user.type(screen.getByLabelText("Confirm password"), "Spider2026");
+    for (const item of within(checks).getAllByRole("listitem"))
+      expect(item).toHaveTextContent("Done");
     await user.click(screen.getByRole("button", { name: "Create account" }));
     expect(
       await screen.findByText("We sent a 6-digit code to pat@example.com."),
@@ -74,6 +86,7 @@ describe("create an account", () => {
     renderApp("/sign-up", services);
     await user.type(screen.getByLabelText("Email"), "pat@example.com");
     await user.type(screen.getByLabelText("Password"), "Spider2026");
+    await user.type(screen.getByLabelText("Confirm password"), "Spider2026");
     await user.click(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong.");
     await user.click(screen.getByRole("button", { name: "Continue with Apple" }));
@@ -89,10 +102,13 @@ describe("reset your password", () => {
     await user.click(screen.getByRole("button", { name: "Send me a code" }));
     await user.type(await screen.findByLabelText("Code"), "1");
     await user.type(screen.getByLabelText("New password"), "Spider2026");
+    await user.type(screen.getByLabelText("Confirm new password"), "Spider2025");
     await user.click(screen.getByRole("button", { name: "Save new password" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Enter the 6-digit code from the email.",
-    );
+    expect(await screen.findByText(/does not meet every requirement/)).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Confirm new password"));
+    await user.type(screen.getByLabelText("Confirm new password"), "Spider2026");
+    await user.click(screen.getByRole("button", { name: "Save new password" }));
+    expect(await screen.findByText("Enter the 6-digit code from the email.")).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Code"));
     await user.type(screen.getByLabelText("Code"), "123456");
     await user.click(screen.getByRole("button", { name: "Save new password" }));
@@ -110,6 +126,7 @@ describe("reset your password", () => {
     await user.click(screen.getByRole("button", { name: "Send me a code" }));
     await user.type(await screen.findByLabelText("Code"), "123456");
     await user.type(screen.getByLabelText("New password"), "Spider2026");
+    await user.type(screen.getByLabelText("Confirm new password"), "Spider2026");
     await user.click(screen.getByRole("button", { name: "Save new password" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong.");
   });

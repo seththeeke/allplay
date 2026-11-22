@@ -3,9 +3,11 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/Button";
 import { FormError } from "../components/FormError";
 import { PageHeading } from "../components/PageHeading";
+import { PasswordField } from "../components/PasswordField";
 import { ProviderButtons } from "../components/ProviderButtons";
 import { TextField } from "../components/TextField";
 import { errorMessage } from "./errorMessage";
+import { useBusy } from "../hooks/useBusy";
 import { usePlayer, type PlayerService } from "../hooks/usePlayer";
 import type { PlayerMe } from "../models/api";
 
@@ -14,12 +16,16 @@ export function SignInPage(): React.JSX.Element {
   const { run, service } = usePlayer();
   const navigate = useNavigate();
   const [search] = useSearchParams();
+  const { busy, track } = useBusy<"EMAIL" | "GOOGLE" | "APPLE">();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const attempt = (work: (service: PlayerService) => Promise<PlayerMe>): void => {
+  const attempt = (
+    key: "EMAIL" | "GOOGLE" | "APPLE",
+    work: (service: PlayerService) => Promise<PlayerMe>,
+  ): void => {
     setError(null);
-    run(work).then(
+    track(key, run(work)).then(
       /* Only a finished link returns a guest from a sign-in: the device signed out to switch accounts. */
       (me) => navigate(me.kind === "GUEST" ? "/sign-in?linked=1" : "/"),
       (failure: unknown) => {
@@ -46,15 +52,17 @@ export function SignInPage(): React.JSX.Element {
       ) : null}
       <ProviderButtons
         providers={service.providers}
+        busy={busy === "GOOGLE" || busy === "APPLE" ? busy : null}
         onChoose={(provider) => {
-          attempt((service) => service.signInWithProvider(provider));
+          attempt(provider, (service) => service.signInWithProvider(provider));
         }}
       />
       <form
         className="flex flex-col gap-4"
+        aria-busy={busy === "EMAIL"}
         onSubmit={(event) => {
           event.preventDefault();
-          attempt((service) => service.signIn(email, password));
+          attempt("EMAIL", (service) => service.signIn(email, password));
         }}
       >
         <TextField
@@ -65,16 +73,17 @@ export function SignInPage(): React.JSX.Element {
           value={email}
           onChange={setEmail}
         />
-        <TextField
+        <PasswordField
           id="password"
           label="Password"
-          type="password"
           autoComplete="current-password"
           value={password}
           onChange={setPassword}
         />
         <FormError message={error} />
-        <Button type="submit">Sign in</Button>
+        <Button type="submit" busy={busy === "EMAIL"} busyLabel="Signing in">
+          Sign in
+        </Button>
       </form>
       <p className="flex flex-wrap gap-6 text-2xl">
         <Link className="underline" to="/forgot-password">
