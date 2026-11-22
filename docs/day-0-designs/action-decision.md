@@ -431,3 +431,4 @@ Status as of 2026-11-20. Verified by the owner in the Voice Lab.
 
 Local development legs LD-1 (local server) and LD-3 (development caller) are done; see `local-development.md`.
 | Stateless turns | Done | The `Decision` entity and `DecisionDao` are gone. `POST /v1/decisions` takes the on-screen prompt as `context.pendingPrompt`, resolutions carry `sessionId` and `actionId`, and every turn is logged as `TURN_DECIDED` and `TURN_RESOLVED` (`service/decision/turnLog.ts`). The local server keeps each player's latest turns in memory for the Voice Lab. The 30 day `DecisionApi` log group comes with CDK-9 |
+| AD-6 | Partial | The per-player limiter (`service/decision/rateLimiter.ts`: the UTC minute, then the UTC day, 429 `RATE_LIMITED` with the slow-down speech) is in the decision service; the local server runs without it. The route throttling, Bedrock and Transcribe grants and the custom vocabulary come with CDK-9 |

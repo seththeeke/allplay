@@ -459,4 +459,27 @@ describe("action decider: failures and resolution rules", () => {
     for (const pendingPrompt of bad)
       expect(() => ask("yes", { pendingPrompt } as unknown as Parameters<typeof ask>[1])).toThrow();
   });
+
+  it("refuses a player over the rate limit before calling the model", async () => {
+    const t = await started();
+    const limited = setupDecider(
+      {},
+      { sessions: t.sessions, rateLimiter: { admit: () => Promise.resolve(false) } },
+    );
+    await expect(
+      limited.decider.decide(PLAYER, ask("one to six", t.inGame())),
+    ).rejects.toMatchObject({
+      status: 429,
+      code: "RATE_LIMITED",
+      message: "Let's slow down for a moment. Try again in a minute.",
+    });
+    expect(limited.llm.requests).toEqual([]);
+    const admitted = setupDecider(model(t.current, {}), {
+      sessions: t.sessions,
+      rateLimiter: { admit: () => Promise.resolve(true) },
+    });
+    expect((await admitted.decider.decide(PLAYER, ask("gibberish", t.inGame()))).outcome).toBe(
+      "UNRECOGNIZED",
+    );
+  });
 });

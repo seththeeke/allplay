@@ -12,6 +12,7 @@ import {
 } from "../../models/api";
 import type { Decision, DecisionCategory } from "../../models/decision";
 import { GameSessionError, invalidRequest } from "../gameSession/errors";
+import type { RateLimiter } from "./rateLimiter";
 import type { GameSessionService } from "../gameSession/gameSessionService";
 import { newUlid } from "../gameSession/ulid";
 import { selectAppAction } from "./appSelector";
@@ -26,6 +27,8 @@ type ParsedDecisionRequest = z.output<typeof DecisionRequestSchema>;
 export interface DecisionServiceDeps {
   /** The only record of a turn (action-decision.md section 9.1). */
   log: TurnLog;
+  /** Per-player decision limits (action-decision.md section 10); absent locally. */
+  rateLimiter?: RateLimiter;
   llm: LlmClient;
   sessions: GameSessionService;
   catalog: () => Promise<GameCatalogEntry[]>;
@@ -351,6 +354,8 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
 
   return {
     decide: async (playerId, request) => {
+      if (deps.rateLimiter !== undefined && !(await deps.rateLimiter.admit(playerId)))
+        throw new GameSessionError(429, "RATE_LIMITED", TEXT.slowDown);
       const started = now();
       const transcript = request.transcript.trim();
       const pending = request.context.pendingPrompt;

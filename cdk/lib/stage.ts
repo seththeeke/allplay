@@ -56,6 +56,7 @@ export class AllPlayStage extends Stage {
         [resourceName("GameSessions", stage), []],
         [resourceName("SeatAssignments", stage), ["ByPlayerGame"]],
         [resourceName("PlayerStats", stage), []],
+        [resourceName("RateLimits", stage), []],
       ];
       /* The Test-only role that manages integration test accounts (AllPlayStatefulStack). */
       this.verifyGrants.push(

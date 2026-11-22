@@ -6,6 +6,8 @@ import { createDynamoPlayerDao } from "../../src/dao/player/dynamoPlayerDao";
 import { createDynamoGameSessionDao } from "../../src/dao/gameSession/dynamoGameSessionDao";
 import { createDynamoPlayerStatsDao } from "../../src/dao/playerStats/dynamoPlayerStatsDao";
 import { createDynamoPreferenceDao } from "../../src/dao/preference/dynamoPreferenceDao";
+import { createDynamoRateLimitCounterDao } from "../../src/dao/rateLimitCounter/dynamoRateLimitCounterDao";
+import { rateLimitCounterDaoContract } from "../dao/rateLimitCounter/rateLimitCounterDaoContract";
 import { createDynamoSeatAssignmentDao } from "../../src/dao/seatAssignment/dynamoSeatAssignmentDao";
 import { gameSessionDaoContract, type GameTables } from "../dao/gameSession/gameSessionDaoContract";
 import { mergeTokenDaoContract } from "../dao/mergeToken/mergeTokenDaoContract";
@@ -113,4 +115,21 @@ describeWrites("GameSessions, SeatAssignments and PlayerStats tables", () => {
     }
   });
   gameSessionDaoContract(tables, id);
+});
+
+describeWrites("RateLimits table", () => {
+  const tableName = (): string => table("RATE_LIMITS_TABLE");
+  cleanUp(() =>
+    Promise.all(
+      [...made].map((value) =>
+        client.send(
+          new DeleteCommand({
+            TableName: tableName(),
+            Key: { counterKey: `GUEST#${value}#MIN#2026-11-22T10:00` },
+          }),
+        ),
+      ),
+    ),
+  );
+  rateLimitCounterDaoContract(() => createDynamoRateLimitCounterDao(tableName(), client), id);
 });

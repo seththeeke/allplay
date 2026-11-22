@@ -65,6 +65,7 @@ export function appActionText(action: AppAction): string {
 
 /** Fixed replies of the decider (action-decision.md section 6). */
 export const TEXT = {
+  slowDown: "Let's slow down for a moment. Try again in a minute.",
   cancelled: "Cancelled.",
   done: "Done.",
   sayNumber: "Say the number of the move you want, or say cancel.",

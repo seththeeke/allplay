@@ -204,6 +204,7 @@ export class AllPlayPipelineStack extends Stack {
             GAME_SESSIONS_TABLE: stage.stateful.gameSessionsTableName,
             SEAT_ASSIGNMENTS_TABLE: stage.stateful.seatAssignmentsTableName,
             PLAYER_STATS_TABLE: stage.stateful.playerStatsTableName,
+            RATE_LIMITS_TABLE: stage.stateful.rateLimitsTableName,
             USER_POOL_ID: stage.stateful.userPoolId,
             USER_POOL_CLIENT_ID: stage.app.webClientId,
             IDENTITY_POOL_ID: stage.app.identity.identityPoolIdOutput,
