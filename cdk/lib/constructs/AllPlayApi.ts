@@ -1,6 +1,7 @@
 import { Duration, RemovalPolicy, Validations } from "aws-cdk-lib";
 import { AccessLogField, AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import {
+  type CfnStage,
   CorsHttpMethod,
   HttpApi,
   HttpMethod,
@@ -89,6 +90,20 @@ export class AllPlayApi extends Construct {
       throttle: { rateLimit: 20, burstLimit: 40 },
       accessLogSettings: { destination: new LogGroupLogDestination(logGroup), format: ACCESS_LOG },
     });
+  }
+
+  /**
+   * Gives routes their own throttling over the stage default, for example
+   * `POST /v1/decisions` at 50 per second with burst 100 (cdk-stacks.md section 5).
+   */
+  throttleRoutes(limits: Record<string, { rateLimit: number; burstLimit: number }>): void {
+    const stage = this.stage.node.defaultChild as CfnStage;
+    stage.routeSettings = Object.fromEntries(
+      Object.entries(limits).map(([routeKey, limit]) => [
+        routeKey,
+        { ThrottlingRateLimit: limit.rateLimit, ThrottlingBurstLimit: limit.burstLimit },
+      ]),
+    );
   }
 
   /** The default execute-api URL, ending in a slash. */

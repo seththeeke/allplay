@@ -130,6 +130,26 @@ describe("Bedrock Converse LlmClient", () => {
     await expect(empty.invoke(REQUEST)).rejects.toThrow("no tool call");
   });
 
+  it("reports throttling to its hook, and other failures not", async () => {
+    const throttled = Object.assign(new Error("Too many requests"), {
+      name: "ThrottlingException",
+    });
+    const onThrottled = vi.fn();
+    await expect(
+      createBedrockLlm({ modelId: "m", region: "r", onThrottled }, api(throttled).stub).invoke(
+        REQUEST,
+      ),
+    ).rejects.toBeInstanceOf(LlmUnavailableError);
+    expect(onThrottled).toHaveBeenCalledTimes(1);
+    await createBedrockLlm({ modelId: "m", region: "r", onThrottled }, api(new Error("x")).stub)
+      .invoke(REQUEST)
+      .catch(() => undefined);
+    expect(onThrottled).toHaveBeenCalledTimes(1);
+    await expect(
+      createBedrockLlm({ modelId: "m", region: "r" }, api(throttled).stub).invoke(REQUEST),
+    ).rejects.toThrow("Too many requests");
+  });
+
   it("is available only when AWS credentials resolve", async () => {
     expect(await createBedrockLlm({ modelId: "m", region: "r" }, api(OK).stub).status()).toEqual({
       available: true,

@@ -21,6 +21,8 @@ export interface BedrockOptions {
   region: string;
   /** Per call; one retry on throttling or a 5xx (action-decision.md section 8). */
   timeoutMs?: number;
+  /** Called when Bedrock throttles a call, for the `BEDROCK_THROTTLED` alarm (cdk-stacks.md section 9.1). */
+  onThrottled?: () => void;
 }
 
 export const DEFAULT_BEDROCK_MODEL = "us.amazon.nova-micro-v1:0";
@@ -91,6 +93,7 @@ export function createBedrockLlm(
           { abortSignal: abort.signal },
         );
       } catch (error) {
+        if (error instanceof Error && error.name === "ThrottlingException") options.onThrottled?.();
         throw new LlmUnavailableError(
           abort.signal.aborted
             ? "Bedrock took too long to answer."

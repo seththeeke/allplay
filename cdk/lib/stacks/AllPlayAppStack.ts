@@ -1,7 +1,9 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Metric } from "aws-cdk-lib/aws-cloudwatch";
 import type { IFunction } from "aws-cdk-lib/aws-lambda";
+import { FilterPattern, MetricFilter, RetentionDays } from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 import { adminRoutes } from "../../../backend/src/controller/web-api/admin/adminRoutes";
 import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
@@ -12,11 +14,17 @@ import {
   playersRoutes,
 } from "../../../backend/src/controller/web-api/players/playersRoutes";
 import { PROJECT_NAME, resourceName, type StageName } from "../config";
+import { AllPlayAlarm } from "../constructs/AllPlayAlarm";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
 import { IdentityAccess } from "../constructs/IdentityAccess";
 import { WebHosting } from "../constructs/WebHosting";
 import type { AllPlayStatefulStack } from "./AllPlayStatefulStack";
+
+/** The decider's model (action-decision.md section 8): a US cross-region inference profile. */
+export const DECIDER_MODEL_ID = "us.amazon.nova-micro-v1:0";
+/** The regions that profile routes to; Bedrock checks the grant in each. */
+const DECIDER_MODEL_REGIONS = ["us-east-1", "us-east-2", "us-west-2"];
 
 export interface AllPlayAppStackProps extends StackProps {
   stage: StageName;
@@ -275,6 +283,75 @@ export class AllPlayAppStack extends Stack {
       }),
     );
     this.api.addBundle("Game", gameRoutes, gameApi.function);
+    /*
+     * The decision bundle (action-decision.md sections 4 and 9.1): it plays
+     * through the session service, reads autoConfirm, counts rate limits and
+     * calls Bedrock. Its logs are the turn log, kept 30 days. Test answers
+     * "itest" commands with fixed responses for its integration tests (AD-7).
+     */
+    const decisionApi = new AllPlayFunction(this, "DecisionApi", {
+      stage: props.stage,
+      name: "DecisionApi",
+      entry: "controller/web-api/decisions/handler.ts",
+      memorySize: 1024,
+      timeout: Duration.seconds(10),
+      logRetention: RetentionDays.ONE_MONTH,
+      environment: {
+        ...gameTables,
+        PREFERENCES_TABLE: preferences.table.tableName,
+        RATE_LIMITS_TABLE: props.stateful.rateLimits.table.tableName,
+        DECIDER_MODEL_ID,
+        ...(props.stage === "Test" ? { DECIDER_FIXED_RESPONSES: "ENABLED" } : {}),
+      },
+    });
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
+        resources: [gameSessions.table.tableArn, playerStats.table.tableArn],
+      }),
+    );
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:PutItem"],
+        resources: [seatAssignments.table.tableArn],
+      }),
+    );
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query"],
+        resources: [preferences.table.tableArn],
+      }),
+    );
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:UpdateItem"],
+        resources: [props.stateful.rateLimits.table.tableArn],
+      }),
+    );
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: [
+          this.formatArn({
+            service: "bedrock",
+            resource: "inference-profile",
+            resourceName: DECIDER_MODEL_ID,
+          }),
+          ...DECIDER_MODEL_REGIONS.map((region) =>
+            this.formatArn({
+              service: "bedrock",
+              region,
+              account: "",
+              resource: "foundation-model",
+              resourceName: DECIDER_MODEL_ID.replace(/^us\./, ""),
+            }),
+          ),
+        ],
+      }),
+    );
+    this.api.addBundle("Decisions", decisionsRoutes, decisionApi.function);
+    this.api.throttleRoutes({ "POST /v1/decisions": { rateLimit: 50, burstLimit: 100 } });
+    this.addAlarms(props.stage, { decisionApi, gameApi });
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",
@@ -290,6 +367,50 @@ export class AllPlayAppStack extends Stack {
     this.webUrl = new CfnOutput(this, "WebUrl", { value: this.web.origin });
     this.webClientId = new CfnOutput(this, "WebClientId", {
       value: this.webClient.userPoolClientId,
+    });
+  }
+
+  /** The stage's alarms (cdk-stacks.md section 9.1); the rollup's join with DM-5. */
+  private addAlarms(
+    stage: StageName,
+    functions: { decisionApi: AllPlayFunction; gameApi: AllPlayFunction },
+  ): void {
+    const fiveMinutes = Duration.minutes(5);
+    for (const [name, fn] of Object.entries(functions)) {
+      new AllPlayAlarm(this, `${name}Errors`, {
+        stage,
+        name: `${name.charAt(0).toUpperCase()}${name.slice(1)}Errors`,
+        metric: fn.function.metricErrors({ period: fiveMinutes, statistic: "Sum" }),
+        threshold: 5,
+        description: `${fn.function.functionName} failed at least 5 times in 5 minutes.`,
+      });
+    }
+    new AllPlayAlarm(this, "Api5xx", {
+      stage,
+      name: "Api5xx",
+      metric: new Metric({
+        namespace: "AWS/ApiGateway",
+        metricName: "5xx",
+        dimensionsMap: { ApiId: this.api.api.apiId, Stage: "$default" },
+        period: fiveMinutes,
+        statistic: "Sum",
+      }),
+      threshold: 10,
+      description: "The API answered at least 10 server errors in 5 minutes.",
+    });
+    const throttled = new MetricFilter(this, "BedrockThrottled", {
+      logGroup: functions.decisionApi.logGroup,
+      filterPattern: FilterPattern.literal('"BEDROCK_THROTTLED"'),
+      metricNamespace: PROJECT_NAME,
+      metricName: `BedrockThrottled${stage}`,
+      metricValue: "1",
+    });
+    new AllPlayAlarm(this, "BedrockThrottledAlarm", {
+      stage,
+      name: "BedrockThrottled",
+      metric: throttled.metric({ period: fiveMinutes, statistic: "Sum" }),
+      threshold: 5,
+      description: "Bedrock throttled the decider at least 5 times in 5 minutes.",
     });
   }
 }

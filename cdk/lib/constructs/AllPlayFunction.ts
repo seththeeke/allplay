@@ -19,6 +19,8 @@ export interface AllPlayFunctionProps {
   memorySize: number;
   timeout: Duration;
   environment?: Record<string, string>;
+  /** Log retention; 14 days unless the Lambda's logs are a record, as the turn log is (cdk-stacks.md section 4). */
+  logRetention?: RetentionDays;
 }
 
 /**
@@ -37,7 +39,7 @@ export class AllPlayFunction extends Construct {
     const prod = isProd(props.stage);
     this.logGroup = new LogGroup(this, "Logs", {
       logGroupName: `/aws/lambda/${functionName}`,
-      retention: RetentionDays.TWO_WEEKS,
+      retention: props.logRetention ?? RetentionDays.TWO_WEEKS,
       removalPolicy: RemovalPolicy.DESTROY,
     });
     const role = new Role(this, "Role", {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { adminRoutes } from "../../../backend/src/controller/web-api/admin/adminRoutes";
+import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
 import { playersRoutes } from "../../../backend/src/controller/web-api/players/playersRoutes";
 
 /*
@@ -17,6 +18,7 @@ const DEPLOYED: Record<string, readonly string[]> = {
     "POST /v1/players/me/merge-tokens",
     "POST /v1/players/me/merge",
   ],
+  Decisions: ["POST /v1/decisions", "POST /v1/decisions/{decisionId}/resolution"],
   Admin: [
     "GET /v1/admin/deployments",
     "POST /v1/admin/deployments",
@@ -30,6 +32,7 @@ describe("deployed route order", () => {
     const lists: Record<string, readonly { method: string; path: string }[]> = {
       Players: playersRoutes,
       Admin: adminRoutes,
+      Decisions: decisionsRoutes,
     };
     for (const [bundle, deployed] of Object.entries(DEPLOYED)) {
       const keys = (lists[bundle] ?? []).map((route) => `${route.method} ${route.path}`);
