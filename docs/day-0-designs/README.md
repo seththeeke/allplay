@@ -12,7 +12,7 @@ This folder holds the day 0 specification of All Play. Read the documents in thi
 | `spider-solitaire.md` | The Spider Solitaire rules document, vocabulary and test plan |
 | `prototype-mocks.md` | Every mock in the web prototype and the leg that replaces it |
 | `local-development.md` | The whole system running locally in memory: local server, fakes, local integration tests |
-| `action-decision.md` | Speech capture, the two-layer LLM decision, confirmation, turn records |
+| `action-decision.md` | Speech capture, the two-layer LLM decision, confirmation, the turn log |
 | `transcribe-polly-bedrock.md` | Bedrock, Transcribe and Polly as drop-in implementations of the local provider interfaces (`local-aws` preset) |
 | `authn-authz.md` | Guests, accounts, roles, Cognito, IAM route authorization, guest merge |
 | `cdk-stacks.md` | Stacks, constructs, pipeline, cost and telemetry, codebase layout and tooling |
@@ -68,7 +68,7 @@ Build order from 2026-11-20, by the owner's direction:
 
 1. `transcribe-polly-bedrock.md` (TPB-1 to TPB-5): Bedrock, Transcribe and Polly behind the existing provider interfaces, still in memory, on the developer's machine with the developer's `allplays` credentials. No credentials are ever stored in the repository.
 2. Phase 4, Authentication: the Cognito User Pool and Identity Pool, AuthN and AuthZ (DM-1, DM-2, CDK-7, AA-1 to AA-10). Identity Pool credentials are what let deployed browsers call Transcribe and Polly, and players are the first persisted data.
-3. Persistence extended from players to sessions, preferences, stats and decisions (DM-3, DM-4, DM-5), then the deployed game and decision APIs (CDK-8, CDK-9) and the deployed voice path (WP-1, WP-2).
+3. Persistence extended from players to sessions, preferences, stats, rate limits and metrics (DM-3, DM-4, DM-5), then the deployed game and decision APIs (CDK-8, CDK-9) and the deployed voice path (WP-1, WP-2).
 
 ### Phase 4: Authentication
 

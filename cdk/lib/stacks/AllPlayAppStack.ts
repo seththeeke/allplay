@@ -95,8 +95,8 @@ export class AllPlayAppStack extends Stack {
       PLAYER_STATS_TABLE: playerStats.table.tableName,
     };
     /*
-     * Merging and deleting a player's games (data-model.md sections 10 and
-     * 14): sessions are rewritten, ended or deleted, seats listed, moved and
+     * Merging and deleting a player's games (data-model.md sections 9 and
+     * 13): sessions are rewritten, ended or deleted, seats listed, moved and
      * deleted, stats combined and deleted. Transactions need each item's own action.
      */
     const grantGameData = (fn: IFunction) => {
@@ -155,7 +155,7 @@ export class AllPlayAppStack extends Stack {
         resources: [preferences.table.tableArn],
       }),
     );
-    /* Merge tokens are written once and redeemed with a conditional update (data-model.md section 10). */
+    /* Merge tokens are written once and redeemed with a conditional update (data-model.md section 9). */
     playerApi.function.addToRolePolicy(
       new PolicyStatement({
         actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],

@@ -32,7 +32,7 @@ Local-only routes (never deployed):
 | `POST /local/speech/transcribe` | WAV audio in (16 kHz mono PCM), `{ text, transcriptSource, provider, latencyMs }` out |
 | `POST /local/speech/synthesize` | `{ text, rate }` in (1 to 600 characters, rate 0.5 to 2), `audio/wav` out; 503 when text to speech is not set up |
 | `GET /local/speech/spoken` | With the recording `TextToSpeech`, every text it was asked to speak, for automation that cannot listen |
-| `GET /local/decisions` | The most recent decisions recorded by the backend, newest first, for the Voice Lab |
+| `GET /local/decisions` | The most recent turn log events (`action-decision.md` Section 9.1), kept in memory by the local server, newest first, for the Voice Lab |
 | `POST /local/reset` | Clears all in-memory state, for tests |
 | `POST /local/seed` | `{ seed }` (32 hex digits) or `{ seed: null }`. Every game started afterwards uses this seed until it is cleared or the state is reset, so tests and manual checks get a known deal |
 

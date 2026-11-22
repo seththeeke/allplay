@@ -46,7 +46,7 @@ Cognito trigger Lambdas live in the stateful stack because the User Pool referen
 | Lambda | Trigger | Memory (MB) | Timeout |
 |---|---|---|---|
 | `AllPlay-GameApi-<Stage>` | API: `/v1/games*`, `/v1/sessions*` | 1024 | 10 s |
-| `AllPlay-DecisionApi-<Stage>` | API: `/v1/decisions*` | 1024 | 10 s |
+| `AllPlay-DecisionApi-<Stage>` | API: `/v1/decisions*`; its log group keeps 30 days, because it holds the turn log (`action-decision.md` Section 9.1) | 1024 | 10 s |
 | `AllPlay-PlayerApi-<Stage>` | API: `/v1/players*` | 512 | 10 s |
 | `AllPlay-AdminApi-<Stage>` | API: `/v1/admin*` | 512 | 10 s |
 | `AllPlay-HealthApi-<Stage>` | API: `GET /v1/health` | 256 | 5 s |
@@ -107,8 +107,8 @@ Telemetry kept:
 
 | Signal | Where | Cost driver |
 |---|---|---|
-| Business metrics (players, active players, turn failures, latency, LLM tokens, games) | `MetricRollups` table, /admin page (`data-model.md` Section 12) | DynamoDB writes, negligible |
-| Lambda logs | CloudWatch Logs, structured JSON, 14 day retention, `INFO` level in Prod | Log ingestion |
+| Business metrics (players, active players, turn failures, latency, LLM tokens, games) | `MetricRollups` table, /admin page (`data-model.md` Section 11) | DynamoDB writes, negligible |
+| Lambda logs | CloudWatch Logs, structured JSON, 14 day retention (30 days for `DecisionApi`, which holds the turn log), `INFO` level in Prod | Log ingestion |
 | API access logs | CloudWatch Logs, 14 day retention | Log ingestion |
 | Default AWS metrics | Lambda, API Gateway, DynamoDB, CloudFront | Free |
 | Alarms (Section 9.1) | CloudWatch, five per stage | $0.10 per alarm per month |

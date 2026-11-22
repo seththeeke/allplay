@@ -23,7 +23,7 @@ export class AllPlayStatefulStack extends Stack {
   readonly players: AllPlayTable;
   /** Layered preferences (data-model.md section 5). */
   readonly preferences: AllPlayTable;
-  /** Single-use merge proofs, kept 10 minutes (data-model.md section 10). */
+  /** Single-use merge proofs, kept 10 minutes (data-model.md section 9). */
   readonly mergeTokens: AllPlayTable;
   /** One game from deal to finish (data-model.md section 6). */
   readonly gameSessions: AllPlayTable;

@@ -25,7 +25,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 | Google and Apple sign in | `memoryPlayerService.ts` `signInWithProvider` (fake `<provider>.player@example.com` account) | Cognito federation with Google and Apple | AA-3, AA-9 |
 | Account deletion | `memoryPlayerService.ts` `deleteAccount` (resets to guest) | `DELETE /v1/players/me` | AA-7, WP-3 |
 | Guest to account merge | `MEMORY` mode and the local mock sign-in, where signing in keeps the browser's own data; deployed stages and `local-aws-auth` redeem a merge token since AA-6 | Merge token flow (`authn-authz.md` Section 6) | DM-3 (seats and stats), WP-3 |
-| Admin metrics, failures and deployments | `services/memory/memoryAdminService.ts`, `test-data/admin.ts` (deterministic sample data) | `/v1/admin/*` over `MetricRollups`, `Decisions` and CodePipeline | DM-5, AA-8, WP-4 |
+| Admin metrics, failures and deployments | `services/memory/memoryAdminService.ts`, `test-data/admin.ts` (deterministic sample data) | `/v1/admin/*` over `MetricRollups`, the turn log and CodePipeline | DM-5, AA-8, WP-4 |
 | Deployment trigger | `memoryAdminService.ts` `startDeployment` (adds a fake in-progress row) | `POST /v1/admin/deployments` starting the pipeline | AA-8, WP-4 |
 
 ## 2. Voice
@@ -34,7 +34,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 |---|---|---|---|
 | Speech capture in the game screen | `components/ListeningPanel.tsx`: in `MEMORY` mode the player types what they would say. Locally the microphone is captured and transcribed by the local server (LD-7) | Microphone audio through `SpeechInput`: Transcribe deployed, the local server locally | AD-9, WP-2 |
 | Action decider | `services/memory/memoryDecisionService.ts`, `test-data/decider.ts` (`mockDecide`, keyword rules), in `MEMORY` mode only; locally `LIVE` mode calls the real decider | `POST /v1/decisions`: Bedrock Nova Micro classify and select layers (`action-decision.md`) | AD-1 to AD-5, WP-2 |
-| Decision records and failure classes | Not recorded | `Decisions` table with HARD, SOFT, NONE and PENDING classes | DM-4, AD-5 |
+| Turn log and failure classes | Logged by the local server only | `TURN_DECIDED` and `TURN_RESOLVED` events in the `DecisionApi` log group, with HARD, SOFT and NONE classes | AD-5, CDK-9 |
 | Speech output | `voice/speechOutput.ts`: browser `speechSynthesis` | Amazon Polly audio | AD-9, WP-2 |
 
 ## 3. Configuration and Hosting

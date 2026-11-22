@@ -21,11 +21,11 @@ export interface PlayerGameDataDeps {
 /** A player's sessions, seats and stats as a whole: the stats route, the merge and deletion. */
 export interface PlayerGameData {
   stats(playerId: string): Promise<StatsEntry[]>;
-  /** Merge step 1 (data-model.md section 10): the source's seats and sessions move to the target. */
+  /** Merge step 1 (data-model.md section 9): the source's seats and sessions move to the target. */
   moveSeats(fromPlayerId: string, intoPlayerId: string, at: Date): Promise<void>;
-  /** Merge step 3 (data-model.md section 10): the source's stats combine into the target's. */
+  /** Merge step 3 (data-model.md section 9): the source's stats combine into the target's. */
   moveStats(fromPlayerId: string, intoPlayerId: string, at: Date): Promise<void>;
-  /** Account deletion (data-model.md section 14): seats, stats, and sessions where the player sat alone. */
+  /** Account deletion (data-model.md section 13): seats, stats, and sessions where the player sat alone. */
   deleteAll(playerId: string): Promise<void>;
 }
 

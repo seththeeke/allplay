@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { IsoTimestampSchema } from "./common";
 
-/** Admin contracts (authn-authz.md section 5, data-model.md section 12). */
+/** Admin contracts (authn-authz.md section 5, data-model.md section 11). */
 
 const LATENCY_BUCKETS = [
   "le250",

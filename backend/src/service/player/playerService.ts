@@ -55,7 +55,7 @@ export interface PlayerService {
     patch: PatchGamePreferences,
   ): Promise<PreferencesResponse>;
   /**
-   * Account deletion (authn-authz.md section 8, data-model.md section 14):
+   * Account deletion (authn-authz.md section 8, data-model.md section 13):
    * deletes the preferences, seats, stats and the sessions the player sat in
    * alone, leaves a tombstone `Player` with no email or name, then deletes
    * the Cognito user.

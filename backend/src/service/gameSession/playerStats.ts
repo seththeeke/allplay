@@ -66,7 +66,7 @@ export function foldResult(current: PlayerStats | null, result: GameResult): Pla
 }
 
 /**
- * A merged player's item for one variant (data-model.md section 10, step 3):
+ * A merged player's item for one variant (data-model.md section 9, step 3):
  * counts summed, best values compared, the streak from the item played last.
  * The result belongs to `into`'s player and carries no ttl, as account items do not.
  */

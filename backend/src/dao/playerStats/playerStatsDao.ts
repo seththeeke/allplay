@@ -20,7 +20,7 @@ export interface PlayerStatsDao {
   list(playerId: string): Promise<PlayerStats[]>;
   /**
    * Writes the combined item and deletes the source item in one transaction,
-   * so a retried merge never counts a guest's games twice (data-model.md section 10).
+   * so a retried merge never counts a guest's games twice (data-model.md section 9).
    */
   moveInto(write: StatsWrite, from: { playerId: string; statsKey: string }): Promise<void>;
   delete(playerId: string, statsKey: string): Promise<void>;

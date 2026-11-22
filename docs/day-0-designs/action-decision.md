@@ -2,16 +2,16 @@
 
 Status: Day 0 design, 2026-11-17.
 
-The action decider turns a player's spoken request into one deterministic action. It owns speech capture contracts, transcription, the two-layer LLM decision, verification against the game engine, the confirmation flow, and the turn records that feed the turn failure metric. It never changes game state itself: game actions are applied only through the game session service (`game-engine.md` Section 11).
+The action decider turns a player's spoken request into one deterministic action. It owns speech capture contracts, transcription, the two-layer LLM decision, verification against the game engine, the confirmation flow, and the turn log that feeds the turn failure metric. It never changes game state itself: game actions are applied only through the game session service (`game-engine.md` Section 11).
 
-Related specs: `game-engine.md` (legal actions), `data-model.md` (`Decision`, `RateLimitCounter`, `MetricRollup`), `authn-authz.md` (Identity Pool credentials), `spider-solitaire.md` (decider guidance).
+Related specs: `game-engine.md` (legal actions), `data-model.md` (`RateLimitCounter`, `MetricRollup`), `authn-authz.md` (Identity Pool credentials), `spider-solitaire.md` (decider guidance).
 
 ## 1. Principles
 
 1. The LLM selects; the engine executes. The LLM only ever chooses from a numbered list of candidates the server built. Its output is validated, and anything outside the list is discarded.
 2. At most two LLM calls per turn: layer 1 classifies, layer 2 selects.
 3. The decider's input is transcript text. Deployed, the web client transcribes with Amazon Transcribe and the iOS client on-device with Apple's Speech framework; locally, the local server transcribes (Section 3.4). Every source calls the same API.
-4. Every turn is recorded (`Decision`, 30 day TTL). Audio is never stored or sent to the backend.
+4. Every turn is logged as structured events (Section 9.1), kept 30 days. No turn is stored: a prompt awaiting an answer lives on the client, which sends it back with the next request. Audio is never stored or sent to the backend.
 5. The transcript is untrusted input. It is placed in the prompt as quoted data, and because the model can only return candidate numbers, a transcript cannot cause any action outside the legal set.
 6. Every external capability sits behind an interface (Section 16): the language model, speech to text and text to speech. Business logic never names a vendor. Each runtime chooses implementations in one composition root, and each capability is chosen independently, so any mix (for example in-memory storage with Bedrock, Transcribe and Polly) runs the same logic.
 
@@ -32,7 +32,8 @@ Player presses Space (or the on-screen Talk button)
   <- response: proposal, choices, auto-applied result, application action, or retry prompt
   -> client shows the proposal (and speaks it when voice output is on)
   -> player confirms (Enter or "yes"), cancels (Escape or "no"), or picks a choice ("one", "two")
-  -> client POST /v1/decisions/{decisionId}/resolution
+  -> client POST /v1/decisions/{decisionId}/resolution with the chosen action, or the spoken answer
+     goes to POST /v1/decisions with the prompt in its context
 ```
 
 ## 3. Speech Capture
@@ -98,12 +99,26 @@ Request:
     "screen": "GAME",
     "sessionId": "01JEX4Q8N6W2D3K5T7V9B1C3E5",
     "expectedVersion": 37,
-    "pendingDecisionId": null
+    "pendingPrompt": null
   }
 }
 ```
 
-`screen` is `HOME`, `GAME`, `STATS`, `SETTINGS` or `HELP`. `pendingDecisionId` is set when a proposal or choice list is on screen.
+`screen` is `HOME`, `GAME`, `STATS`, `SETTINGS` or `HELP`. `pendingPrompt` is set when a proposal or choice list is on screen, and is what the client was shown:
+
+```json
+{
+  "decisionId": "01JEX5B2R4T6Y8U0I2O4P6A8S0",
+  "kind": "CHOICES",
+  "actionIds": [
+    "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+    "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.9"
+  ],
+  "appAction": null
+}
+```
+
+`kind` is `CONFIRMATION` (one action id, or an application action awaiting confirmation) or `CHOICES` (two to four action ids in choice order). The server trusts it no further than any client input: a game action it names is applied only if the engine finds it legal, exactly as a tap is.
 
 Response (one of the outcomes below):
 
@@ -134,29 +149,28 @@ Response (one of the outcomes below):
 
 ### 4.2 POST /v1/decisions/{decisionId}/resolution
 
-The client sends exactly one resolution per decision it received, except for `RESOLVED` and `UNRECOGNIZED` decisions, which the server finalizes itself.
+The client sends one resolution for each `PROPOSED`, `CHOICES`, `APP_ACTION` and `AUTO_APPLIED` decision it answers with a key, a button or a tap. A spoken answer goes to `POST /v1/decisions` instead, with the prompt as `pendingPrompt`. The server holds no turn state, so the request carries everything the resolution needs:
 
 ```json
 {
-  "resolution": "CONFIRMED",
-  "optionNumber": null,
+  "resolution": "CHOSE_OPTION",
+  "sessionId": "01JEX4Q8N6W2D3K5T7V9B1C3E5",
+  "actionId": "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.9",
   "expectedVersion": 37,
   "clientLatencyMs": 1615
 }
 ```
 
-| Resolution | Valid for | Server behavior |
+| Resolution | Sent for | Server behavior |
 |---|---|---|
-| `CONFIRMED` | `PROPOSED`, `APP_ACTION` | For a game action, applies it through the game session service and returns the envelope |
-| `CHOSE_OPTION` | `CHOICES` | Applies the chosen action and returns the envelope |
-| `REJECTED` | `PROPOSED`, `CHOICES`, `APP_ACTION` | Records the rejection |
-| `ACKNOWLEDGED` | `AUTO_APPLIED`, `APP_ACTION` that needed no confirmation | Records client latency only |
+| `CONFIRMED` | `PROPOSED`, `APP_ACTION` | With `actionId`, applies it through the game session service and returns the envelope; for an application action, logs it and returns no session |
+| `CHOSE_OPTION` | `CHOICES` | Applies `actionId` and returns the envelope |
+| `REJECTED` | `PROPOSED`, `CHOICES`, `APP_ACTION` | Logs the rejection |
+| `ACKNOWLEDGED` | `AUTO_APPLIED`, and `APP_ACTION` that needed no confirmation | Logs the client latency |
 
 `clientLatencyMs` is the time from the end of capture to the proposal (or applied result) being displayed. It is the "round trip for a move request" key metric.
 
-A resolution for a game action whose session version has moved on returns `409 VERSION_CONFLICT` with the current envelope, and the decision is recorded as `EXPIRED`.
-
-Open decisions: a `PROPOSED`, `CHOICES` or `APP_ACTION` decision keeps what was shown in its `proposal` field (`data-model.md` Section 9): the kind, the candidate action ids in choice order, and the application action. A resolution or a `RESPONSE` turn reads the decision through the `DecisionDao`, accepts it only from the player who owns it and only while its outcome is still open, and writes the final outcome and failure class back. A resolution for an unknown decision returns `404 NOT_FOUND`; one for a decision that is already final returns `422 VALIDATION_ERROR`.
+A game action whose session version has moved on returns `409 VERSION_CONFLICT` with the current envelope and is logged as `EXPIRED`; one the engine finds illegal returns `422 ILLEGAL_ACTION` and is logged as `INVALID`. Every resolution writes one `TURN_RESOLVED` event (Section 9.1).
 
 ## 5. Layer 1: Classification
 
@@ -168,7 +182,7 @@ Categories offered to the model depend on context:
 |---|---|
 | `GAME` | `screen` is `GAME` |
 | `APPLICATION` | Always |
-| `RESPONSE` | `pendingDecisionId` is set |
+| `RESPONSE` | `pendingPrompt` is set |
 | `UNRECOGNIZED` | Always |
 
 Prompt structure (Bedrock Converse):
@@ -185,7 +199,7 @@ Prompt structure (Bedrock Converse):
 }
 ```
 
-A `RESPONSE` classification is resolved directly: `CONFIRM` and `OPTION` apply the pending action; `REJECT` records the rejection. When a pending prompt exists and layer 1 returns `GAME` or `APPLICATION`, the pending decision is recorded as `EXPIRED` (the player moved on) and the new request proceeds.
+A `RESPONSE` classification is resolved from `pendingPrompt` directly: `CONFIRM` applies its one action (or returns its application action), `OPTION` applies the action at that choice number, and `REJECT` logs the rejection. When a pending prompt exists and layer 1 returns `GAME` or `APPLICATION`, the pending decision is logged as `EXPIRED` (the player moved on) and the new request proceeds.
 
 ## 6. Layer 2: Game Selection
 
@@ -288,9 +302,20 @@ A model change is accepted only when it passes the offline evaluation (Section 1
 | `REJECTED` (player cancelled) | `HARD` |
 | `CHOSE_OPTION` (player resolved an ambiguity) | `SOFT` |
 | `CONFIRMED`, `AUTO_APPLIED`, `ACKNOWLEDGED`, `RESOLVED` | `NONE` |
-| `EXPIRED` (superseded, version conflict, or never resolved) | `NONE` |
+| `EXPIRED` (superseded by a new request, or a version conflict) | `NONE` |
 
-An undo after an auto-applied move is not a failure. A decision starts with failure class `PENDING`; the daily rollup job expires decisions still pending at the end of the day (`data-model.md` Section 12).
+An undo after an auto-applied move is not a failure. A decision whose prompt is never answered gets no final outcome and counts in neither class.
+
+### 9.1 Turn Log
+
+Each turn writes structured JSON events through the backend logger, and nothing else records it. The `AllPlay-DecisionApi-<Stage>` log group keeps them 30 days (`cdk-stacks.md` Section 4).
+
+| Event | Written | Fields |
+|---|---|---|
+| `TURN_DECIDED` | Once per `POST /v1/decisions` | `decisionId`, `playerId`, `sessionId`, `gameId`, `sessionVersion`, `transcriptSource`, `transcript`, `alternatives`, `uiContext`, `classification` (category, response, model id, latency, input and output tokens), `candidateCount`, `candidatesDigest` (SHA-256 of the candidate list), `selection` (selected ids, confidence, model id, latency, tokens), `proposal`, `outcome`, `failureClass` (absent while the outcome is open), `serverLatencyMs` |
+| `TURN_RESOLVED` | Once per resolution, and when a spoken answer or a new request settles a pending prompt | `decisionId`, `playerId`, `sessionId`, `resolution`, `outcome`, `failureClass`, `clientLatencyMs` |
+
+`GET /v1/admin/decisions?day=&class=` browses failures with a CloudWatch Logs Insights query over these events. The day's `MetricRollup` counters are added when the same events are written (`data-model.md` Section 11).
 
 ## 10. Cost and Abuse Controls
 
@@ -323,7 +348,7 @@ An offline utterance evaluation set lives at `backend/tests/decision-eval/`: for
 
 `npm run eval:decider -- --stage Test` runs the set against Bedrock and reports top-1 accuracy, ambiguity rate, unrecognized rate, and latency percentiles. It costs real money, so it is run on demand (before changing prompts or models) and never in the pipeline. Accuracy target: 95% top-1 on unambiguous cases.
 
-Unit tests (run in CI, no Bedrock calls) cover prompt building, candidate numbering, equivalence collapsing, post-processing rules, outcome and failure classification, rate limiting, and resolution handling, using a fake `LlmClient`.
+Unit tests (run in CI, no Bedrock calls) cover prompt building, candidate numbering, equivalence collapsing, post-processing rules, outcome and failure classification, the turn log events, rate limiting, and resolution handling, using a fake `LlmClient`.
 
 ## 13. Voice Output (Polly)
 
@@ -343,6 +368,7 @@ backend/src/service/decision/
   prompts/                 prompt builders and static prompt text
   llm/                     LlmClient interface; Bedrock Converse, Claude Code, Claude API and fake implementations
   outcomes.ts              outcome and failure classification
+  turnLog.ts               the TURN_DECIDED and TURN_RESOLVED events (Section 9.1)
   rateLimiter.ts
 backend/src/service/speech/  SpeechToText and TextToSpeech interfaces and local implementations
 backend/src/local/            local server, composition root, macOS speech helper source
@@ -359,13 +385,13 @@ Built in execution phase 6 (Backend decision actions) unless noted. Each leg is 
 | AD-2 | Layer 1 classifier: prompt builder, tool schema, parsing; unit tests |
 | AD-3 | Layer 2 game selector: board summary, candidate numbering with equivalence collapse, post-processing and validation through the game session service; unit tests |
 | AD-4 | Layer 2 application selector and the application action catalog; unit tests |
-| AD-5 | Decision service orchestration with parallel loading, outcomes, failure classes, `Decision` writes, metric counters; `POST /v1/decisions` and resolution routes |
+| AD-5 | Decision service orchestration with parallel loading, outcomes, failure classes, the turn log, metric counters; `POST /v1/decisions` and the stateless resolution route |
 | AD-6 | Rate limiter and API throttling; Bedrock and Transcribe IAM grants; Transcribe custom vocabulary custom resource |
 | AD-7 | API integration tests for the decision routes against the Test stage, using a test-only fixed-response mode of `LlmClient` enabled by an environment variable in Test only |
 | AD-8 | Offline evaluation set and `eval:decider` script for Spider Solitaire |
 | AD-10 | `SpeechToText` interface with the macOS speech helper, whisper.cpp and typed implementations; `POST /local/speech/transcribe` on the local server |
 | AD-11 | Web client audio capture (16 kHz PCM, WAV encoding), `SpeechInput` local server implementation, and the Voice Lab page (`local-development.md` Section 5) that shows the transcript and what the backend received |
-| AD-12 | Decision intake: `POST /v1/decisions` parses the request, records a `Decision` through an in-memory `DecisionDao`, and replies `UNRECOGNIZED` with the heard text until the layers of AD-2 to AD-5 replace that reply |
+| AD-12 | Decision intake: `POST /v1/decisions` parses the request and replies `UNRECOGNIZED` with the heard text until the layers of AD-2 to AD-5 replace that reply |
 | AD-13 | `TextToSpeech` with Kokoro and recording implementations, `POST /local/speech/synthesize`, and the web `SpeechOutput` local server implementation |
 | AD-14 | Claude Code and Claude API `LlmClient` implementations and their tests |
 | AD-15 | Server-side Transcribe and Polly implementations for the `local-aws` preset (`transcribe-polly-bedrock.md`, TPB-2 and TPB-3) |

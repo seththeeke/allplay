@@ -19,6 +19,6 @@ export interface PreferenceDao {
     at: string,
     ttl?: number,
   ): Promise<Preference>;
-  /** Deletes every scope of a player (account deletion, data-model.md section 14). */
+  /** Deletes every scope of a player (account deletion, data-model.md section 13). */
   deleteAll(playerId: string): Promise<void>;
 }

@@ -21,7 +21,7 @@ import type { PlayerCaller } from "./playerService";
  */
 export type MergeStep = (fromPlayerId: string, intoPlayerId: string, at: string) => Promise<void>;
 
-/** Copies each preference scope the target lacks (data-model.md section 10, step 2). */
+/** Copies each preference scope the target lacks (data-model.md section 9, step 2). */
 export function preferencesStep(preferences: PreferenceDao): MergeStep {
   return async (from, into, at) => {
     const held = new Set((await preferences.list(into)).map((item) => item.scope));
@@ -33,12 +33,12 @@ export function preferencesStep(preferences: PreferenceDao): MergeStep {
   };
 }
 
-/** Moves seats and sessions, keeping the newer of two games in progress (data-model.md section 10, step 1). */
+/** Moves seats and sessions, keeping the newer of two games in progress (data-model.md section 9, step 1). */
 export function seatsStep(data: PlayerGameData): MergeStep {
   return (from, into, at) => data.moveSeats(from, into, new Date(at));
 }
 
-/** Combines stats per variant (data-model.md section 10, step 3). */
+/** Combines stats per variant (data-model.md section 9, step 3). */
 export function statsStep(data: PlayerGameData): MergeStep {
   return (from, into, at) => data.moveStats(from, into, new Date(at));
 }

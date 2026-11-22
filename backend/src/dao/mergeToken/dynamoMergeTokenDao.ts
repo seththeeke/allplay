@@ -4,7 +4,7 @@ import { conditionFailed, documentClient, type DocumentSender } from "../dynamo"
 import type { MergeTokenDao } from "./mergeTokenDao";
 
 /**
- * MergeTokenDao over `AllPlay-MergeTokens-<Stage>` (data-model.md section 10).
+ * MergeTokenDao over `AllPlay-MergeTokens-<Stage>` (data-model.md section 9).
  * Expiry is checked in the redemption condition, because DynamoDB deletes
  * expired items only eventually.
  */

@@ -1,7 +1,7 @@
 import type { MergeToken } from "../../models/mergeToken";
 
 /**
- * Merge token persistence (data-model.md section 10). The in-memory and
+ * Merge token persistence (data-model.md section 9). The in-memory and
  * DynamoDB implementations share one contract test.
  */
 export interface MergeTokenDao {
