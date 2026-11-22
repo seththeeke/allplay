@@ -4,9 +4,10 @@ import {
   HintResponseSchema,
   ResolutionResponseSchema,
   SessionEnvelopeSchema,
+  StatsResponseSchema,
 } from "../../models/api";
 import { ApiRequestError } from "../errors";
-import type { DecisionService, GameService, SessionService } from "../types";
+import type { DecisionService, GameService, SessionService, StatsService } from "../types";
 import type { ApiClient } from "./apiClient";
 
 /** `GET /v1/games` (game-engine.md section 11). */
@@ -53,4 +54,9 @@ export function createLiveDecisionService(api: ApiClient): DecisionService {
         ResolutionResponseSchema,
       ),
   };
+}
+
+/** `GET /v1/players/me/stats` (authn-authz.md section 5). */
+export function createLiveStatsService(api: ApiClient): StatsService {
+  return { list: () => api.get("v1/players/me/stats", StatsResponseSchema) };
 }

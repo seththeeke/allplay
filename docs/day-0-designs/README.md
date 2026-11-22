@@ -93,6 +93,8 @@ DM-4, DM-5; AD-1 through AD-8 (`action-decision.md`); CDK-9.
 | WP-5 | Mobile web layout pass: on-screen controls, touch targets, portrait and landscape |
 | CDK-10 | Browser smoke tests and Prod verification in the pipeline |
 
+Phase 7 status (2026-11-22): WP-1 is done. Deployed stages run `dataMode` `LIVE`, so games, sessions, decisions, stats and preferences use the stage's API, signed by Amplify; local `LIVE` mode uses the local server for the same services. Voice turns on deployed stages reach the deployed decider, which answers that it cannot understand commands until the Bedrock quota is raised (`transcribe-polly-bedrock.md`, TPB-5).
+
 ### Phase 8: Mobile App development
 
 | Leg | Scope |

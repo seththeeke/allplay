@@ -23,13 +23,15 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyAdminService,
+  createAmplifyApiClient,
   createAmplifyMergeApi,
   createAmplifyPreferencesService,
   localAuthHeaders,
   PENDING_PROVIDER_KEY,
   retryLinkedSignIn,
 } from "../../../src/services/live/amplifyServices";
-import { DEFAULT_APP_PREFERENCES } from "../../../src/models/api";
+import { DEFAULT_APP_PREFERENCES, GamesResponseSchema } from "../../../src/models/api";
+import { ApiRequestError } from "../../../src/services/errors";
 
 const CONFIG = {
   stage: "TEST" as const,
@@ -317,5 +319,73 @@ describe("Amplify merge API", () => {
         options: { headers: {}, body: { token: "t".repeat(43), keep: "SOURCE" } },
       }),
     );
+  });
+});
+
+describe("Amplify API client", () => {
+  const failed = (statusCode: number | undefined, body?: string) => ({
+    response: Promise.reject(
+      Object.assign(
+        new Error("failed"),
+        statusCode === undefined ? {} : { response: { statusCode, body } },
+      ),
+    ),
+  });
+
+  it("signs gets with their query as parameters, and posts JSON bodies", async () => {
+    const client = createAmplifyApiClient(() => Promise.resolve({ authorization: "x" }));
+    api.get.mockReturnValue(reply({ games: [] }));
+    expect(await client.get("v1/games", GamesResponseSchema)).toEqual({ games: [] });
+    expect(api.get).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/games",
+      options: { headers: { authorization: "x" } },
+    });
+    await client.get("v1/sessions/current?gameId=spider-solitaire", GamesResponseSchema);
+    expect(api.get).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/sessions/current",
+      options: { headers: { authorization: "x" }, queryParams: { gameId: "spider-solitaire" } },
+    });
+    api.post.mockReturnValue(reply({ games: [] }));
+    await createAmplifyApiClient().post("v1/sessions", { gameId: "g" }, GamesResponseSchema);
+    expect(api.post).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/sessions",
+      options: { headers: {}, body: { gameId: "g" } },
+    });
+  });
+
+  it("patches through the signed API", async () => {
+    api.patch.mockReturnValue(reply({ games: [] }));
+    await createAmplifyApiClient().patch("v1/x", { a: 1 }, GamesResponseSchema);
+    expect(api.patch).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/x",
+      options: { headers: {}, body: { a: 1 } },
+    });
+  });
+
+  it("turns API errors into ApiRequestError, keeping the error body", async () => {
+    const client = createAmplifyApiClient();
+    api.get.mockReturnValueOnce(
+      failed(409, JSON.stringify({ code: "VERSION_CONFLICT", message: "Stale." })),
+    );
+    const conflict = await client
+      .get("v1/games", GamesResponseSchema)
+      .catch((error: unknown) => error);
+    expect(conflict).toBeInstanceOf(ApiRequestError);
+    expect(conflict).toMatchObject({ status: 409, body: { code: "VERSION_CONFLICT" } });
+    api.get.mockReturnValueOnce(failed(502, "<html>"));
+    await expect(client.get("v1/games", GamesResponseSchema)).rejects.toMatchObject({
+      status: 502,
+      body: { code: "INTERNAL_ERROR", message: "The server answered 502." },
+    });
+    api.get.mockReturnValueOnce(failed(500));
+    await expect(client.get("v1/games", GamesResponseSchema)).rejects.toMatchObject({
+      status: 500,
+    });
+    api.get.mockReturnValueOnce(failed(undefined));
+    await expect(client.get("v1/games", GamesResponseSchema)).rejects.toThrow("failed");
   });
 });

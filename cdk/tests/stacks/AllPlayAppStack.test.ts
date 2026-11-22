@@ -36,7 +36,7 @@ describe("AllPlayAppStack", () => {
     const { template, stage } = synth();
     expect(stage.app.resolve(stage.app.webConfig)).toMatchObject({
       stage: "TEST",
-      dataMode: "MEMORY",
+      dataMode: "LIVE",
       region: "us-east-1",
     });
     const deployments = JSON.stringify(template.findResources("Custom::CDKBucketDeployment"));

@@ -10,6 +10,7 @@ export type FetchLike = (
 export interface ApiClient {
   get<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>>;
   post<T extends z.ZodType>(path: string, body: unknown, schema: T): Promise<z.output<T>>;
+  patch<T extends z.ZodType>(path: string, body: unknown, schema: T): Promise<z.output<T>>;
 }
 
 /**
@@ -52,6 +53,12 @@ export function createApiClient(
     post: (path, body, schema) =>
       call(path, schema, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    patch: (path, body, schema) =>
+      call(path, schema, {
+        method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       }),

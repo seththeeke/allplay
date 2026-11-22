@@ -1,3 +1,4 @@
+import type { ApiClient } from "../../../src/services/live/apiClient";
 import { describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "../../../src/services/errors";
 import { createApiClient, type FetchLike } from "../../../src/services/live/apiClient";
@@ -5,6 +6,7 @@ import {
   createLiveDecisionService,
   createLiveGameService,
   createLiveSessionService,
+  createLiveStatsService,
 } from "../../../src/services/live/liveGameServices";
 import { must } from "../../must";
 
@@ -134,5 +136,14 @@ describe("live game services", () => {
     } as never);
     expect(fetchSpy).toHaveBeenCalledWith("http://api.test/v1/games", { headers: {} });
     vi.unstubAllGlobals();
+  });
+});
+
+describe("live stats service", () => {
+  it("reads the caller's stats", async () => {
+    const get = vi.fn(() => Promise.resolve({ stats: [] }));
+    const api = { get, post: vi.fn() } as unknown as ApiClient;
+    expect(await createLiveStatsService(api).list()).toEqual({ stats: [] });
+    expect(get).toHaveBeenCalledWith("v1/players/me/stats", expect.anything());
   });
 });

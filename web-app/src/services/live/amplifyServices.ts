@@ -14,6 +14,7 @@ import {
 import type { AppConfig } from "../../config";
 import {
   AdminDecisionsResponseSchema,
+  ApiErrorSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
@@ -25,6 +26,9 @@ import {
   type PlayerMe,
 } from "../../models/api";
 import type { AdminService, PlayerService, PreferencesService, SignInProvider } from "../types";
+import type { z } from "zod";
+import { ApiRequestError } from "../errors";
+import type { ApiClient } from "./apiClient";
 import type { MergeApi } from "./guestMerge";
 
 /** The config fields Amplify needs; present on deployed stages from AA-1 and AA-4. */
@@ -353,4 +357,84 @@ export async function retryLinkedSignIn(
   if (provider !== "GOOGLE" && provider !== "APPLE") return false;
   await redirect(provider);
   return true;
+}
+
+/** An Amplify REST call's error response, when the API answered. */
+interface AmplifyFailure {
+  response?: { statusCode?: number; body?: string };
+}
+
+/**
+ * The ApiClient over Amplify's signed REST calls, for the game, session,
+ * decision and stats routes on deployed stages (WP-1). API errors become
+ * ApiRequestError as with the fetch client, so a version conflict still
+ * carries the current envelope.
+ */
+export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
+  const split = (path: string) => {
+    const [route = "", query = ""] = path.split("?");
+    const queryParams = Object.fromEntries(new URLSearchParams(query));
+    return { path: `/${route}`, ...(query === "" ? {} : { queryParams }) };
+  };
+  const call = async <T extends z.ZodType>(
+    schema: T,
+    operation: { response: Promise<{ body: { json: () => Promise<unknown> } }> },
+  ): Promise<z.output<T>> => {
+    try {
+      return schema.parse(await json(operation));
+    } catch (failure) {
+      const response = (failure as AmplifyFailure).response;
+      if (response?.statusCode === undefined) throw failure;
+      let body: unknown = null;
+      try {
+        body = JSON.parse(response.body ?? "");
+      } catch {
+        body = null;
+      }
+      const error = ApiErrorSchema.safeParse(body);
+      throw new ApiRequestError(
+        response.statusCode,
+        error.success
+          ? error.data
+          : {
+              code: "INTERNAL_ERROR",
+              message: `The server answered ${String(response.statusCode)}.`,
+            },
+      );
+    }
+  };
+  return {
+    get: async (path, schema) => {
+      const { path: route, queryParams } = split(path);
+      return call(
+        schema,
+        get({
+          apiName: API,
+          path: route,
+          options: {
+            headers: await headers(),
+            ...(queryParams === undefined ? {} : { queryParams }),
+          },
+        }),
+      );
+    },
+    post: async (path, body, schema) =>
+      call(
+        schema,
+        post({
+          apiName: API,
+          path: split(path).path,
+          options: { headers: await headers(), body: body as never },
+        }),
+      ),
+    patch: async (path, body, schema) =>
+      call(
+        schema,
+        patch({
+          apiName: API,
+          path: split(path).path,
+          options: { headers: await headers(), body: body as never },
+        }),
+      ),
+  };
 }

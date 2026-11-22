@@ -90,8 +90,10 @@ describe("createServices", () => {
       dataMode: "LIVE",
       apiUrl: "https://api.example.com/",
     });
-    await deployed.games.list();
-    expect(fetchSpy).toHaveBeenLastCalledWith("https://api.example.com/v1/games", { headers: {} });
+    /* Deployed stages sign through Amplify (WP-1), never with a plain fetch. */
+    await expect(deployed.games.list()).rejects.toThrow(/Amplify/);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(Object.keys(deployed).sort()).toEqual(SERVICE_NAMES);
     vi.unstubAllGlobals();
   });
 

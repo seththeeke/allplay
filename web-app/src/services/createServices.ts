@@ -5,6 +5,7 @@ import {
   configureAmplify,
   createAmplifyPlayerService,
   createAmplifyAdminService,
+  createAmplifyApiClient,
   createAmplifyMergeApi,
   createAmplifyPreferencesService,
   type CallHeaders,
@@ -19,8 +20,10 @@ import {
   createLiveDecisionService,
   createLiveGameService,
   createLiveSessionService,
+  createLiveStatsService,
 } from "./live/liveGameServices";
 import { createLiveHealthService } from "./live/liveHealthService";
+import { createLivePreferencesService } from "./live/livePreferencesService";
 import { createLiveVoiceLabService } from "./live/liveVoiceLabService";
 import { createMemoryAdminService } from "./memory/memoryAdminService";
 import { createMemoryDecisionService } from "./memory/memoryDecisionService";
@@ -65,9 +68,10 @@ function adminFor(
 
 /**
  * Builds every service for the configured data mode. `LIVE` calls the API for
- * the game catalog, sessions and decisions; stats stay in memory until WP-1
- * (prototype-mocks.md section 1). Player, preferences and admin are live wherever Cognito is. The health
- * check and Voice Lab are live whenever the config has an API URL.
+ * the game catalog, sessions, decisions and stats: signed by Amplify on
+ * deployed stages, through the local server locally (WP-1). Player,
+ * preferences and admin are live wherever Cognito is. The health check and
+ * Voice Lab are live whenever the config has an API URL.
  */
 export function createServices(
   config: AppConfig,
@@ -80,28 +84,36 @@ export function createServices(
   const cognito = config.stage !== "LOCAL" || localCognito ? cognitoConfigOf(config) : null;
   if (cognito !== null) configureAmplify(cognito, globalThis.location.origin);
   const callHeaders = localCognito ? localAuthHeaders : undefined;
-  const preferences =
-    cognito === null
-      ? createMemoryPreferencesService(store)
-      : createAmplifyPreferencesService(callHeaders);
-  let live: Pick<Services, "games" | "sessions" | "decisions"> | null = null;
+  let live: Pick<Services, "games" | "sessions" | "decisions" | "stats"> | null = null;
   let liveApi: ApiClient | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
     /* Locally the mock sign-in picks the caller (authn-authz.md section 11); deployed stages sign with Amplify (AA-9). */
-    const api = createApiClient(config.apiUrl, undefined, () => {
-      if (localCognito) return localAuthHeaders();
-      return config.stage === "LOCAL"
-        ? { [DEV_CALLER_HEADER]: devCallerFor(store.read<PlayerMe | null>(PLAYER_KEY, null)) }
-        : {};
-    });
-    liveApi = api;
+    const api =
+      config.stage === "LOCAL"
+        ? createApiClient(config.apiUrl, undefined, () =>
+            localCognito
+              ? localAuthHeaders()
+              : {
+                  [DEV_CALLER_HEADER]: devCallerFor(store.read<PlayerMe | null>(PLAYER_KEY, null)),
+                },
+          )
+        : createAmplifyApiClient();
+    liveApi = config.stage === "LOCAL" ? api : null;
     live = {
       games: createLiveGameService(api),
       sessions: createLiveSessionService(api),
       decisions: createLiveDecisionService(api),
+      stats: createLiveStatsService(api),
     };
   }
+  /* Preferences are the signed API wherever Cognito is, the local server in local LIVE mode, else memory. */
+  const preferences =
+    cognito !== null
+      ? createAmplifyPreferencesService(callHeaders)
+      : liveApi === null
+        ? createMemoryPreferencesService(store)
+        : createLivePreferencesService(liveApi);
   const sessions = createMemorySessionService(store, seed);
   const voiceLab =
     config.apiUrl === undefined

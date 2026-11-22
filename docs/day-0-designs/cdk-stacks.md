@@ -68,7 +68,7 @@ Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedro
 
 ## 6. Web Hosting
 
-1. One `web-app` build serves both stages. Stage-specific values (region, User Pool id, app client id, Identity Pool id, API URL, OAuth domain, vocabulary name) are written by CDK to `/config.json` in each stage's bucket, and the app loads it at startup.
+1. One `web-app` build serves both stages. Stage-specific values (region, User Pool id, app client id, Identity Pool id, API URL, OAuth domain, vocabulary name) and `dataMode` `LIVE` are written by CDK to `/config.json` in each stage's bucket, and the app loads it at startup.
 2. A CloudFront Function rewrites any request path without a file extension to `/index.html`, so direct links like `/spider` and `/admin` load the app.
 3. `index.html` and `config.json` are served with `Cache-Control: no-cache`; hashed assets with a one year immutable cache.
 4. A response headers policy sets a Content Security Policy that allows only the stage's API, Cognito, Transcribe streaming and Polly endpoints, plus HSTS, `X-Content-Type-Options` and `Referrer-Policy`.

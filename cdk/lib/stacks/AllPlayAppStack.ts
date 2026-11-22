@@ -436,7 +436,7 @@ export class AllPlayAppStack extends Stack {
     });
     this.webConfig = {
       stage: props.stage.toUpperCase(),
-      dataMode: "MEMORY",
+      dataMode: "LIVE",
       region: this.region,
       apiUrl: this.api.url,
       userPoolId: users.userPool.userPoolId,
