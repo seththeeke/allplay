@@ -53,7 +53,7 @@ Every AWS CLI and CDK command uses the `allplays` profile, passed explicitly as 
 - Block comments only (`/* */`, `/** */`), prose at most 500 characters. Comment the why, not the what.
 - Component files are PascalCase and under 200 lines; other files are camelCase.
 - Tests mirror the source tree. CDK tests use fine-grained assertions, never snapshots.
-- No emojis or icons anywhere in code or docs.
+- No emojis anywhere in code or docs, and no icons in specs or docs. The apps may draw icons (inline SVG), each with a text alternative for assistive technology.
 
 Lint rules enforce these conventions (`cdk-stacks.md` Section 12). Fix the code, not the rule.
 

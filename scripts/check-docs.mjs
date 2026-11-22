@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * Fails when any tracked text file contains an emoji. CLAUDE.md and every
- * spec forbid emojis and icons in code and docs; this script is the
+ * Fails when any tracked text file contains an emoji. CLAUDE.md forbids
+ * emojis in code and docs (apps may draw SVG icons); this script is the
  * enforcement, run by `npm run lint` at the repo root and in CI.
  */
 import { readFileSync } from "node:fs";

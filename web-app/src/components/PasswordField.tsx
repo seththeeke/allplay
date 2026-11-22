@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button";
+import { EyeIcon } from "./EyeIcon";
 
 export interface PasswordFieldProps {
   id: string;
@@ -12,9 +13,9 @@ export interface PasswordFieldProps {
 }
 
 /**
- * A large password field with a Show and Hide toggle. The toggle is a text
- * button rather than an eye icon (CLAUDE.md section 6), with its pressed
- * state exposed to assistive technology.
+ * A large password field with an eye toggle that shows or hides the text.
+ * The toggle is named "Show password" or "Hide password" and exposes its
+ * pressed state to assistive technology.
  */
 export function PasswordField({
   id,
@@ -47,14 +48,16 @@ export function PasswordField({
         />
         <Button
           variant="secondary"
+          className="min-w-14 px-3"
           aria-controls={id}
           aria-pressed={shown}
           aria-label={`${shown ? "Hide" : "Show"} ${label.toLowerCase()}`}
+          title={`${shown ? "Hide" : "Show"} ${label.toLowerCase()}`}
           onClick={() => {
             setShown(!shown);
           }}
         >
-          {shown ? "Hide" : "Show"}
+          <EyeIcon crossed={shown} />
         </Button>
       </div>
     </div>

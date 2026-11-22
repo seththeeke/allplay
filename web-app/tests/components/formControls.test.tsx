@@ -69,8 +69,14 @@ describe("password field", () => {
     render(<Field />);
     const input = screen.getByLabelText("Password");
     expect(input).toHaveAttribute("type", "password");
-    await userEvent.click(screen.getByRole("button", { name: "Show password" }));
+    const toggle = screen.getByRole("button", { name: "Show password" });
+    expect(toggle.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(toggle.querySelector("line")).toBeNull();
+    await userEvent.click(toggle);
     expect(input).toHaveAttribute("type", "text");
+    expect(
+      screen.getByRole("button", { name: "Hide password" }).querySelector("line"),
+    ).not.toBeNull();
     expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute(
       "aria-pressed",
       "true",
