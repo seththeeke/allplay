@@ -88,9 +88,13 @@ describe("AllPlayStatefulStack", () => {
       (grant) =>
         scope.resolve(grant(scope).toStatementJson()) as { Resource: string[]; Action: string[] },
     );
-    expect(statements).toHaveLength(2);
+    expect(statements).toHaveLength(3);
     const tables = statements.find((statement) => statement.Action.includes("dynamodb:PutItem"));
     const assume = statements.find((statement) => String(statement.Action) === "sts:AssumeRole");
+    const scan = statements.find((statement) => String(statement.Action) === "dynamodb:Scan");
+    expect(JSON.stringify(scan?.Resource)).toContain(
+      ":dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test/index/ByEmail",
+    );
     /* ARNs carry the partition as a CloudFormation reference; compare the rest. */
     const arns = JSON.stringify(tables?.Resource);
     for (const suffix of [
