@@ -8,6 +8,11 @@ import {
   createDeployedPlayerService,
   createPlayerService,
 } from "../../../src/service/player/playerService";
+import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
+import { createPlayerGameData } from "../../../src/service/gameSession/playerGameData";
+
+/** Sessions, seats and stats over fresh in-memory tables. */
+const memoryGameData = () => createPlayerGameData(createInMemoryGameTables());
 
 const guest = { playerId: "GUEST#id-1", tier: "GUEST" as const, identityId: "id-1" };
 const account = { playerId: "ACCT#sub-1", tier: "PLAYER" as const, identityId: "id-2" };
@@ -16,7 +21,12 @@ function setup(start = Date.parse("2026-11-21T12:00:00.000Z")) {
   let clock = start;
   const players = createInMemoryPlayerDao();
   const preferences = createInMemoryPreferenceDao();
-  const service = createPlayerService({ players, preferences, now: () => new Date(clock) });
+  const service = createPlayerService({
+    players,
+    preferences,
+    gameData: memoryGameData(),
+    now: () => new Date(clock),
+  });
   return {
     service,
     players,
@@ -48,11 +58,19 @@ describe("player service", () => {
       ...t.players,
       create: (player) => Promise.reject(new PlayerExistsError(player.playerId)),
     };
-    const service = createPlayerService({ players: racing, preferences: t.preferences });
+    const service = createPlayerService({
+      players: racing,
+      preferences: t.preferences,
+      gameData: memoryGameData(),
+    });
     await expect(service.recordActivity(guest)).resolves.toBeUndefined();
     const failing: PlayerDao = { ...t.players, create: () => Promise.reject(new Error("down")) };
     await expect(
-      createPlayerService({ players: failing, preferences: t.preferences }).recordActivity({
+      createPlayerService({
+        players: failing,
+        preferences: t.preferences,
+        gameData: memoryGameData(),
+      }).recordActivity({
         ...guest,
         playerId: "GUEST#x",
       }),
@@ -122,6 +140,7 @@ describe("account deletion", () => {
     const service = createPlayerService({
       players: t.players,
       preferences: t.preferences,
+      gameData: memoryGameData(),
       userPool: {
         id: "pool",
         identities: {

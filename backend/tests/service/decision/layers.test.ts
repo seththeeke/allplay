@@ -238,17 +238,14 @@ describe("candidates", () => {
 
 describe("refused move descriptions", () => {
   it("keeps the model's description to plain words and drops empty ones", async () => {
-    const { createInMemoryGameSessionDao } =
+    const { createInMemoryGameTables } =
       await import("../../../src/dao/gameSession/inMemoryGameSessionDao");
-    const { createInMemorySeatAssignmentDao } =
-      await import("../../../src/dao/seatAssignment/inMemorySeatAssignmentDao");
     const { createGameSessionService } =
       await import("../../../src/service/gameSession/gameSessionService");
     const { selectGameActions } = await import("../../../src/service/decision/gameSelector");
     const repository = createBundledRulesRepository();
     const envelope = await createGameSessionService({
-      dao: createInMemoryGameSessionDao(),
-      seats: createInMemorySeatAssignmentDao(),
+      ...createInMemoryGameTables(),
       games: (gameId, version) => repository.compiled(gameId, version),
     }).start("p", { gameId: "spider-solitaire" });
     const requested = async (value: unknown) =>

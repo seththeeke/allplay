@@ -1,6 +1,7 @@
 import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import type { IFunction } from "aws-cdk-lib/aws-lambda";
 import type { Construct } from "constructs";
 import { adminRoutes } from "../../../backend/src/controller/web-api/admin/adminRoutes";
 import { decisionsRoutes } from "../../../backend/src/controller/web-api/decisions/decisionsRoutes";
@@ -87,6 +88,45 @@ export class AllPlayAppStack extends Stack {
       ],
     });
     const { players, preferences, mergeTokens } = props.stateful;
+    const { gameSessions, seatAssignments, playerStats } = props.stateful;
+    const gameTables = {
+      GAME_SESSIONS_TABLE: gameSessions.table.tableName,
+      SEAT_ASSIGNMENTS_TABLE: seatAssignments.table.tableName,
+      PLAYER_STATS_TABLE: playerStats.table.tableName,
+    };
+    /*
+     * Merging and deleting a player's games (data-model.md sections 10 and
+     * 14): sessions are rewritten, ended or deleted, seats listed, moved and
+     * deleted, stats combined and deleted. Transactions need each item's own action.
+     */
+    const grantGameData = (fn: IFunction) => {
+      fn.addToRolePolicy(
+        new PolicyStatement({
+          actions: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+          resources: [gameSessions.table.tableArn],
+        }),
+      );
+      fn.addToRolePolicy(
+        new PolicyStatement({
+          actions: ["dynamodb:Query", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+          resources: [
+            seatAssignments.table.tableArn,
+            `${seatAssignments.table.tableArn}/index/ByPlayerGame`,
+          ],
+        }),
+      );
+      fn.addToRolePolicy(
+        new PolicyStatement({
+          actions: [
+            "dynamodb:GetItem",
+            "dynamodb:Query",
+            "dynamodb:PutItem",
+            "dynamodb:DeleteItem",
+          ],
+          resources: [playerStats.table.tableArn],
+        }),
+      );
+    };
     const playerApi = new AllPlayFunction(this, "PlayerApi", {
       stage: props.stage,
       name: "PlayerApi",
@@ -97,6 +137,7 @@ export class AllPlayAppStack extends Stack {
         PLAYERS_TABLE: players.table.tableName,
         PREFERENCES_TABLE: preferences.table.tableName,
         MERGE_TOKENS_TABLE: mergeTokens.table.tableName,
+        ...gameTables,
         IDENTITY_POOL_ID: this.identity.identityPool.ref,
         USER_POOL_ID: users.userPool.userPoolId,
         FEDERATION_SECRET_ID: props.stateful.federation.secret.secretName,
@@ -141,6 +182,7 @@ export class AllPlayAppStack extends Stack {
         resources: [props.stateful.federation.secret.secretArn],
       }),
     );
+    grantGameData(playerApi.function);
     this.api.addPublicRoute("AppleNotifications", appleNotificationsRoute, playerApi.function);
     this.api.addBundle("Players", playersRoutes, playerApi.function);
     const adminApi = new AllPlayFunction(this, "AdminApi", {
@@ -154,9 +196,11 @@ export class AllPlayAppStack extends Stack {
         PLAYERS_TABLE: players.table.tableName,
         PREFERENCES_TABLE: preferences.table.tableName,
         MERGE_TOKENS_TABLE: mergeTokens.table.tableName,
+        ...gameTables,
         USER_POOL_ID: users.userPool.userPoolId,
       },
     });
+    grantGameData(adminApi.function);
     /* The duplicate list scans ByEmail; the merge updates players, copies preferences and merges Cognito users (authn-authz.md section 6.2). */
     adminApi.function.addToRolePolicy(
       new PolicyStatement({
@@ -199,6 +243,38 @@ export class AllPlayAppStack extends Stack {
       }),
     );
     this.api.addBundle("Admin", adminRoutes, adminApi.function);
+    /*
+     * The game bundle (cdk-stacks.md section 3): a move puts its session; a
+     * start or an end also puts seats and folds stats; resume reads the
+     * ByPlayerGame index (data-model.md sections 6 to 8).
+     */
+    const gameApi = new AllPlayFunction(this, "GameApi", {
+      stage: props.stage,
+      name: "GameApi",
+      entry: "controller/web-api/game/handler.ts",
+      memorySize: 1024,
+      timeout: Duration.seconds(10),
+      environment: gameTables,
+    });
+    gameApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
+        resources: [gameSessions.table.tableArn, playerStats.table.tableArn],
+      }),
+    );
+    gameApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:PutItem"],
+        resources: [seatAssignments.table.tableArn],
+      }),
+    );
+    gameApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query"],
+        resources: [`${seatAssignments.table.tableArn}/index/ByPlayerGame`],
+      }),
+    );
+    this.api.addBundle("Game", gameRoutes, gameApi.function);
     this.webConfig = {
       stage: props.stage.toUpperCase(),
       dataMode: "MEMORY",

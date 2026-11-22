@@ -3,6 +3,7 @@ import {
   SessionVersionConflictError,
   type GameSessionDao,
 } from "../../dao/gameSession/gameSessionDao";
+import type { PlayerStatsDao, StatsWrite } from "../../dao/playerStats/playerStatsDao";
 import type { SeatAssignmentDao } from "../../dao/seatAssignment/seatAssignmentDao";
 import { UnknownGameError } from "../../game-catalog";
 import {
@@ -16,6 +17,7 @@ import {
 } from "../../game-engine";
 import type { HintResponse, SessionEnvelope } from "../../models/api";
 import type { GameSession } from "../../models/gameSession";
+import { statsKeyOf } from "../../models/playerStats";
 import {
   gameOver,
   illegalAction,
@@ -24,6 +26,9 @@ import {
   notSeated,
   versionConflict,
 } from "./errors";
+import { createDeployedGameTables, withStatsRetry } from "./playerGameData";
+import { foldResult } from "./playerStats";
+import { abandonedCopy, isGuest, seatsOf, withSessionTtl } from "./sessionRecords";
 import { newUlid } from "./ulid";
 
 /** Spider and every schema version 1 game seat their one player here. */
@@ -32,6 +37,7 @@ const SEAT = "S1";
 export interface GameSessionServiceDeps {
   dao: GameSessionDao;
   seats: SeatAssignmentDao;
+  stats: PlayerStatsDao;
   /** The compiled game for an id and optional pinned version; throws UnknownGameError. */
   games: (gameId: string, version?: number) => CompiledGame;
   now?: () => Date;
@@ -114,21 +120,6 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
     };
   };
 
-  const writeSeat = (session: GameSession, playerId: string, at: string): Promise<void> =>
-    deps.seats.put({
-      playerId,
-      sessionId: session.sessionId,
-      gameId: session.gameId,
-      seatId: SEAT,
-      status: session.status,
-      lastActionAt: at,
-      playerGameKey: `${playerId}|${session.gameId}`,
-      statusSortKey: `${session.status}#${at}`,
-      entityVersion: 1,
-      createdAt: session.createdAt,
-      updatedAt: at,
-    });
-
   const load = async (playerId: string, sessionId: string): Promise<GameSession> => {
     const session = await deps.dao.get(sessionId);
     if (session === null) throw notFound("Session");
@@ -147,28 +138,67 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
     return session;
   };
 
+  /** The stats writes for an ended session: one per seat holder, when the result counts (data-model.md section 8). */
+  const statsWrites = async (session: GameSession): Promise<StatsWrite[]> => {
+    const moves = session.summary["moveCount"] ?? 0;
+    if (session.status !== "WON" && moves < 1) return [];
+    const statsKey = statsKeyOf(session.gameId, session.variantKey);
+    return Promise.all(
+      session.seats.map(async ({ playerId }) => {
+        const current = await deps.stats.get(playerId, statsKey);
+        const item = foldResult(current, {
+          playerId,
+          gameId: session.gameId,
+          variantKey: session.variantKey,
+          won: session.status === "WON",
+          score: session.summary["score"] ?? 0,
+          moves,
+          at: session.endedAt ?? session.updatedAt,
+          ttl: isGuest(playerId) ? withSessionTtl(session, now()).ttl : undefined,
+        });
+        return { item, expectedVersion: current?.version ?? null };
+      }),
+    );
+  };
+
+  /**
+   * Writes the next state of a session the caller read at `expectedVersion`.
+   * A move is one write; a status change ends the session together with its
+   * seats and the seat holders' stats (data-model.md section 6).
+   */
   const save = async (
     playerId: string,
     session: GameSession,
     next: Partial<GameSession>,
     expectedVersion: number,
   ): Promise<GameSession> => {
-    const at = now().toISOString();
-    const updated: GameSession = { ...session, ...next, updatedAt: at, lastActionAt: at };
-    if (updated.status !== "IN_PROGRESS" && updated.endedAt === undefined) updated.endedAt = at;
+    const at = now();
+    const stamp = at.toISOString();
+    const updated = withSessionTtl(
+      { ...session, ...next, updatedAt: stamp, lastActionAt: stamp },
+      at,
+    );
     try {
-      await deps.dao.update(updated, expectedVersion);
+      if (updated.status === session.status) {
+        await deps.dao.update(updated, expectedVersion);
+        return updated;
+      }
+      if (updated.endedAt === undefined) updated.endedAt = stamp;
+      await withStatsRetry(async () => {
+        await deps.dao.end({
+          session: updated,
+          expectedVersion,
+          seats: seatsOf(updated, at),
+          stats: await statsWrites(updated),
+        });
+      });
+      return updated;
     } catch (error) {
       if (error instanceof SessionVersionConflictError) {
         throw versionConflict(envelope(await load(playerId, session.sessionId)));
       }
       throw error;
     }
-    /* The seat changes only with the session status (data-model.md section 7). */
-    if (updated.status !== session.status) {
-      await Promise.all(updated.seats.map((seat) => writeSeat(updated, seat.playerId, at)));
-    }
-    return updated;
   };
 
   const fromResult = (session: GameSession, result: ApplyResult): Partial<GameSession> => ({
@@ -209,37 +239,33 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
       const previous = await deps.seats.currentFor(playerId, game.gameId);
       if (previous !== null) {
         const old = await deps.dao.get(previous.sessionId);
-        if (old?.status === "IN_PROGRESS") {
-          const version = old.version + 1;
-          await save(
-            playerId,
-            old,
-            { status: "ABANDONED", version, state: { ...old.state, version } },
-            old.version,
-          );
-        }
+        if (old?.status === "IN_PROGRESS")
+          await save(playerId, old, abandonedCopy(old, now()), old.version);
       }
-      const at = now().toISOString();
-      const session: GameSession = {
-        sessionId: newSessionId(),
-        gameId: game.gameId,
-        rulesSource: "CORE",
-        rulesVersion: game.rulesVersion,
-        engineSchemaVersion: state.engineSchemaVersion,
-        options: state.options,
-        variantKey: variantKeyOf(state.options),
-        seats: [{ seatId: SEAT, playerId }],
-        status: "IN_PROGRESS",
-        version: state.version,
-        state,
-        summary: summaryOf(game, state),
-        startedAt: at,
-        entityVersion: 1,
-        createdAt: at,
-        updatedAt: at,
-      };
-      await deps.dao.create(session);
-      await writeSeat(session, playerId, at);
+      const started = now();
+      const at = started.toISOString();
+      const session: GameSession = withSessionTtl(
+        {
+          sessionId: newSessionId(),
+          gameId: game.gameId,
+          rulesSource: "CORE",
+          rulesVersion: game.rulesVersion,
+          engineSchemaVersion: state.engineSchemaVersion,
+          options: state.options,
+          variantKey: variantKeyOf(state.options),
+          seats: [{ seatId: SEAT, playerId }],
+          status: "IN_PROGRESS",
+          version: state.version,
+          state,
+          summary: summaryOf(game, state),
+          startedAt: at,
+          entityVersion: 1,
+          createdAt: at,
+          updatedAt: at,
+        },
+        started,
+      );
+      await deps.dao.create(session, seatsOf(session, started));
       return envelope(session);
     },
     get: async (playerId, sessionId) => envelope(await load(playerId, sessionId)),
@@ -273,17 +299,21 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
     },
     abandon: async (playerId, sessionId, input) => {
       const session = await loadForWrite(playerId, sessionId, input.expectedVersion);
-      const version = session.version + 1;
-      const state: GameState = { ...session.state, version };
       return envelope(
-        await save(
-          playerId,
-          session,
-          { status: "ABANDONED", version, state },
-          input.expectedVersion,
-        ),
+        await save(playerId, session, abandonedCopy(session, now()), input.expectedVersion),
         [{ type: "GAME_ABANDONED", data: {}, speech: null }],
       );
     },
   };
+}
+
+/** The session service over the deployed game tables and the bundled rules documents. */
+export function createDeployedGameSessionService(
+  repository: { compiled(gameId: string, version?: number): CompiledGame },
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): GameSessionService {
+  return createGameSessionService({
+    ...createDeployedGameTables(env),
+    games: (gameId, version) => repository.compiled(gameId, version),
+  });
 }

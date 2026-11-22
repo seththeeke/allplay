@@ -715,9 +715,9 @@ Status as of 2026-11-20: closed. The in-memory game engine, Spider Solitaire and
 | GE-8 | Done | `validateRules(doc, { simulate })` runs stage 3 (`rules/simulate.ts`). Property tests (fast-check): listed actions validate, every other Spider id is rejected, undo restores the view, and nothing hidden leaks. The full-size run (50 seeds, 500 actions, every option combination, about 3.5 minutes) is `npm run test:simulation` in GitHub Actions |
 | GE-9 | Done | `createBundledRulesRepository` in `game-catalog/`; the toy game in `backend/tests/game-engine/toyRules.ts` uses every primitive |
 | GE-10 | Done | `createGameSessionService` on `GameSessionDao`, `createInMemoryGameSessionDao`, gzip state codec, ULIDs, shared DAO contract tests; the summary holds vars and derived vars |
-| GE-11 | Open | Needs GE-13; runs against the local server (`local-development.md`) and the Test stage |
+| GE-11 | Partial | `tests/integration/sessions.integration.test.ts` plays a guest game through the deployed API in Test (start, resume, move, stale version, undo, abandon, stats) and checks the catalog in both stages. The performance targets of Section 11 are not measured yet |
 | GE-12 | Done | `backend/tests/functional/`: one-suit win, dead-end loss and abandon, undo out of the dead end, stale version conflict, Hoyle final deal, and the two- and four-suit golden wins through the session service |
-| GE-13 | Partial | The session routes and controllers run on the local server since LD-2. The transactional `SeatAssignment` and `PlayerStats` writes and the deployed `AllPlay-GameApi-<Stage>` come with DM-3 and CDK-8 |
+| GE-13 | Done | The session routes and controllers, with the transactional `SeatAssignment` and `PlayerStats` writes (DM-3), served by `AllPlay-GameApi-<Stage>` (CDK-8: 1024 MB, 10 s, item calls on the three game tables only) and by the local server. The deployed web app still plays in memory until WP-1 |
 
 Spider legs SP-1 to SP-5 are done:
 

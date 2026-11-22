@@ -7,6 +7,7 @@ import {
   PatchGamePreferencesSchema,
   PlayerMeSchema,
   PreferencesResponseSchema,
+  StatsResponseSchema,
 } from "../../../models/api";
 import { invalidRequest } from "../../../service/gameSession/errors";
 import type { AppleService } from "../../../service/player/appleService";
@@ -76,6 +77,10 @@ export function createPlayersHandler(
         deps.logger.info("Players merged", merged);
         return [200, merged];
       },
+      "GET /v1/players/me/stats": async ({ caller }) => [
+        200,
+        StatsResponseSchema.parse(await deps.players.stats(caller.playerId)),
+      ],
       "GET /v1/players/me/preferences": async ({ caller }) => [
         200,
         PreferencesResponseSchema.parse(await deps.players.preferences(caller.playerId)),

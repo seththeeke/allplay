@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createInMemoryGameSessionDao } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
-import { createInMemorySeatAssignmentDao } from "../../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
+import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
 import {
   SessionVersionConflictError,
   type GameSessionDao,
 } from "../../../src/dao/gameSession/gameSessionDao";
+import { StatsVersionConflictError } from "../../../src/dao/playerStats/playerStatsDao";
 import { createBundledRulesRepository } from "../../../src/game-catalog";
 import { compileRules } from "../../../src/game-engine";
 import { toyRules } from "../../game-engine/toyRules";
@@ -19,14 +19,16 @@ const repository = createBundledRulesRepository();
 const games = (gameId: string, version?: number) => repository.compiled(gameId, version);
 const PLAYER = "GUEST#p1";
 
-function setup(dao: GameSessionDao = createInMemoryGameSessionDao()) {
+function setup(wrap: (dao: GameSessionDao) => GameSessionDao = (dao) => dao) {
+  const tables = createInMemoryGameTables();
+  const dao = wrap(tables.dao);
   const service = createGameSessionService({
+    ...tables,
     dao,
-    seats: createInMemorySeatAssignmentDao(),
     games,
     newSeed: () => "00000000000000000000000000000001",
   });
-  return { service, dao };
+  return { service, dao, tables };
 }
 
 describe("game session service", () => {
@@ -60,8 +62,7 @@ describe("game session service", () => {
 
   it("uses a random seed and the clock when none are injected", async () => {
     const service = createGameSessionService({
-      dao: createInMemoryGameSessionDao(),
-      seats: createInMemorySeatAssignmentDao(),
+      ...createInMemoryGameTables(),
       games,
     });
     const a = await service.start(PLAYER, { gameId: "spider-solitaire" });
@@ -111,9 +112,8 @@ describe("game session service", () => {
   });
 
   it("answers a lost write race with the current envelope", async () => {
-    const inner = createInMemoryGameSessionDao();
     let raced = false;
-    const racing: GameSessionDao = {
+    const { service } = setup((inner) => ({
       ...inner,
       update: async (session, expected) => {
         if (!raced) {
@@ -123,8 +123,7 @@ describe("game session service", () => {
         }
         return inner.update(session, expected);
       },
-    };
-    const { service } = setup(racing);
+    }));
     const { session } = await service.start(PLAYER, { gameId: "spider-solitaire" });
     const attempt = service.applyAction(PLAYER, session.sessionId, {
       actionId: "DEAL_ROW",
@@ -138,18 +137,16 @@ describe("game session service", () => {
   });
 
   it("passes through unexpected failures", async () => {
-    const broken: GameSessionDao = {
-      ...createInMemoryGameSessionDao(),
+    const { service } = setup((inner) => ({
+      ...inner,
       update: () => Promise.reject(new Error("disk on fire")),
-    };
-    const { service } = setup(broken);
+    }));
     const { session } = await service.start(PLAYER, { gameId: "spider-solitaire" });
     await expect(
       service.applyAction(PLAYER, session.sessionId, { actionId: "DEAL_ROW", expectedVersion: 0 }),
     ).rejects.toThrow("disk on fire");
     const exploding = createGameSessionService({
-      dao: createInMemoryGameSessionDao(),
-      seats: createInMemorySeatAssignmentDao(),
+      ...createInMemoryGameTables(),
       games: () => {
         throw new Error("catalog down");
       },
@@ -162,8 +159,7 @@ describe("game session service", () => {
   it("ends a session the engine marks lost as abandoned, and offers no hint after", async () => {
     const toy = compileRules(toyRules());
     const service = createGameSessionService({
-      dao: createInMemoryGameSessionDao(),
-      seats: createInMemorySeatAssignmentDao(),
+      ...createInMemoryGameTables(),
       games: () => toy,
       newSeed: () => "00000000000000000000000000000001",
     });
@@ -203,5 +199,113 @@ describe("game session service seats", () => {
     expect(await service.current(PLAYER, "spider-solitaire")).toBeNull();
     const third = await service.start(PLAYER, { gameId: "spider-solitaire" });
     expect(third.session.status).toBe("IN_PROGRESS");
+  });
+});
+
+describe("session results and retention", () => {
+  const KEY = "spider-solitaire#dealStyle=MICROSOFT;suits=1";
+  const NOW = new Date("2026-11-22T10:00:00.000Z");
+
+  function tablesService(wrap: (dao: GameSessionDao) => GameSessionDao = (dao) => dao) {
+    const tables = createInMemoryGameTables();
+    const service = createGameSessionService({
+      ...tables,
+      dao: wrap(tables.dao),
+      games,
+      now: () => NOW,
+      newSeed: () => "00000000000000000000000000000001",
+    });
+    return { service, ...tables };
+  }
+
+  it("gives guest sessions, seats and stats a ttl, and account ones none", async () => {
+    const { service, dao, seats, stats } = tablesService();
+    const guest = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    const account = await service.start("ACCT#a1", { gameId: "spider-solitaire" });
+    const ttl = Math.floor(NOW.getTime() / 1000) + 90 * 24 * 60 * 60;
+    expect((await dao.get(guest.session.sessionId))?.ttl).toBe(ttl);
+    expect((await seats.get(PLAYER, guest.session.sessionId))?.ttl).toBe(ttl);
+    expect((await dao.get(account.session.sessionId))?.ttl).toBeUndefined();
+    expect((await seats.get("ACCT#a1", account.session.sessionId))?.ttl).toBeUndefined();
+    for (const [playerId, envelope] of [
+      [PLAYER, guest],
+      ["ACCT#a1", account],
+    ] as const) {
+      const moved = await service.applyAction(playerId, envelope.session.sessionId, {
+        actionId: "DEAL_ROW",
+        expectedVersion: 0,
+      });
+      await service.abandon(playerId, envelope.session.sessionId, {
+        expectedVersion: moved.session.version,
+      });
+    }
+    expect((await stats.get(PLAYER, KEY))?.ttl).toBe(ttl);
+    expect((await stats.get("ACCT#a1", KEY))?.ttl).toBeUndefined();
+    expect((await seats.get(PLAYER, guest.session.sessionId))?.status).toBe("ABANDONED");
+  });
+
+  it("counts a game replaced by a new one as a loss once it has a move, and not before", async () => {
+    const { service, stats, seats } = tablesService();
+    const first = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    const second = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    expect(await stats.get(PLAYER, KEY)).toBeNull();
+    expect((await seats.get(PLAYER, first.session.sessionId))?.status).toBe("ABANDONED");
+    await service.applyAction(PLAYER, second.session.sessionId, {
+      actionId: "DEAL_ROW",
+      expectedVersion: 0,
+    });
+    const third = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    expect(await stats.get(PLAYER, KEY)).toMatchObject({ gamesPlayed: 1, gamesLost: 1 });
+    expect((await service.current(PLAYER, "spider-solitaire"))?.session.sessionId).toBe(
+      third.session.sessionId,
+    );
+  });
+
+  it("retries the end when only the stats changed, up to three times", async () => {
+    let conflicts = 1;
+    const flaky = tablesService((inner) => ({
+      ...inner,
+      end: async (end) => {
+        if (conflicts > 0) {
+          conflicts -= 1;
+          throw new StatsVersionConflictError("stats");
+        }
+        return inner.end(end);
+      },
+    }));
+    const started = await flaky.service.start(PLAYER, { gameId: "spider-solitaire" });
+    const moved = await flaky.service.applyAction(PLAYER, started.session.sessionId, {
+      actionId: "DEAL_ROW",
+      expectedVersion: 0,
+    });
+    await flaky.service.abandon(PLAYER, started.session.sessionId, {
+      expectedVersion: moved.session.version,
+    });
+    expect((await flaky.stats.get(PLAYER, KEY))?.gamesLost).toBe(1);
+
+    let attempts = 0;
+    const stuck = tablesService((inner) => ({
+      ...inner,
+      end: () => {
+        attempts += 1;
+        return Promise.reject(new StatsVersionConflictError("stats"));
+      },
+    }));
+    const other = await stuck.service.start(PLAYER, { gameId: "spider-solitaire" });
+    await expect(
+      stuck.service.abandon(PLAYER, other.session.sessionId, { expectedVersion: 0 }),
+    ).rejects.toBeInstanceOf(StatsVersionConflictError);
+    expect(attempts).toBe(3);
+  });
+
+  it("answers an end that lost the race with the current envelope", async () => {
+    const { service } = tablesService((inner) => ({
+      ...inner,
+      end: () => Promise.reject(new SessionVersionConflictError("s")),
+    }));
+    const started = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    await expect(
+      service.abandon(PLAYER, started.session.sessionId, { expectedVersion: 0 }),
+    ).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
   });
 });

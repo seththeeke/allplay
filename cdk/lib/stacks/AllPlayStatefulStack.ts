@@ -25,11 +25,20 @@ export class AllPlayStatefulStack extends Stack {
   readonly preferences: AllPlayTable;
   /** Single-use merge proofs, kept 10 minutes (data-model.md section 10). */
   readonly mergeTokens: AllPlayTable;
+  /** One game from deal to finish (data-model.md section 6). */
+  readonly gameSessions: AllPlayTable;
+  /** Which sessions a player sits in, with the resume index (data-model.md section 7). */
+  readonly seatAssignments: AllPlayTable;
+  /** Results per player, game and variant (data-model.md section 8). */
+  readonly playerStats: AllPlayTable;
   /** Accounts and groups (authn-authz.md section 3). */
   readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
   readonly preferencesTableName: CfnOutput;
   readonly mergeTokensTableName: CfnOutput;
+  readonly gameSessionsTableName: CfnOutput;
+  readonly seatAssignmentsTableName: CfnOutput;
+  readonly playerStatsTableName: CfnOutput;
   readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
@@ -63,6 +72,34 @@ export class AllPlayStatefulStack extends Stack {
       partitionKey: { name: "tokenHash" },
       timeToLiveAttribute: "ttl",
     });
+    this.gameSessions = new AllPlayTable(this, "GameSessions", {
+      stage: props.stage,
+      entity: "GameSessions",
+      partitionKey: { name: "sessionId" },
+      timeToLiveAttribute: "ttl",
+    });
+    this.seatAssignments = new AllPlayTable(this, "SeatAssignments", {
+      stage: props.stage,
+      entity: "SeatAssignments",
+      partitionKey: { name: "playerId" },
+      sortKey: { name: "sessionId" },
+      timeToLiveAttribute: "ttl",
+      globalIndexes: [
+        {
+          indexName: "ByPlayerGame",
+          partitionKey: { name: "playerGameKey" },
+          sortKey: { name: "statusSortKey" },
+          projection: "ALL",
+        },
+      ],
+    });
+    this.playerStats = new AllPlayTable(this, "PlayerStats", {
+      stage: props.stage,
+      entity: "PlayerStats",
+      partitionKey: { name: "playerId" },
+      sortKey: { name: "statsKey" },
+      timeToLiveAttribute: "ttl",
+    });
     const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
     if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
     this.users = new AllPlayUserPool(this, "Users", {
@@ -79,6 +116,15 @@ export class AllPlayStatefulStack extends Stack {
     });
     this.mergeTokensTableName = new CfnOutput(this, "MergeTokensTableName", {
       value: this.mergeTokens.table.tableName,
+    });
+    this.gameSessionsTableName = new CfnOutput(this, "GameSessionsTableName", {
+      value: this.gameSessions.table.tableName,
+    });
+    this.seatAssignmentsTableName = new CfnOutput(this, "SeatAssignmentsTableName", {
+      value: this.seatAssignments.table.tableName,
+    });
+    this.playerStatsTableName = new CfnOutput(this, "PlayerStatsTableName", {
+      value: this.playerStats.table.tableName,
     });
     this.userPoolId = new CfnOutput(this, "UserPoolId", { value: this.users.userPool.userPoolId });
     if (props.stage === "Test") {

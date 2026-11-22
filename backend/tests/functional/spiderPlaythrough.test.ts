@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInMemoryGameSessionDao } from "../../src/dao/gameSession/inMemoryGameSessionDao";
-import { createInMemorySeatAssignmentDao } from "../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
+import { createInMemoryGameTables } from "../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createBundledRulesRepository } from "../../src/game-catalog";
 import { SessionEnvelopeSchema, type SessionEnvelope } from "../../src/models/api";
 import { GameSessionError } from "../../src/service/gameSession/errors";
@@ -9,27 +8,29 @@ import {
   type GameSessionService,
 } from "../../src/service/gameSession/gameSessionService";
 import { readFileSync } from "node:fs";
+import type { PlayerStatsDao } from "../../src/dao/playerStats/playerStatsDao";
 import { loadScenario, ScenarioSchema, type Scenario } from "./scenarios";
 
 const PLAYER = "GUEST#us-east-1:functional-player";
 const repository = createBundledRulesRepository();
 
 /** A session service on the in-memory DAO whose next game deals from the scenario's seed. */
-function serviceFor(scenario: Scenario): GameSessionService {
-  return createGameSessionService({
-    dao: createInMemoryGameSessionDao(),
-    seats: createInMemorySeatAssignmentDao(),
+function serviceFor(scenario: Scenario): { service: GameSessionService; stats: PlayerStatsDao } {
+  const tables = createInMemoryGameTables();
+  const service = createGameSessionService({
+    ...tables,
     games: (gameId, version) => repository.compiled(gameId, version),
     newSeed: () => scenario.seed,
     now: () => new Date("2026-11-19T12:00:00.000Z"),
   });
+  return { service, stats: tables.stats };
 }
 
 /** Starts the scenario's game and plays every action through the service, as the HTTP API will. */
 async function play(
   scenario: Scenario,
-): Promise<{ service: GameSessionService; envelope: SessionEnvelope }> {
-  const service = serviceFor(scenario);
+): Promise<{ service: GameSessionService; envelope: SessionEnvelope; stats: PlayerStatsDao }> {
+  const { service, stats } = serviceFor(scenario);
   let envelope = await service.start(PLAYER, {
     gameId: "spider-solitaire",
     options: scenario.options,
@@ -42,8 +43,10 @@ async function play(
     });
     SessionEnvelopeSchema.parse(envelope);
   }
-  return { service, envelope };
+  return { service, envelope, stats };
 }
+
+const STATS_KEY = "spider-solitaire#dealStyle=MICROSOFT;suits=1";
 
 const zone = (envelope: SessionEnvelope, zoneId: string) =>
   envelope.view.zones.find((z) => z.zoneId === zoneId);
@@ -52,8 +55,20 @@ const zone = (envelope: SessionEnvelope, zoneId: string) =>
 describe("Spider Solitaire playthroughs from fixed seeds", { timeout: 30_000 }, () => {
   it("wins a one-suit game by completing all eight runs", async () => {
     const scenario = loadScenario("spider-win-one-suit.json");
-    const { envelope } = await play(scenario);
+    const { envelope, stats } = await play(scenario);
     const moves = scenario.actions.length;
+    /* The winning move ends the session and counts the win in the same write (data-model.md section 8). */
+    expect(await stats.get(PLAYER, STATS_KEY)).toMatchObject({
+      gamesPlayed: 1,
+      gamesWon: 1,
+      gamesLost: 0,
+      bestScore: 500 - moves + 800,
+      fastestWinMoves: moves,
+      currentWinStreak: 1,
+      longestWinStreak: 1,
+      totalMoves: moves,
+      version: 1,
+    });
     expect(envelope.session.status).toBe("WON");
     expect(envelope.view.status).toEqual({ status: "WON", blocked: false, canUndo: false });
     expect(envelope.session.summary).toMatchObject({
@@ -89,7 +104,7 @@ describe("Spider Solitaire playthroughs from fixed seeds", { timeout: 30_000 }, 
 
   it("loses when the player deals the stock early and reaches a dead end, then abandons", async () => {
     const scenario = loadScenario("spider-dead-end.json");
-    const { service, envelope } = await play(scenario);
+    const { service, envelope, stats } = await play(scenario);
     expect(zone(envelope, "stock.1")?.count).toBe(0);
     expect(envelope.session.status).toBe("IN_PROGRESS");
     expect(envelope.view.status).toEqual({ status: "IN_PROGRESS", blocked: true, canUndo: true });
@@ -108,6 +123,15 @@ describe("Spider Solitaire playthroughs from fixed seeds", { timeout: 30_000 }, 
       expectedVersion: envelope.session.version,
     });
     expect(abandoned.session.status).toBe("ABANDONED");
+    expect(await stats.get(PLAYER, STATS_KEY)).toMatchObject({
+      gamesPlayed: 1,
+      gamesWon: 0,
+      gamesLost: 1,
+      bestScore: null,
+      fastestWinMoves: null,
+      currentWinStreak: 0,
+      totalMoves: 5,
+    });
     expect(abandoned.metaActions.every((meta) => !meta.available)).toBe(true);
     await expect(
       service.undo(PLAYER, envelope.session.sessionId, {

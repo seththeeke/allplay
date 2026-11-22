@@ -26,3 +26,13 @@ export function conditionalCheckFailed(): Error {
   error.name = "ConditionalCheckFailedException";
   return error;
 }
+
+/** The error DynamoDB returns when a transaction is cancelled, with one reason code per item. */
+export function cancelled(codes: string[]): Error {
+  const error = new Error("Transaction cancelled") as Error & {
+    CancellationReasons: { Code: string }[];
+  };
+  error.name = "TransactionCanceledException";
+  error.CancellationReasons = codes.map((Code) => ({ Code }));
+  return error;
+}

@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createGameHandler } from "../../../../src/controller/web-api/game/gameController";
 import { gameRoutes } from "../../../../src/controller/web-api/game/gameRoutes";
-import { createInMemoryGameSessionDao } from "../../../../src/dao/gameSession/inMemoryGameSessionDao";
-import { createInMemorySeatAssignmentDao } from "../../../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
+import { createInMemoryGameTables } from "../../../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createBundledRulesRepository } from "../../../../src/game-catalog";
 import { createLogger } from "../../../../src/logger";
 import { SessionEnvelopeSchema, type SessionEnvelope } from "../../../../src/models/api";
@@ -14,8 +13,7 @@ const write = vi.fn();
 
 function setup() {
   const sessions = createGameSessionService({
-    dao: createInMemoryGameSessionDao(),
-    seats: createInMemorySeatAssignmentDao(),
+    ...createInMemoryGameTables(),
     games: (gameId, version) => repository.compiled(gameId, version),
     newSeed: () => "00000000000000000000000000000001",
   });
@@ -206,5 +204,10 @@ describe("route tiers", () => {
       code: "FORBIDDEN",
       message: "You do not have access to that.",
     });
+  });
+
+  it("builds the deployed handler over the game tables", async () => {
+    const { handler } = await import("../../../../src/controller/web-api/game/handler");
+    expect(typeof handler).toBe("function");
   });
 });

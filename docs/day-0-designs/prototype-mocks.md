@@ -19,7 +19,7 @@ Related specs: `README.md` (execution order), `game-engine.md`, `action-decision
 | Spider rules computed in the browser | `test-data/spider/simulator.ts`, `cards.ts` | The data-driven engine running `spider-solitaire` rules.v1.json on the server (`spider-solitaire.md`). The client must never compute rules (CLAUDE.md section 5); this simulator exists only to feed the prototype | SP-1 to SP-5, WP-1 |
 | Session envelope, view redaction and legal action descriptors | `test-data/spider/envelope.ts` | Server `getView` and `listLegalActions` with face-down cards redacted | GE-7, WP-1 |
 | Seeded shuffles from `Math.random` | `createServices.ts` seed argument | Server-side seed per session, stored for replay (`game-engine.md`) | GE-1, GE-10 |
-| Stats recorded on win or abandon | `services/memory/memoryStats.ts` | `PlayerStats` table updated by the session service | DM-3, GE-10, WP-1 |
+| Stats recorded on win or abandon | `services/memory/memoryStats.ts` | `PlayerStats` table updated by the session service, read through `GET /v1/players/me/stats` (both live since DM-3) | WP-1 |
 | Preferences | `services/memory/memoryPreferencesService.ts`, now only in `MEMORY` mode and on the local server; deployed stages use the `Preferences` table through the signed API since AA-9 | `Preferences` table through `/v1/players/me/preferences` | WP-1 (local `LIVE` mode) |
 | Admin tier from the email prefix `admin` | `memoryPlayerService.ts` | `ADMIN` Cognito group (`scripts/grant-admin.sh`) | AA-8, AA-9 |
 | Google and Apple sign in | `memoryPlayerService.ts` `signInWithProvider` (fake `<provider>.player@example.com` account) | Cognito federation with Google and Apple | AA-3, AA-9 |

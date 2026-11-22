@@ -9,13 +9,13 @@ import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploy
 import { createDeploymentService } from "../service/admin/deploymentService";
 import { createAccountAdminService } from "../service/admin/accountAdminService";
 import { createInMemoryMergeTokenDao } from "../dao/mergeToken/inMemoryMergeTokenDao";
-import { createMergeService, preferencesStep } from "../service/player/mergeService";
+import { createPlayerGameData } from "../service/gameSession/playerGameData";
+import { createMergeService, mergeSteps } from "../service/player/mergeService";
 import type { HttpResult } from "../controller/web-api/shared/response";
 import { createInMemoryDecisionDao } from "../dao/decision/inMemoryDecisionDao";
-import { createInMemoryGameSessionDao } from "../dao/gameSession/inMemoryGameSessionDao";
+import { createInMemoryGameTables } from "../dao/gameSession/inMemoryGameSessionDao";
 import { createInMemoryPlayerDao } from "../dao/player/inMemoryPlayerDao";
 import { createInMemoryPreferenceDao } from "../dao/preference/inMemoryPreferenceDao";
-import { createInMemorySeatAssignmentDao } from "../dao/seatAssignment/inMemorySeatAssignmentDao";
 import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
@@ -221,9 +221,11 @@ export async function createLocalProviders(
   const repository = createBundledRulesRepository();
   let fixedSeed: string | null = null;
   const build = () => {
+    /* One in-memory store per table, shared by every service as the deployed tables are. */
+    const gameTables = createInMemoryGameTables();
+    const gameData = createPlayerGameData(gameTables);
     const sessions = createGameSessionService({
-      dao: createInMemoryGameSessionDao(),
-      seats: createInMemorySeatAssignmentDao(),
+      ...gameTables,
       games: (gameId, version) => repository.compiled(gameId, version),
       ...(overrides.now ? { now: overrides.now } : {}),
       newSeed: () => fixedSeed ?? (overrides.newSeed ?? randomSeed)(),
@@ -237,13 +239,12 @@ export async function createLocalProviders(
         (await repository.get(gameId, version)).speech.deciderGuidance ?? [],
       ...(overrides.now ? { now: overrides.now } : {}),
     });
-    /* One in-memory store per table, shared by the player and merge services as the tables are. */
     const playerDao = createInMemoryPlayerDao();
     const preferenceDao = createInMemoryPreferenceDao();
     const merge = createMergeService({
       players: playerDao,
       mergeTokens: createInMemoryMergeTokenDao(),
-      steps: [preferencesStep(preferenceDao)],
+      steps: mergeSteps(preferenceDao, gameData),
       ...(overrides.now ? { now: overrides.now } : {}),
     });
     return {
@@ -259,6 +260,7 @@ export async function createLocalProviders(
           players: createPlayerService({
             players: playerDao,
             preferences: preferenceDao,
+            gameData,
             ...(overrides.now ? { now: overrides.now } : {}),
           }),
           merge,

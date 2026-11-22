@@ -1,6 +1,5 @@
 import { createInMemoryDecisionDao } from "../../../src/dao/decision/inMemoryDecisionDao";
-import { createInMemoryGameSessionDao } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
-import { createInMemorySeatAssignmentDao } from "../../../src/dao/seatAssignment/inMemorySeatAssignmentDao";
+import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createBundledRulesRepository } from "../../../src/game-catalog";
 import { DecisionRequestSchema } from "../../../src/models/api";
 import type { z } from "zod";
@@ -50,8 +49,7 @@ export function setupDecider(
 } {
   const repository = createBundledRulesRepository();
   const sessions = createGameSessionService({
-    dao: createInMemoryGameSessionDao(),
-    seats: createInMemorySeatAssignmentDao(),
+    ...createInMemoryGameTables(),
     games: (gameId, version) => repository.compiled(gameId, version),
     newSeed: () => SEED,
   });

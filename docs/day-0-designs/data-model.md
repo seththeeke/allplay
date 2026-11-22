@@ -631,9 +631,10 @@ Each leg is one commit. Tables are created in the execution phase that first nee
 
 ## Appendix: Implementation Progress
 
-Status as of 2026-11-21.
+Status as of 2026-11-22.
 
 | Leg | Status | Notes |
 |---|---|---|
 | DM-1 | Done | `Players` (with `ByEmail` and the guest `ttl`) and `Preferences` tables in the stateful stack; `models/player.ts`, `models/preference.ts`; in-memory and DynamoDB DAOs. Unit tests run the shared contracts against memory and check the DynamoDB DAOs' commands against a stubbed client. The same contracts run against the Test stage's tables in the pipeline's verification step, which may write to Test only |
 | DM-2 | Done | `AllPlay-MergeTokens-<Stage>` (`tokenHash`, TTL `ttl`), `models/mergeToken.ts`, in-memory and DynamoDB DAOs on a shared contract run in unit tests and against Test, and `service/player/mergeService.ts`: token issue (32 random bytes, SHA-256 stored), redemption, the guest merge and the account merge, with idempotency tests. Seat and stats steps wait on DM-3 |
+| DM-3 | Done | `AllPlay-GameSessions-<Stage>`, `AllPlay-SeatAssignments-<Stage>` (with `ByPlayerGame`) and `AllPlay-PlayerStats-<Stage>`, each with the guest `ttl`; `models/playerStats.ts`; in-memory DAOs over one shared store and DynamoDB DAOs, on one contract run in unit tests and against Test. Start and end are `TransactWriteItems`; the stats fold, the merge (seats, then preferences, then stats) and the deletion are in `service/gameSession/`. The local server keeps in-memory storage. Known limit: a guest item's `ttl` moves only when that item is written, not with `lastActionAt` |

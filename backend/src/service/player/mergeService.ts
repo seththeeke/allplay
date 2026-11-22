@@ -10,13 +10,14 @@ import { MERGE_TOKEN_SECONDS } from "../../models/mergeToken";
 import type { Player } from "../../models/player";
 import { PreferenceValuesSchema, type PreferenceValues } from "../../models/preference";
 import { invalidRequest, notApplicable } from "../gameSession/errors";
+import { createDeployedPlayerGameData, type PlayerGameData } from "../gameSession/playerGameData";
 import { createIdentityService, type IdentityService } from "./identityService";
 import type { PlayerCaller } from "./playerService";
 
 /**
  * One kind of data the merge moves from one player to another. Every step is
  * idempotent, so a retried merge gives the same result (data-model.md section
- * 10). Seats and stats join the steps with their tables (DM-3).
+ * 10).
  */
 export type MergeStep = (fromPlayerId: string, intoPlayerId: string, at: string) => Promise<void>;
 
@@ -30,6 +31,21 @@ export function preferencesStep(preferences: PreferenceDao): MergeStep {
       await preferences.patch(into, item.scope, values, at);
     }
   };
+}
+
+/** Moves seats and sessions, keeping the newer of two games in progress (data-model.md section 10, step 1). */
+export function seatsStep(data: PlayerGameData): MergeStep {
+  return (from, into, at) => data.moveSeats(from, into, new Date(at));
+}
+
+/** Combines stats per variant (data-model.md section 10, step 3). */
+export function statsStep(data: PlayerGameData): MergeStep {
+  return (from, into, at) => data.moveStats(from, into, new Date(at));
+}
+
+/** The merge steps in order: seats, preferences the target lacks, then stats. */
+export function mergeSteps(preferences: PreferenceDao, data: PlayerGameData): MergeStep[] {
+  return [seatsStep(data), preferencesStep(preferences), statsStep(data)];
 }
 
 /** After the data moves: the Cognito side of an account merge (AA-12). */
@@ -68,7 +84,7 @@ export function cognitoAccountMerge(
   };
 }
 
-/** The merge service over the deployed tables (PLAYERS_TABLE, PREFERENCES_TABLE, MERGE_TOKENS_TABLE). */
+/** The merge service over the deployed tables (players, preferences, merge tokens, sessions, seats and stats). */
 export function createDeployedMergeService(
   env: Readonly<Record<string, string | undefined>> = process.env,
   identities: IdentityService = createIdentityService(),
@@ -79,7 +95,10 @@ export function createDeployedMergeService(
   return createMergeService({
     players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
     mergeTokens: createDynamoMergeTokenDao(env["MERGE_TOKENS_TABLE"] ?? ""),
-    steps: [preferencesStep(createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""))],
+    steps: mergeSteps(
+      createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""),
+      createDeployedPlayerGameData(env),
+    ),
     ...(afterAccountMerge === undefined ? {} : { afterAccountMerge }),
   });
 }

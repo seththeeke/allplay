@@ -12,10 +12,12 @@ import {
   type PatchGamePreferences,
   type PlayerMe,
   type PreferencesResponse,
+  type StatsResponse,
   type Tier,
 } from "../../models/api";
 import { guestTtl, type Player } from "../../models/player";
 import type { Preference } from "../../models/preference";
+import { createDeployedPlayerGameData, type PlayerGameData } from "../gameSession/playerGameData";
 import { createIdentityService, type IdentityService } from "./identityService";
 
 /** Who is calling, as the controllers resolved it. */
@@ -28,6 +30,8 @@ export interface PlayerCaller {
 export interface PlayerServiceDeps {
   players: PlayerDao;
   preferences: PreferenceDao;
+  /** The player's sessions, seats and stats, for the stats route and deletion. */
+  gameData: PlayerGameData;
   /** The User Pool, for account deletion; absent where there is no pool (the local server). */
   userPool?: { id: string; identities: IdentityService };
   now?: () => Date;
@@ -42,6 +46,8 @@ export interface PlayerService {
   recordActivity(caller: PlayerCaller): Promise<void>;
   me(caller: PlayerCaller): Promise<PlayerMe>;
   preferences(playerId: string): Promise<PreferencesResponse>;
+  /** Every game and variant the player has a result in (`GET /v1/players/me/stats`). */
+  stats(playerId: string): Promise<StatsResponse>;
   patchApp(caller: PlayerCaller, patch: PatchAppPreferences): Promise<PreferencesResponse>;
   patchGame(
     caller: PlayerCaller,
@@ -50,9 +56,9 @@ export interface PlayerService {
   ): Promise<PreferencesResponse>;
   /**
    * Account deletion (authn-authz.md section 8, data-model.md section 14):
-   * deletes the preferences, leaves a tombstone `Player` with no email or
-   * name, then deletes the Cognito user. Tables added later (seats, stats,
-   * sessions) join this as their legs land.
+   * deletes the preferences, seats, stats and the sessions the player sat in
+   * alone, leaves a tombstone `Player` with no email or name, then deletes
+   * the Cognito user.
    */
   deleteAccount(caller: PlayerCaller): Promise<void>;
   /** Revokes the account's refresh tokens on every device (authn-authz.md section 12). */
@@ -125,6 +131,7 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
       };
     },
     preferences: async (playerId) => layered(await deps.preferences.list(playerId)),
+    stats: async (playerId) => ({ stats: await deps.gameData.stats(playerId) }),
     patchApp: async (caller, patch) => {
       const at = now();
       await deps.preferences.patch(
@@ -146,6 +153,7 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
     deleteAccount: async (caller) => {
       const at = now().toISOString();
       await deps.preferences.deleteAll(caller.playerId);
+      await deps.gameData.deleteAll(caller.playerId);
       if ((await deps.players.get(caller.playerId)) !== null) {
         await deps.players.update(caller.playerId, { status: "DELETED", identityIds: [] }, at, [
           "email",
@@ -185,6 +193,7 @@ export function createDeployedPlayerService(
   return createPlayerService({
     players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
     preferences: createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""),
+    gameData: createDeployedPlayerGameData(env),
     ...(userPoolId === undefined
       ? {}
       : { userPool: { id: userPoolId, identities: createIdentityService() } }),

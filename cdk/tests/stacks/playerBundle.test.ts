@@ -24,6 +24,9 @@ describe("player bundle", () => {
           PLAYERS_TABLE: Match.anyValue(),
           PREFERENCES_TABLE: Match.anyValue(),
           MERGE_TOKENS_TABLE: Match.anyValue(),
+          GAME_SESSIONS_TABLE: Match.anyValue(),
+          SEAT_ASSIGNMENTS_TABLE: Match.anyValue(),
+          PLAYER_STATS_TABLE: Match.anyValue(),
           IDENTITY_POOL_ID: Match.anyValue(),
           USER_POOL_ID: Match.anyValue(),
           FEDERATION_SECRET_ID: Match.anyValue(),
@@ -33,6 +36,7 @@ describe("player bundle", () => {
     for (const routeKey of [
       "GET /v1/players/me",
       "GET /v1/players/me/preferences",
+      "GET /v1/players/me/stats",
       "PATCH /v1/players/me/preferences/{scope}",
       "DELETE /v1/players/me",
       "POST /v1/players/me/sign-out",
@@ -66,6 +70,32 @@ describe("player bundle", () => {
       .map(([, value]) => JSON.stringify(value));
     expect(player).toHaveLength(1);
     expect(player[0]).not.toContain("dynamodb:Scan");
+  });
+
+  it("grants the player and admin Lambdas the game data calls of a merge and a deletion", () => {
+    const statementsOf = (prefix: string) =>
+      Object.entries(app.findResources("AWS::IAM::Policy"))
+        .filter(([logicalId]) => logicalId.startsWith(prefix))
+        .flatMap(
+          ([, value]) =>
+            (value as { Properties: { PolicyDocument: { Statement: unknown[] } } }).Properties
+              .PolicyDocument.Statement,
+        )
+        .map((statement) => JSON.stringify(statement));
+    for (const prefix of ["PlayerApi", "AdminApi"]) {
+      const statements = statementsOf(prefix);
+      const on = (table: string) => statements.find((statement) => statement.includes(table));
+      expect(on("GameSessions")).toContain(
+        '"Action":["dynamodb:DeleteItem","dynamodb:GetItem","dynamodb:PutItem"]',
+      );
+      expect(on("SeatAssignments")).toContain(
+        '"Action":["dynamodb:DeleteItem","dynamodb:PutItem","dynamodb:Query"]',
+      );
+      expect(on("SeatAssignments")).toContain("/index/ByPlayerGame");
+      expect(on("PlayerStats")).toContain(
+        '"Action":["dynamodb:DeleteItem","dynamodb:GetItem","dynamodb:PutItem","dynamodb:Query"]',
+      );
+    }
   });
 
   it("refuses a public route in an IAM bundle", () => {

@@ -6,12 +6,19 @@ import { createInMemoryPreferenceDao } from "../../../../src/dao/preference/inMe
 import { createInMemoryMergeTokenDao } from "../../../../src/dao/mergeToken/inMemoryMergeTokenDao";
 import { devIdentity } from "../../../../src/local/eventAdapter";
 import { createLogger } from "../../../../src/logger";
-import { createMergeService, preferencesStep } from "../../../../src/service/player/mergeService";
+import { createBundledRulesRepository } from "../../../../src/game-catalog";
+import { createGameSessionService } from "../../../../src/service/gameSession/gameSessionService";
+import { createMergeService, mergeSteps } from "../../../../src/service/player/mergeService";
 import {
   createPlayerService,
   type PlayerService,
 } from "../../../../src/service/player/playerService";
 import { apiEvent } from "../apiEvent";
+import { createInMemoryGameTables } from "../../../../src/dao/gameSession/inMemoryGameSessionDao";
+import { createPlayerGameData } from "../../../../src/service/gameSession/playerGameData";
+
+/** Sessions, seats and stats over fresh in-memory tables. */
+const memoryGameData = () => createPlayerGameData(createInMemoryGameTables());
 
 const write = vi.fn();
 const merge = createMergeService({
@@ -23,14 +30,22 @@ const merge = createMergeService({
 function setup() {
   const players = createInMemoryPlayerDao();
   const preferences = createInMemoryPreferenceDao();
-  const service = createPlayerService({ players, preferences });
+  const tables = createInMemoryGameTables();
+  const gameData = createPlayerGameData(tables);
+  const service = createPlayerService({ players, preferences, gameData });
   const merging = createMergeService({
     players,
     mergeTokens: createInMemoryMergeTokenDao(),
-    steps: [preferencesStep(preferences)],
+    steps: mergeSteps(preferences, gameData),
+  });
+  const repository = createBundledRulesRepository();
+  const sessions = createGameSessionService({
+    ...tables,
+    games: (gameId, version) => repository.compiled(gameId, version),
   });
   return {
     players,
+    sessions,
     handler: createPlayersHandler({
       players: service,
       merge: merging,
@@ -110,7 +125,11 @@ describe("players controller", () => {
 
   it("signs out everywhere, revokes Apple before deleting, and handles Apple notifications", async () => {
     const players = createInMemoryPlayerDao();
-    const service = createPlayerService({ players, preferences: createInMemoryPreferenceDao() });
+    const service = createPlayerService({
+      players,
+      preferences: createInMemoryPreferenceDao(),
+      gameData: memoryGameData(),
+    });
     const apple = {
       revokeForDeletion: vi.fn(() => Promise.resolve(true)),
       handleNotification: vi.fn((payload: string) =>
@@ -188,6 +207,7 @@ describe("players controller", () => {
       ...createPlayerService({
         players: createInMemoryPlayerDao(),
         preferences: createInMemoryPreferenceDao(),
+        gameData: memoryGameData(),
       }),
       recordActivity: () => Promise.reject(new Error("throttled")),
     };
@@ -205,6 +225,7 @@ describe("players controller", () => {
 
   it("lists its routes for CDK with their tiers", async () => {
     expect(playersRoutes.map((route) => route.minimumTier)).toEqual([
+      "GUEST",
       "GUEST",
       "GUEST",
       "GUEST",
@@ -240,5 +261,33 @@ describe("players controller", () => {
     expect(await players.get("GUEST#g-9")).toMatchObject({ status: "MERGED" });
     const reused = await handler(as("POST /v1/players/me/merge", "player", "sub-8", { token }));
     expect(reused.statusCode).toBe(422);
+  });
+
+  it("lists the caller's stats, which move with a guest merge", async () => {
+    const { handler, sessions } = setup();
+    const started = await sessions.start("GUEST#g-7", { gameId: "spider-solitaire" });
+    const moved = await sessions.applyAction("GUEST#g-7", started.session.sessionId, {
+      actionId: "DEAL_ROW",
+      expectedVersion: 0,
+    });
+    await sessions.abandon("GUEST#g-7", started.session.sessionId, {
+      expectedVersion: moved.session.version,
+    });
+    const mine = await handler(as("GET /v1/players/me/stats", "guest", "g-7"));
+    expect(json(mine)).toMatchObject({
+      stats: [{ gameId: "spider-solitaire", gamesPlayed: 1, gamesLost: 1, totalMoves: 1 }],
+    });
+    const { token } = json(
+      await handler(as("POST /v1/players/me/merge-tokens", "guest", "g-7")),
+    ) as {
+      token: string;
+    };
+    await handler(as("POST /v1/players/me/merge", "player", "sub-7", { token }));
+    expect(json(await handler(as("GET /v1/players/me/stats", "player", "sub-7")))).toMatchObject({
+      stats: [{ gamesPlayed: 1 }],
+    });
+    expect(json(await handler(as("GET /v1/players/me/stats", "guest", "g-7")))).toEqual({
+      stats: [],
+    });
   });
 });

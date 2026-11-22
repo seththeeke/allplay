@@ -79,6 +79,48 @@ describe("AllPlayStatefulStack", () => {
     );
   });
 
+  it("creates the game tables: sessions, seats with the resume index, and stats, each with the guest TTL", () => {
+    const { template } = synth("Test");
+    template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+      TableName: "AllPlay-GameSessions-Test",
+      KeySchema: [{ AttributeName: "sessionId", KeyType: "HASH" }],
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
+    template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+      TableName: "AllPlay-SeatAssignments-Test",
+      KeySchema: [
+        { AttributeName: "playerId", KeyType: "HASH" },
+        { AttributeName: "sessionId", KeyType: "RANGE" },
+      ],
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+      GlobalSecondaryIndexes: [
+        Match.objectLike({
+          IndexName: "ByPlayerGame",
+          KeySchema: [
+            { AttributeName: "playerGameKey", KeyType: "HASH" },
+            { AttributeName: "statusSortKey", KeyType: "RANGE" },
+          ],
+          Projection: { ProjectionType: "ALL" },
+        }),
+      ],
+    });
+    template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+      TableName: "AllPlay-PlayerStats-Test",
+      KeySchema: [
+        { AttributeName: "playerId", KeyType: "HASH" },
+        { AttributeName: "statsKey", KeyType: "RANGE" },
+      ],
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
+    expect(Object.keys(template.findOutputs("*"))).toEqual(
+      expect.arrayContaining([
+        "GameSessionsTableName",
+        "SeatAssignmentsTableName",
+        "PlayerStatsTableName",
+      ]),
+    );
+  });
+
   it("grants Test's verification read and write on its tables, and Prod's nothing", () => {
     const test = synth("Test").stage;
     const scope = new Stack(undefined, "Grants", {
@@ -101,6 +143,10 @@ describe("AllPlayStatefulStack", () => {
       ':dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test"',
       ':dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test/index/ByEmail"',
       ':dynamodb:us-east-1:111111111111:table/AllPlay-Preferences-Test"',
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-GameSessions-Test"',
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-SeatAssignments-Test"',
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-SeatAssignments-Test/index/ByPlayerGame"',
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-PlayerStats-Test"',
     ])
       expect(arns).toContain(suffix);
     expect(arns).not.toContain("*");

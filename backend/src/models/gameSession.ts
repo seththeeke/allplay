@@ -18,6 +18,8 @@ export const GameSessionSchema = z.object({
   startedAt: z.iso.datetime(),
   endedAt: z.iso.datetime().optional(),
   lastActionAt: z.iso.datetime().optional(),
+  /* Only while every seat is a guest's (data-model.md section 1, principle 10). */
+  ttl: z.number().int().optional(),
   entityVersion: z.literal(1),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

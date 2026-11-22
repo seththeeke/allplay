@@ -65,3 +65,33 @@ export function updateExpression(
     ExpressionAttributeValues: values,
   };
 }
+
+/**
+ * The positions of a cancelled transaction's items whose condition failed, or
+ * null when the error is not a cancelled transaction.
+ */
+export function failedConditions(error: unknown): number[] | null {
+  if (!(error instanceof Error) || error.name !== "TransactionCanceledException") return null;
+  const reasons = (error as { CancellationReasons?: { Code?: string }[] }).CancellationReasons;
+  return (reasons ?? []).flatMap((reason, index) =>
+    reason.Code === "ConditionalCheckFailed" ? [index] : [],
+  );
+}
+
+/** Every item of a query, following `LastEvaluatedKey` pages. */
+export async function queryAll(
+  client: DocumentSender,
+  query: (start: Record<string, unknown> | undefined) => object,
+): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  let start: Record<string, unknown> | undefined;
+  do {
+    const out = (await client.send(query(start))) as {
+      Items?: Record<string, unknown>[];
+      LastEvaluatedKey?: Record<string, unknown>;
+    };
+    items.push(...(out.Items ?? []));
+    start = out.LastEvaluatedKey;
+  } while (start !== undefined);
+  return items;
+}
