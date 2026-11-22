@@ -56,8 +56,21 @@ export function verifyCommands(): string[] {
     `curl -fsS "$WEB_URL/" | grep -q 'id="root"'`,
     `curl -fsS "$WEB_URL/health" | grep -q 'id="root"'`,
     'curl -fsS "$WEB_URL/config.json" | grep -q "$API_URL"',
+    ...SMOKE_COMMANDS,
   ];
 }
+
+/**
+ * Browser smoke tests of the stage's site (CDK-10): Chromium's libraries
+ * from the image's package manager, since Playwright installs them only on
+ * Debian and Ubuntu, then the web app's Playwright suite with axe checks.
+ */
+export const SMOKE_COMMANDS = [
+  "dnf install -y -q nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm pango alsa-lib",
+  "npm ci --prefix web-app",
+  "(cd web-app && npx playwright install chromium)",
+  '(cd web-app && SMOKE_BASE_URL="$WEB_URL" npm run test:smoke)',
+];
 
 /* Findings on the CDK Pipelines construct, which generates its own roles, projects and artifact bucket. */
 const PIPELINE_ACKNOWLEDGED: readonly (readonly [string, string])[] = [
@@ -217,6 +230,7 @@ export class AllPlayPipelineStack extends Stack {
               ? { INTEGRATION_ACCOUNTS_ROLE: resourceName("IntegrationAccounts", stageName) }
               : {}),
             INTEGRATION_SCOPE: stageName === "Test" ? "stage" : "readonly",
+            ...(stageName === "Test" ? { SMOKE_WRITES: "stage" } : {}),
           },
           rolePolicyStatements: stage.verifyGrants.map((grant) => grant(this)),
           commands: verifyCommands(),

@@ -6,6 +6,7 @@ import {
   CONNECTION_PARAMETER,
   SYNTH_COMMANDS,
   verifyCommands,
+  SMOKE_COMMANDS,
 } from "../../lib/stacks/AllPlayPipelineStack";
 import { testApp } from "../testApp";
 
@@ -70,6 +71,14 @@ describe("AllPlayPipelineStack", () => {
         BuildSpec: Match.stringLikeRegexp('"nodejs": 22[\\s\\S]*npm run lint'),
       }),
     });
+  });
+
+  it("runs the browser smoke tests after the integration tests, writing only in Test", () => {
+    expect(verifyCommands().slice(-SMOKE_COMMANDS.length)).toEqual(SMOKE_COMMANDS);
+    expect(SMOKE_COMMANDS.join(" ")).toContain('SMOKE_BASE_URL="$WEB_URL" npm run test:smoke');
+    const projects = JSON.stringify(template.findResources("AWS::CodeBuild::Project"));
+    expect(projects).toContain("SMOKE_WRITES");
+    expect(projects.match(/"SMOKE_WRITES"/g)).toHaveLength(1);
   });
 
   it("verifies each stage with integration tests and web checks", () => {
