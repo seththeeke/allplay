@@ -222,9 +222,14 @@ Attributes:
 | `state` | Binary | Gzip-compressed JSON of the engine `GameState` (`game-engine.md` Section 6); contains the seed and hidden cards and is never returned to clients |
 | `summary` | Map | Uncompressed copy of display fields: `score`, `moveCount`, `undoCount`, `completedRuns`, `stockDealsRemaining` |
 | `startedAt`, `endedAt`, `lastActionAt` | String | ISO timestamps |
+| `ttl` | Number | Only while the only seat is a guest's (Section 1, principle 10) |
 | `entityVersion`, `createdAt`, `updatedAt` | | Section 1 |
 
-Every applied action is a single conditional `UpdateItem` (`version = :expected`) that writes `state`, `summary`, `version`, `status` and `lastActionAt`. The compressed engine state for a Spider Solitaire game is under 8 KB.
+Writes:
+
+1. Each applied action or undo that leaves the session `IN_PROGRESS` is a single conditional `PutItem` (`version = :expected`). The compressed engine state for a Spider Solitaire game is under 8 KB.
+2. Starting a session is one `TransactWriteItems`: the session (`attribute_not_exists(sessionId)`) and its seats.
+3. Ending a session (`WON` or `ABANDONED`) is one `TransactWriteItems`: the session, conditioned on `version = :expected` and `status = IN_PROGRESS`; its seats with the new status; and each counted seat's `PlayerStats` item, conditioned on its own `version` (Section 8). Because the session condition fails once the session has ended, a game's result is counted exactly once, retries included.
 
 Sample (state shown decoded; it is stored gzip-compressed):
 
@@ -270,7 +275,7 @@ GSI `ByPlayerGame`:
 | Key | Attribute | Format |
 |---|---|---|
 | Partition key | `playerGameKey` | `<playerId>|<gameId>` |
-| Sort key | `statusSortKey` | `<status>#<lastActionAt>` |
+| Sort key | `statusSortKey` | `<status>#<sessionId>` |
 | Projection | ALL | |
 
 Access patterns:
@@ -278,12 +283,13 @@ Access patterns:
 | Pattern | Operation |
 |---|---|
 | Resume the player's current game of a given game (for example `/spider`) | Query `ByPlayerGame`, `playerGameKey = <playerId>|spider-solitaire`, `statusSortKey begins_with IN_PROGRESS#`, descending, limit 1 |
-| List a player's recent sessions | Query base table on `playerId`, descending, limit 20 |
-| Verify the caller holds a seat in a session | `GetItem` on `playerId` + `sessionId` |
+| List a player's sessions, newest first (merge, deletion, and later a history screen) | Query base table on `playerId`, descending |
 
-A seat assignment is written when a session is created and updated only when the session `status` changes (finished or abandoned) and, at most once per minute, to refresh `lastActionAt` for resume ordering. It is never written per move.
+Starting a session ends the player's in-progress session of the same game, so at most one seat per player and game is `IN_PROGRESS` and resume needs no ordering by activity. Whether the caller holds a seat is read from the session's own `seats` list, which the service loads anyway. The index is eventually consistent: a reload within milliseconds of starting a session can miss it, and then starts a new one.
 
-Attributes: `playerId`, `sessionId`, `gameId`, `seatId`, `status` (mirrors the session), `lastActionAt`, `playerGameKey`, `statusSortKey`, plus Section 1 fields.
+A seat assignment is written twice: in the transaction that starts its session and in the transaction that ends it (Section 6). It is never written per move.
+
+Attributes: `playerId`, `sessionId`, `gameId`, `seatId`, `status` (mirrors the session), `playerGameKey`, `statusSortKey`, `ttl` (guest seats only), plus Section 1 fields.
 
 Sample:
 
@@ -294,18 +300,41 @@ Sample:
   "gameId": "spider-solitaire",
   "seatId": "S1",
   "status": "IN_PROGRESS",
-  "lastActionAt": "2026-12-02T14:22:00.000Z",
   "playerGameKey": "GUEST#us-east-1:4f1c2a9e-1d7b-4c55-9a0e-8f3f1d2b6c11|spider-solitaire",
-  "statusSortKey": "IN_PROGRESS#2026-12-02T14:22:00.000Z",
+  "statusSortKey": "IN_PROGRESS#01JEX4Q8N6W2D3K5T7V9B1C3E5",
+  "ttl": 1804515901,
   "entityVersion": 1,
   "createdAt": "2026-12-02T14:05:01.009Z",
-  "updatedAt": "2026-12-02T14:22:00.000Z"
+  "updatedAt": "2026-12-02T14:05:01.009Z"
 }
 ```
 
 ## 8. PlayerStats
 
-Table `AllPlay-PlayerStats-<Stage>`. One item per player, game and variant. Updated when a session ends: `WON` counts a win, `ABANDONED` counts a loss. A session abandoned with zero moves is not counted.
+Table `AllPlay-PlayerStats-<Stage>`. One item per player, game and variant. Updated when a session ends:
+
+| Session end | Counted as |
+|---|---|
+| `WON` | A win |
+| `ABANDONED` by the abandon route, or by starting a new game of the same game, with `moveCount` of at least 1 | A loss |
+| `ABANDONED` with `moveCount` 0 | Not counted |
+| `ABANDONED` by a merge that keeps another in-progress session (Section 10) | Not counted |
+
+A game with no losing end condition, such as Spider Solitaire, records every loss as an abandon.
+
+Computation, by a pure function in the game session service that folds one result into the current item (or into zeros when none exists):
+
+| Attribute | Rule |
+|---|---|
+| `gamesPlayed`, `gamesWon`, `gamesLost` | Plus 1 to played and to won or lost |
+| `bestScore` | Highest final `score` among wins; null before the first win |
+| `fastestWinMoves` | Lowest final `moveCount` among wins; null before the first win |
+| `currentWinStreak` | Plus 1 on a win, 0 on a loss |
+| `longestWinStreak` | Highest `currentWinStreak` reached |
+| `totalMoves` | Sum of final `moveCount` over counted games |
+| `lastPlayedAt` | The session's `endedAt` |
+
+The item carries an integer `version`. The folded item is written with `PutItem` conditioned on the version read (or `attribute_not_exists` for a first game), inside the transaction that ends the session (Section 6). A conflict on the stats item alone re-reads, re-folds and retries the transaction, up to three times. Win rate is computed by the client from `gamesWon / gamesPlayed`. Stats are derived data: account sessions never expire, so every item can be rebuilt from the player's ended sessions.
 
 | Key | Attribute | Type |
 |---|---|---|
@@ -314,7 +343,7 @@ Table `AllPlay-PlayerStats-<Stage>`. One item per player, game and variant. Upda
 
 No GSIs. The stats screen reads all of a player's stats with one `Query`, optionally with `begins_with(<gameId>#)`.
 
-Attributes: `gamesPlayed`, `gamesWon`, `gamesLost`, `bestScore` (highest score in a won game), `fastestWinMoves`, `currentWinStreak`, `longestWinStreak`, `totalMoves`, `lastPlayedAt`, plus Section 1 fields. Win rate is computed by the client from `gamesWon / gamesPlayed`. Counter updates use `ADD`; `bestScore` and `fastestWinMoves` use conditional `SET`.
+Attributes: `gameId`, `variantKey`, the attributes in the table above, `version`, `ttl` (guest items only), plus Section 1 fields.
 
 Sample:
 
@@ -322,6 +351,8 @@ Sample:
 {
   "playerId": "ACCT#7b3e9a10-5c2d-4f8e-a1b6-0d9c3e4f5a67",
   "statsKey": "spider-solitaire#dealStyle=MICROSOFT;suits=1",
+  "gameId": "spider-solitaire",
+  "variantKey": "dealStyle=MICROSOFT;suits=1",
   "gamesPlayed": 14,
   "gamesWon": 9,
   "gamesLost": 5,
@@ -331,6 +362,7 @@ Sample:
   "longestWinStreak": 4,
   "totalMoves": 1873,
   "lastPlayedAt": "2026-12-03T09:12:40.017Z",
+  "version": 14,
   "entityVersion": 1,
   "createdAt": "2026-12-02T14:05:01.009Z",
   "updatedAt": "2026-12-03T09:12:40.017Z"
@@ -466,13 +498,13 @@ Sample:
 
 Merge semantics, executed by the merge service:
 
-1. Every `SeatAssignment` of the guest is copied to the account `playerId`, and the matching `GameSession.seats[].playerId` is rewritten.
+1. Every `SeatAssignment` of the guest moves to the account `playerId`: the matching `GameSession.seats[].playerId` is rewritten and the session loses its `ttl`, the account's seat is written without `ttl`, then the guest's seat is deleted. When both players hold an `IN_PROGRESS` session of the same game, the one with the later `lastActionAt` (else `startedAt`) stays in progress and the other ends `ABANDONED` without counting in `PlayerStats` (Section 8).
 2. Each guest `Preference` scope is copied to the account only when the account has no item for that scope.
-3. Each guest `PlayerStats` item is added into the account's item for the same `statsKey` (counters summed, best values compared).
+3. Each guest `PlayerStats` item is combined into the account's item for the same `statsKey`, and the guest item deleted, in one `TransactWriteItems` conditioned on the account item's `version`. Counters and `totalMoves` are summed; `bestScore` and `longestWinStreak` take the higher value, `fastestWinMoves` the lower; `currentWinStreak` and `lastPlayedAt` come from the item played more recently.
 4. The guest `Player` item is set to `MERGED` with `mergedInto`; the account `Player` gains the guest id in `mergedGuestIds`.
 5. The merge is idempotent: each step checks whether it already ran, so a retried merge produces the same result.
 
-The merge service runs the data moves as an ordered list of steps. Step 2 (preferences) and step 4 (players) run since DM-2; the seat and stats steps join the list with their tables in DM-3.
+The merge service runs the data moves as an ordered list of steps: seats, preferences, stats, then players. A step interrupted part way leaves each item either moved or not yet moved, so a retry finishes it.
 
 ## 11. RateLimitCounter
 
@@ -582,7 +614,7 @@ Sample:
 
 ## 14. Account Deletion
 
-`DELETE /players/me` (`authn-authz.md` Section 8) removes the account's `Player`, `Preference`, `SeatAssignment` and `PlayerStats` items, deletes every `GameSession` where the account holds the only seat, and deletes the Cognito user. `Decision` items expire on their own TTL. The `Player` item is written back as a minimal tombstone (`status = DELETED`, no email or name) so that daily rollups remain consistent.
+`DELETE /players/me` (`authn-authz.md` Section 8) removes the account's `Preference`, `SeatAssignment` and `PlayerStats` items, deletes every `GameSession` where the account holds the only seat, and deletes the Cognito user. `Decision` items expire on their own TTL. The `Player` item is written back as a minimal tombstone (`status = DELETED`, no email or name) so that daily rollups remain consistent.
 
 ## 15. Implementation Legs
 

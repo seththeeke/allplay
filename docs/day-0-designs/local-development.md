@@ -43,7 +43,7 @@ Each capability is chosen by an environment variable. A preset sets all of them,
 | Variable | Values |
 |---|---|
 | `ALLPLAY_PRESET` | `local` (default), `local-aws`, `continuous-integration` |
-| `ALLPLAY_STORAGE` | `memory` (DynamoDB arrives with DM-3) |
+| `ALLPLAY_STORAGE` | `memory` (the deployed stages use DynamoDB since DM-3) |
 | `ALLPLAY_LLM` | `claude-code`, `claude-api`, `bedrock`, `fake` |
 | `ALLPLAY_SPEECH_IN` | `auto`, `macos`, `whisper`, `transcribe`, `typed` |
 | `ALLPLAY_SPEECH_OUT` | `kokoro`, `polly`, `recording` |
@@ -124,4 +124,5 @@ Status as of 2026-11-20.
 - LD-7 is done: Space records on the game screen and the local server transcribes; `npm run test:voice` in `web-app/` won the seeded one-suit game through Claude Code (116 commands, 8.6 minutes, run against a `vite preview` build on port 4173 with `ALLPLAY_WEB_ORIGIN=http://localhost:4173` and `VOICE_BASE_URL=http://localhost:4173`).
 - The playthrough found three decider weaknesses, fixed in the prompts and candidates (`action-decision.md` Sections 5 and 6): number words as columns, dealing phrases classified as unrecognized, and units of different depth to an empty column.
 - AD-13 is done: spoken replies use Kokoro through the local server when voice output is on.
-- Open: LD-5 (local integration tests in CI) and LD-6.
+- LD-6 is covered for sign-in by AA-11 (the development callers) and for deployments by the in-memory pipeline behind the admin routes (AA-8).
+- Open: LD-5 (local integration tests in CI).

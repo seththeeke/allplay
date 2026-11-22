@@ -502,7 +502,7 @@ Face-down cards carry no id, suit or rank, because card ids are assigned in crea
 
 ## 11. Game Session Service and HTTP API
 
-The game session service (`backend/src/service/gameSession/`) is the only caller of the engine for session play. It loads and saves `GameSession` items, holds seat checks, updates `SeatAssignment` and `PlayerStats`, and writes metric counters. The action decider calls this service, never the engine directly, for validation and application, so every game mutation goes through one code path.
+The game session service (`backend/src/service/gameSession/`) is the only caller of the engine for session play. It loads and saves `GameSession` items, holds seat checks, updates `SeatAssignment` and `PlayerStats`, and writes metric counters. Starting a session writes the session and its seat in one transaction; ending one (a win or an abandon) writes the session, its seats and the seat holders' `PlayerStats` in one transaction (`data-model.md` Sections 6 to 8). A move that leaves the session in progress writes only the session. The action decider calls this service, never the engine directly, for validation and application, so every game mutation goes through one code path.
 
 All routes are on the All Play HTTP API, authorized with IAM (`authn-authz.md` Section 4). The caller's `playerId` comes from the request context, never from the body.
 
@@ -717,7 +717,7 @@ Status as of 2026-11-20: closed. The in-memory game engine, Spider Solitaire and
 | GE-10 | Done | `createGameSessionService` on `GameSessionDao`, `createInMemoryGameSessionDao`, gzip state codec, ULIDs, shared DAO contract tests; the summary holds vars and derived vars |
 | GE-11 | Open | Needs GE-13; runs against the local server (`local-development.md`) and the Test stage |
 | GE-12 | Done | `backend/tests/functional/`: one-suit win, dead-end loss and abandon, undo out of the dead end, stale version conflict, Hoyle final deal, and the two- and four-suit golden wins through the session service |
-| GE-13 | Open | Session routes and controllers, `SeatAssignment` and `PlayerStats` writes; delivered with LD-2 and the guest Identity Pool part of AA-4 |
+| GE-13 | Partial | The session routes and controllers run on the local server since LD-2. The transactional `SeatAssignment` and `PlayerStats` writes and the deployed `AllPlay-GameApi-<Stage>` come with DM-3 and CDK-8 |
 
 Spider legs SP-1 to SP-5 are done:
 
