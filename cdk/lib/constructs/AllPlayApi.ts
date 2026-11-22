@@ -72,6 +72,8 @@ export class AllPlayApi extends Construct {
           "x-amz-date",
           "x-amz-security-token",
           "x-amz-content-sha256",
+          /* Amplify JS adds this to every REST call; without it the browser's preflight fails. */
+          "x-amz-user-agent",
         ],
         maxAge: Duration.hours(1),
       },

@@ -59,6 +59,7 @@ describe("local server", () => {
     const preflight = await fetch(`${base}/v1/decisions`, { method: "OPTIONS" });
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-headers")).toContain("x-allplay-dev-caller");
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("x-amz-user-agent");
   });
 
   it("reports the preset and each capability", async () => {

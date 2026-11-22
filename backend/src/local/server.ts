@@ -113,7 +113,7 @@ export function createLocalServer(providers: LocalProviders): Server {
     "access-control-allow-origin": providers.settings.webOrigin,
     "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "access-control-allow-headers":
-      "authorization, content-type, x-allplay-dev-caller, x-allplay-identity-id",
+      "authorization, content-type, x-allplay-dev-caller, x-allplay-identity-id, x-amz-user-agent",
   };
 
   const send = (

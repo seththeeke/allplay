@@ -37,6 +37,11 @@ describe("AllPlayApi", () => {
       CorsConfiguration: Match.objectLike({
         AllowOrigins: ["https://example.cloudfront.net"],
         AllowMethods: ["GET", "POST", "PATCH", "DELETE"],
+        AllowHeaders: Match.arrayWith([
+          "authorization",
+          "x-amz-security-token",
+          "x-amz-user-agent",
+        ]),
         MaxAge: 3600,
       }),
     });

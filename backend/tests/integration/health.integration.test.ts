@@ -22,4 +22,21 @@ describe("GET /v1/health", () => {
     const response = await fetch(new URL("v1/health", apiUrl()), { headers: { origin } });
     expect(response.headers.get("access-control-allow-origin")).toBe(origin);
   });
+
+  /* The preflight a browser sends before an Amplify signed call; a header missing from CORS fails it. */
+  it("passes the browser preflight for a signed Amplify call", async () => {
+    const origin = process.env["WEB_ORIGIN"];
+    if (origin === undefined) return;
+    const response = await fetch(new URL("v1/players/me", apiUrl()), {
+      method: "OPTIONS",
+      headers: {
+        origin,
+        "access-control-request-method": "GET",
+        "access-control-request-headers":
+          "authorization,content-type,x-amz-content-sha256,x-amz-date,x-amz-security-token,x-amz-user-agent",
+      },
+    });
+    expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+    expect(response.headers.get("access-control-allow-headers")).toContain("x-amz-user-agent");
+  });
 });
