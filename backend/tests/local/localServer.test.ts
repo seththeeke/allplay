@@ -72,7 +72,7 @@ describe("local server", () => {
       provider: "whisper.cpp",
       available: true,
     });
-    expect(body.capabilities["llm"]).toMatchObject({ provider: "fake", available: true });
+    expect(body.capabilities["llm"]).toMatchObject({ provider: "fixed+fake", available: true });
     expect(body.capabilities["storage"]).toMatchObject({ provider: "in-memory", available: true });
   });
 

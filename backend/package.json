@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:local": "tsx src/local/integrationRun.ts",
     "test:simulation": "vitest run --config vitest.simulation.config.ts",
     "build:cli": "esbuild src/cli/bin.ts --bundle --platform=node --format=esm --target=node22 --outfile=cli/dist/game-engine-cli.mjs --banner:js='#!/usr/bin/env node'",
     "setup:speech:macos": "sh src/local/macos-speech/build.sh",

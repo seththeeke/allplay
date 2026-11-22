@@ -6,7 +6,7 @@ import {
 } from "../../src/models/api";
 import { apiUrl } from "./apiUrl";
 import { guestCredentials, identityPoolId, signedFetch } from "./guestCredentials";
-import { writesAllowed } from "./stage";
+import { localTarget, writesAllowed } from "./stage";
 
 /*
  * The player routes as a guest browser calls them (authn-authz.md sections 4
@@ -30,7 +30,8 @@ describe.runIf(identityPoolId() !== undefined)("player routes as a guest", () =>
     expect(PreferencesResponseSchema.parse(await preferences.json()).app.zoomLevel).toBe(1.25);
   });
 
-  it("refuses an unsigned request", async () => {
+  /* The local server treats an unsigned call as the default guest (authn-authz.md section 11). */
+  it.skipIf(localTarget())("refuses an unsigned request", async () => {
     const response = await fetch(new URL("v1/players/me", apiUrl()));
     expect(response.status).toBe(403);
   });

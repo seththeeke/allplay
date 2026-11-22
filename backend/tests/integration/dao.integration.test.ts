@@ -15,7 +15,7 @@ import { gameSessionDaoContract, type GameTables } from "../dao/gameSession/game
 import { mergeTokenDaoContract } from "../dao/mergeToken/mergeTokenDaoContract";
 import { playerDaoContract } from "../dao/player/playerDaoContract";
 import { preferenceDaoContract } from "../dao/preference/preferenceDaoContract";
-import { cleanUp, describeWrites, runId } from "./stage";
+import { cleanUp, describeTables, runId } from "./stage";
 
 /*
  * The DAO contracts against the Test stage's real tables (data-model.md
@@ -40,7 +40,7 @@ const id = (name: string): string => {
 };
 
 /* Table names are read when a test runs, not when the suite is collected, so a skipped suite needs none. */
-describeWrites("Players table", () => {
+describeTables("Players table", () => {
   const tableName = (): string => table("PLAYERS_TABLE");
   cleanUp(() =>
     Promise.all(
@@ -56,7 +56,7 @@ describeWrites("Players table", () => {
   playerDaoContract(() => createDynamoPlayerDao(tableName(), client), id);
 });
 
-describeWrites("Preferences table", () => {
+describeTables("Preferences table", () => {
   const tableName = (): string => table("PREFERENCES_TABLE");
   cleanUp(() =>
     Promise.all(
@@ -75,7 +75,7 @@ describeWrites("Preferences table", () => {
   preferenceDaoContract(() => createDynamoPreferenceDao(tableName(), client), id);
 });
 
-describeWrites("MergeTokens table", () => {
+describeTables("MergeTokens table", () => {
   const tableName = (): string => table("MERGE_TOKENS_TABLE");
   const hashes = new Set<string>();
   const hash = (name: string): string => {
@@ -93,7 +93,7 @@ describeWrites("MergeTokens table", () => {
   mergeTokenDaoContract(() => createDynamoMergeTokenDao(tableName(), client), hash, id);
 });
 
-describeWrites("GameSessions, SeatAssignments and PlayerStats tables", () => {
+describeTables("GameSessions, SeatAssignments and PlayerStats tables", () => {
   const tables = (): GameTables => {
     const names = {
       sessions: table("GAME_SESSIONS_TABLE"),
@@ -119,7 +119,7 @@ describeWrites("GameSessions, SeatAssignments and PlayerStats tables", () => {
   gameSessionDaoContract(tables, id);
 });
 
-describeWrites("RateLimits table", () => {
+describeTables("RateLimits table", () => {
   const tableName = (): string => table("RATE_LIMITS_TABLE");
   cleanUp(() =>
     Promise.all(
@@ -137,7 +137,7 @@ describeWrites("RateLimits table", () => {
 });
 
 /* A day long before All Play existed, so the contract never touches a real day's counters. */
-describeWrites("MetricRollups table", () => {
+describeTables("MetricRollups table", () => {
   const tableName = (): string => table("METRIC_ROLLUPS_TABLE");
   const PERIOD = "2000-01-01";
   cleanUp(() =>

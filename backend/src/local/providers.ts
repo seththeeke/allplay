@@ -31,6 +31,7 @@ import {
 import { createClaudeApiLlm, DEFAULT_CLAUDE_MODEL } from "../service/decision/llm/claudeApi";
 import { createClaudeCodeLlm } from "../service/decision/llm/claudeCode";
 import { createFakeLlm } from "../service/decision/llm/fakeLlm";
+import { createFixedResponseLlm } from "../service/decision/llm/fixedResponses";
 import type { LlmClient } from "../service/decision/llm/llmClient";
 import {
   createGameSessionService,
@@ -147,7 +148,8 @@ function languageModel(
   settings: LocalSettings,
   env: Readonly<Record<string, string | undefined>>,
 ): LlmClient {
-  if (settings.llm === "fake") return createFakeLlm();
+  /* The continuous-integration preset answers "itest" commands as Test does (AD-7, LD-5). */
+  if (settings.llm === "fake") return createFixedResponseLlm(createFakeLlm());
   if (settings.llm === "bedrock")
     return createBedrockLlm({
       modelId: env["ALLPLAY_BEDROCK_MODEL"] ?? DEFAULT_BEDROCK_MODEL,

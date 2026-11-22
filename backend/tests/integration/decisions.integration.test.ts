@@ -15,7 +15,7 @@ import {
   signedFetch,
   type GuestCredentials,
 } from "./guestCredentials";
-import { cleanUp, describeWrites } from "./stage";
+import { cleanUp, describeWrites, localTarget } from "./stage";
 
 /*
  * The decision routes through the deployed DecisionApi (action-decision.md
@@ -26,7 +26,8 @@ import { cleanUp, describeWrites } from "./stage";
 describeWrites("decisions as a guest", () => {
   let guest: GuestCredentials | undefined;
   cleanUp(async () => {
-    if (guest === undefined) return;
+    /* The local server keeps nothing between runs; only a stage has tables to clean. */
+    if (guest === undefined || localTarget()) return;
     const env = process.env;
     const names = {
       sessions: env["GAME_SESSIONS_TABLE"] ?? "",

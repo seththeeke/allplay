@@ -125,4 +125,4 @@ Status as of 2026-11-20.
 - The playthrough found three decider weaknesses, fixed in the prompts and candidates (`action-decision.md` Sections 5 and 6): number words as columns, dealing phrases classified as unrecognized, and units of different depth to an empty column.
 - AD-13 is done: spoken replies use Kokoro through the local server when voice output is on.
 - LD-6 is covered for sign-in by AA-11 (the development callers) and for deployments by the in-memory pipeline behind the admin routes (AA-8).
-- Open: LD-5 (local integration tests in CI).
+- LD-5 is done: `npm run test:integration:local` in `backend/` starts the local server with the `continuous-integration` preset, runs `tests/integration/` against it with `INTEGRATION_TARGET=local` (callers are the development header, a fresh guest per test, and the stage-table tests skip), and stops it. The preset answers `itest` commands with the fixed responses Test uses. GitHub Actions runs it on every push.

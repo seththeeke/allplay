@@ -12,8 +12,18 @@ export function writesAllowed(
   return env["INTEGRATION_SCOPE"] === "stage";
 }
 
-/** `describe` for tests that create data; they are skipped outside the Test stage. */
+/** True when the suite runs against the local server (local-development.md section 6), not a stage. */
+export function localTarget(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return env["INTEGRATION_TARGET"] === "local";
+}
+
+/** `describe` for tests that create data; they are skipped outside the Test stage and the local server. */
 export const describeWrites = describe.runIf(writesAllowed());
+
+/** `describe` for tests of the stage's own tables, which the local server does not have. */
+export const describeTables = describe.runIf(writesAllowed() && !localTarget());
 
 /** One id per test run, from the CodeBuild build when there is one, so test data never collides. */
 export function runId(env: Readonly<Record<string, string | undefined>> = process.env): string {
