@@ -89,12 +89,12 @@ describe("admin page", () => {
 });
 
 describe("admin page with sparse data", () => {
-  it("says metrics are not collected yet, and still lists deployments, without metrics", async () => {
+  it("says no metrics are recorded yet, and still lists deployments, without metrics", async () => {
     const services = freshServices();
     await services.player.signIn("admin@example.com");
     services.admin.metrics = () => Promise.resolve({ days: [] });
     renderApp("/admin", services);
-    expect(await screen.findByText(/not collected on this stage yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/No product metrics are recorded/)).toBeInTheDocument();
     expect(screen.queryByText("Total players")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Active players" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Deployments" })).toBeInTheDocument();

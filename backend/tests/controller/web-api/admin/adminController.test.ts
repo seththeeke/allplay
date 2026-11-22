@@ -8,6 +8,9 @@ import { createAccountAdminService } from "../../../../src/service/admin/account
 import { createInMemoryMergeTokenDao } from "../../../../src/dao/mergeToken/inMemoryMergeTokenDao";
 import { createInMemoryPlayerDao } from "../../../../src/dao/player/inMemoryPlayerDao";
 import { createMergeService } from "../../../../src/service/player/mergeService";
+import { createInMemoryMetricRollupDao } from "../../../../src/dao/metricRollup/inMemoryMetricRollupDao";
+import type { LoggedTurnEvent } from "../../../../src/dao/turnLog/turnLogReader";
+import { createMetricsAdminService } from "../../../../src/service/admin/metricsAdminService";
 import { account } from "../../../dao/player/playerDaoContract";
 import { apiEvent } from "../apiEvent";
 
@@ -25,10 +28,27 @@ const accounts = createAccountAdminService(
   createMergeService({ players, mergeTokens: createInMemoryMergeTokenDao(), steps: [] }),
 );
 
+const rollups = createInMemoryMetricRollupDao();
+const turnEvents: LoggedTurnEvent[] = [
+  {
+    event: "TURN_DECIDED",
+    decisionId: "d1",
+    timestamp: "2026-11-21 09:00:00.000",
+    gameId: "spider-solitaire",
+    transcript: "deal",
+    outcome: "UNRECOGNIZED",
+    failureClass: "HARD",
+  },
+];
+
 describe("admin controller", () => {
   const handler = createAdminHandler({
     deployments: createDeploymentService(createInMemoryDeploymentPipeline(() => AT)),
     accounts,
+    metrics: createMetricsAdminService({
+      rollups,
+      turns: { day: () => Promise.resolve(turnEvents) },
+    }),
     logger: createLogger({ write: vi.fn() }),
   });
 
@@ -120,5 +140,40 @@ describe("admin controller", () => {
     const { handler: entry } = await import("../../../../src/controller/web-api/admin/handler");
     expect(typeof entry).toBe("function");
     vi.unstubAllEnvs();
+  });
+
+  it("serves the day metrics and the day's failures to an admin", async () => {
+    await rollups.add("2026-11-21", { counters: { decisions: 3 } }, AT.toISOString());
+    const metrics = await handler({
+      ...asCaller("GET /v1/admin/metrics", "admin"),
+      queryStringParameters: { from: "2026-11-20", to: "2026-11-21" },
+    });
+    expect(JSON.parse(metrics.body)).toMatchObject({
+      days: [{ period: "2026-11-21", decisions: 3, totalPlayers: 0, clientLatencyP50Ms: null }],
+    });
+    const failures = await handler({
+      ...asCaller("GET /v1/admin/decisions", "admin"),
+      queryStringParameters: { day: "2026-11-21", class: "HARD" },
+    });
+    expect(JSON.parse(failures.body)).toEqual({
+      decisions: [
+        {
+          decisionId: "d1",
+          createdAt: "2026-11-21T09:00:00.000Z",
+          gameId: "spider-solitaire",
+          transcript: "deal",
+          outcome: "UNRECOGNIZED",
+          failureClass: "HARD",
+          clientLatencyMs: null,
+        },
+      ],
+    });
+    const unclassed = await handler({
+      ...asCaller("GET /v1/admin/decisions", "admin"),
+      queryStringParameters: { day: "2026-11-21" },
+    });
+    expect((JSON.parse(unclassed.body) as { decisions: unknown[] }).decisions).toHaveLength(1);
+    expect((await handler(asCaller("GET /v1/admin/metrics", "admin"))).statusCode).toBe(400);
+    expect((await handler(asCaller("GET /v1/admin/decisions", "player"))).statusCode).toBe(403);
   });
 });

@@ -266,8 +266,20 @@ describe("Amplify admin service", () => {
       path: "/v1/admin/deployments",
       options: { headers: {} },
     });
-    expect(await admin.metrics("a", "b")).toEqual({ days: [] });
-    expect(await admin.failures("a")).toEqual({ decisions: [] });
+    api.get.mockReturnValue(reply({ days: [] }));
+    expect(await admin.metrics("2026-11-01", "2026-11-21")).toEqual({ days: [] });
+    expect(api.get).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/metrics",
+      options: { headers: {}, queryParams: { from: "2026-11-01", to: "2026-11-21" } },
+    });
+    api.get.mockReturnValue(reply({ decisions: [] }));
+    expect(await admin.failures("2026-11-21")).toEqual({ decisions: [] });
+    expect(api.get).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/decisions",
+      options: { headers: {}, queryParams: { day: "2026-11-21" } },
+    });
     api.get.mockReturnValue(reply({ duplicates: [] }));
     expect(await admin.duplicates()).toEqual({ duplicates: [] });
     api.post.mockReturnValue(reply({ primaryPlayerId: "ACCT#a", mergedPlayerId: "ACCT#b" }));

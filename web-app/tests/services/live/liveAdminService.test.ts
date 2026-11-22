@@ -12,7 +12,7 @@ const DEPLOYMENT = {
 };
 
 describe("live admin service", () => {
-  it("lists and starts deployments through the API, with empty metrics", async () => {
+  it("lists and starts deployments, and reads metrics and failures, through the API", async () => {
     const fetchImpl = vi.fn((input: string, init?: RequestInit) =>
       Promise.resolve({
         ok: true,
@@ -23,9 +23,13 @@ describe("live admin service", () => {
               ? { primaryPlayerId: "ACCT#a", mergedPlayerId: "ACCT#b" }
               : input.endsWith("/duplicates")
                 ? { duplicates: [] }
-                : init?.method === "POST"
-                  ? { executionId: "e-2" }
-                  : { deployments: [DEPLOYMENT], input },
+                : input.includes("/metrics?")
+                  ? { days: [] }
+                  : input.includes("/decisions?")
+                    ? { decisions: [] }
+                    : init?.method === "POST"
+                      ? { executionId: "e-2" }
+                      : { deployments: [DEPLOYMENT], input },
           ),
       }),
     );
@@ -35,6 +39,12 @@ describe("live admin service", () => {
     expect(await admin.startDeployment()).toEqual({ executionId: "e-2" });
     expect(await admin.metrics("2026-11-01", "2026-11-21")).toEqual({ days: [] });
     expect(await admin.failures("2026-11-21")).toEqual({ decisions: [] });
+    expect(fetchImpl.mock.calls.map((call) => call[0])).toEqual(
+      expect.arrayContaining([
+        "http://localhost:4000/v1/admin/metrics?from=2026-11-01&to=2026-11-21",
+        "http://localhost:4000/v1/admin/decisions?day=2026-11-21",
+      ]),
+    );
     expect(await admin.duplicates()).toEqual({ duplicates: [] });
     expect(await admin.mergeAccounts("ACCT#a", "ACCT#b")).toEqual({
       primaryPlayerId: "ACCT#a",

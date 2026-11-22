@@ -23,7 +23,8 @@ export function AdminPage(): React.JSX.Element {
       <PageHeading title="Admin" lead="Product metrics for the last 30 days, and deployments." />
       {today === undefined ? (
         <p className="rounded-2xl border-4 border-line bg-surface p-4 text-2xl">
-          Product metrics and turn failures are not collected on this stage yet.
+          No product metrics are recorded for these days yet. Counting starts with the first game or
+          voice turn of a day.
         </p>
       ) : (
         <>

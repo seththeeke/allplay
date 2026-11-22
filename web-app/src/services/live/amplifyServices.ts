@@ -13,7 +13,9 @@ import {
 } from "aws-amplify/auth";
 import type { AppConfig } from "../../config";
 import {
+  AdminDecisionsResponseSchema,
   DeploymentsResponseSchema,
+  MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
   MergeResponseSchema,
   MergeTokenResponseSchema,
@@ -266,14 +268,29 @@ export function createAmplifyMergeApi(headers: CallHeaders = none): MergeApi {
   };
 }
 
-/**
- * The admin API over the signed API (authn-authz.md section 5). Deployments
- * are live; metrics and failures stay empty until their routes land (AA-8).
- */
+/** The admin API over the signed API (authn-authz.md section 5). */
 export function createAmplifyAdminService(headers: CallHeaders = none): AdminService {
   return {
-    metrics: () => Promise.resolve({ days: [] }),
-    failures: () => Promise.resolve({ decisions: [] }),
+    metrics: async (from, to) =>
+      MetricsResponseSchema.parse(
+        await json(
+          get({
+            apiName: API,
+            path: "/v1/admin/metrics",
+            options: { headers: await headers(), queryParams: { from, to } },
+          }),
+        ),
+      ),
+    failures: async (day) =>
+      AdminDecisionsResponseSchema.parse(
+        await json(
+          get({
+            apiName: API,
+            path: "/v1/admin/decisions",
+            options: { headers: await headers(), queryParams: { day } },
+          }),
+        ),
+      ),
     deployments: async () =>
       DeploymentsResponseSchema.parse(
         await json(

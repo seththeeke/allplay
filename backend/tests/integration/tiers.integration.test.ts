@@ -2,7 +2,9 @@ import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { beforeAll, describe, expect, it } from "vitest";
 import { documentClient } from "../../src/dao/dynamo";
 import {
+  AdminDecisionsResponseSchema,
   DeploymentsResponseSchema,
+  MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
   MergeResponseSchema,
   MergeTokenResponseSchema,
@@ -77,7 +79,11 @@ describe.runIf(writesAllowed() && settings !== undefined)("tiers with real accou
       tier: "PLAYER",
       email: playerAccount.email,
     });
-    for (const path of ["v1/admin/deployments", "v1/admin/players/duplicates"])
+    for (const path of [
+      "v1/admin/deployments",
+      "v1/admin/players/duplicates",
+      "v1/admin/metrics?from=2026-11-01&to=2026-11-02",
+    ])
       expect((await signedFetch(url(path), player)).status).toBe(403);
   });
 
@@ -92,6 +98,14 @@ describe.runIf(writesAllowed() && settings !== undefined)("tiers with real accou
     const duplicates = await signedFetch(url("v1/admin/players/duplicates"), admin);
     expect(duplicates.status).toBe(200);
     DuplicateAccountsResponseSchema.parse(await duplicates.json());
+    const today = new Date().toISOString().slice(0, 10);
+    const metrics = await signedFetch(url(`v1/admin/metrics?from=${today}&to=${today}`), admin);
+    expect(metrics.status).toBe(200);
+    MetricsResponseSchema.parse(await metrics.json());
+    /* Failure browsing is a Logs Insights query over the turn log (action-decision.md section 9.1). */
+    const failures = await signedFetch(url(`v1/admin/decisions?day=${today}`), admin);
+    expect(failures.status).toBe(200);
+    AdminDecisionsResponseSchema.parse(await failures.json());
   });
 
   it("merges a guest's preferences into the account that signs in", async () => {

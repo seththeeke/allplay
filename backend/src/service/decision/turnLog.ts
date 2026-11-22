@@ -1,4 +1,5 @@
 import type { Logger } from "../../logger";
+import type { TurnLogReader } from "../../dao/turnLog/turnLogReader";
 import type { Decision } from "../../models/decision";
 
 /** How a pending turn ended (action-decision.md section 9.1, `TURN_RESOLVED`). */
@@ -36,7 +37,11 @@ export function createLoggerTurnLog(logger: Logger): TurnLog {
 export function createRecentTurnLog(
   inner: TurnLog,
   keep = 50,
-): TurnLog & { recent(playerId: string, limit: number): Decision[] } {
+): TurnLog & {
+  recent(playerId: string, limit: number): Decision[];
+  /** Every kept turn as the admin failure browser reads it, each with its latest outcome. */
+  reader(): TurnLogReader;
+} {
   const turns: Decision[] = [];
   return {
     decided: async (turn) => {
@@ -53,5 +58,22 @@ export function createRecentTurnLog(
       }
     },
     recent: (playerId, limit) => turns.filter((turn) => turn.playerId === playerId).slice(0, limit),
+    reader: () => ({
+      day: (day) =>
+        Promise.resolve(
+          turns
+            .filter((turn) => turn.createdAt.startsWith(day))
+            .reverse()
+            .map((turn) => ({
+              event: "TURN_DECIDED" as const,
+              decisionId: turn.decisionId,
+              timestamp: turn.createdAt,
+              gameId: turn.gameId,
+              transcript: turn.transcript,
+              outcome: turn.outcome,
+              failureClass: turn.failureClass,
+            })),
+        ),
+    }),
   };
 }

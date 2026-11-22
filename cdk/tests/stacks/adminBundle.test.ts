@@ -79,4 +79,37 @@ describe("admin bundle", () => {
       },
     });
   });
+
+  it("reads the rollups and queries only the turn log for metrics and failures", () => {
+    for (const routeKey of ["GET /v1/admin/metrics", "GET /v1/admin/decisions"])
+      app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+        RouteKey: routeKey,
+        AuthorizationType: "AWS_IAM",
+      });
+    app.hasResourceProperties("AWS::Lambda::Function", {
+      FunctionName: "AllPlay-AdminApi-Test",
+      Environment: {
+        Variables: Match.objectLike({
+          METRIC_ROLLUPS_TABLE: Match.anyValue(),
+          TURN_LOG_GROUP: Match.anyValue(),
+        }),
+      },
+    });
+    const statements = Object.entries(app.findResources("AWS::IAM::Policy"))
+      .filter(([logicalId]) => logicalId.startsWith("AdminApi"))
+      .flatMap(
+        ([, value]) =>
+          (value as { Properties: { PolicyDocument: { Statement: unknown[] } } }).Properties
+            .PolicyDocument.Statement,
+      )
+      .map((statement) => JSON.stringify(statement));
+    const start = statements.find((statement) => statement.includes("logs:StartQuery")) ?? "";
+    expect(start).toContain("DecisionApiLogs");
+    expect(statements.find((statement) => statement.includes("logs:GetQueryResults"))).toContain(
+      '"Resource":"*"',
+    );
+    expect(statements.find((statement) => statement.includes("MetricRollups"))).toContain(
+      '"Action":"dynamodb:Query"',
+    );
+  });
 });

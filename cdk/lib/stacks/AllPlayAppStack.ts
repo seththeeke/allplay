@@ -1,4 +1,4 @@
-import { CfnOutput, Duration, Stack, type StackProps } from "aws-cdk-lib";
+import { CfnOutput, Duration, Stack, Validations, type StackProps } from "aws-cdk-lib";
 import type { UserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Metric } from "aws-cdk-lib/aws-cloudwatch";
@@ -389,6 +389,34 @@ export class AllPlayAppStack extends Stack {
     });
     this.api.throttleRoutes({ "POST /v1/decisions": { rateLimit: 50, burstLimit: 100 } });
     this.addAlarms(props.stage, { decisionApi, gameApi });
+    /*
+     * Admin metrics read the rollups; failure browsing runs a Logs Insights
+     * query on the turn log (action-decision.md section 9.1).
+     */
+    adminApi.function.addEnvironment("METRIC_ROLLUPS_TABLE", metricRollups.table.tableName);
+    adminApi.function.addEnvironment("TURN_LOG_GROUP", decisionApi.logGroup.logGroupName);
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query"],
+        resources: [metricRollups.table.tableArn],
+      }),
+    );
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["logs:StartQuery"],
+        resources: [decisionApi.logGroup.logGroupArn],
+      }),
+    );
+    const queryResults = new PolicyStatement({
+      actions: ["logs:GetQueryResults"],
+      resources: ["*"],
+    });
+    adminApi.function.addToRolePolicy(queryResults);
+    Validations.of(adminApi).acknowledge({
+      id: "AwsSolutions-IAM5[Resource::*]",
+      reason:
+        "logs:GetQueryResults has no resource-level permissions; the admin Lambda can start queries only on the turn log group.",
+    });
     new AllPlayAlarm(this, "MetricsRollupErrors", {
       stage: props.stage,
       name: "MetricsRollupErrors",

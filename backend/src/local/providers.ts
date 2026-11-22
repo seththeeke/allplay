@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { Decision } from "../models/decision";
 import { createLoggerTurnLog, createRecentTurnLog } from "../service/decision/turnLog";
+import { createInMemoryMetricRollupDao } from "../dao/metricRollup/inMemoryMetricRollupDao";
+import { createMetricsAdminService } from "../service/admin/metricsAdminService";
 import { createDecisionsHandler } from "../controller/web-api/decisions/decisionsController";
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
@@ -259,6 +261,10 @@ export async function createLocalProviders(
         admin: createAdminHandler({
           deployments: createDeploymentService(createInMemoryDeploymentPipeline(overrides.now)),
           accounts: createAccountAdminService(playerDao, merge),
+          metrics: createMetricsAdminService({
+            rollups: createInMemoryMetricRollupDao(),
+            turns: turns.reader(),
+          }),
           logger: logger.child({ bundle: "admin" }),
         }),
         players: createPlayersHandler({

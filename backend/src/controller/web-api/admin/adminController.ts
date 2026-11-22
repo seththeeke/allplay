@@ -1,7 +1,9 @@
 import { z } from "zod";
 import type { Logger } from "../../../logger";
 import {
+  AdminDecisionsResponseSchema,
   DeploymentsResponseSchema,
+  MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
   MergeAccountsRequestSchema,
   MergeResponseSchema,
@@ -9,6 +11,7 @@ import {
 } from "../../../models/api";
 import type { AccountAdminService } from "../../../service/admin/accountAdminService";
 import type { DeploymentService } from "../../../service/admin/deploymentService";
+import type { MetricsAdminService } from "../../../service/admin/metricsAdminService";
 import { invalidRequest } from "../../../service/gameSession/errors";
 import { jsonBody } from "../shared/httpEvent";
 import { jsonResponse, type HttpResult } from "../shared/response";
@@ -18,6 +21,7 @@ import { adminRoutes } from "./adminRoutes";
 export interface AdminControllerDeps {
   deployments: DeploymentService;
   accounts: AccountAdminService;
+  metrics: MetricsAdminService;
   logger: Logger;
 }
 
@@ -59,6 +63,18 @@ export function createAdminHandler(
         deps.logger.info("Accounts merged by an admin", { ...merged, admin: caller.playerId });
         return [200, MergeResponseSchema.parse(merged)];
       },
+      "GET /v1/admin/metrics": async ({ query }) => [
+        200,
+        MetricsResponseSchema.parse(
+          await deps.metrics.metrics(query("from") ?? "", query("to") ?? ""),
+        ),
+      ],
+      "GET /v1/admin/decisions": async ({ query }) => [
+        200,
+        AdminDecisionsResponseSchema.parse(
+          await deps.metrics.failures(query("day") ?? "", query("class") ?? undefined),
+        ),
+      ],
     },
     deps.logger,
     adminRoutes,
