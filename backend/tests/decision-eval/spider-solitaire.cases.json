@@ -1,0 +1,5699 @@
+{
+  "gameId": "spider-solitaire",
+  "cases": [
+    {
+      "id": "spider-001",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "1 to 6",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-002",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column one to column six",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-003",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move one over to six please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-004",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "won to six",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-005",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-006",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "2 to 7",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-007",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column two to column seven",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-008",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move two over to seven please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-009",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "too to seven",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-010",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the queen of spades on the king of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+          "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-011",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "3 to 2",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-012",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column three to column two",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-013",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move three over to two please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-014",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "three to too",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-015",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the jack of spades on the queen of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.8"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-016",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-017",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-018",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-019",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-020",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-021",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-022",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-023",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-024",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-025",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-026",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-027",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-028",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-029",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "1 to 5",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-030",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "move column one to column five",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-031",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "um, move one over to five please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-032",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "won to five",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-033",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "put the five of spades on the six of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.5"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-034",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "2 to 1",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-035",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "move column two to column one",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-036",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "um, move two over to one please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-037",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "too to won",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-038",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.10"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-039",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "2 to 10",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-040",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "move column two to column ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-041",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "um, move two over to ten please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-042",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "too to ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-043",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.10"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-044",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-045",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-046",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-047",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-048",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-049",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-050",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-051",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-052",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-053",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-054",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-055",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-056",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-057",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-058",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.1"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-059",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "6 to 2",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-060",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "move column six to column two",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-061",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "um, move six over to two please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-062",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "six to too",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-063",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-064",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "9 to 4",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-065",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "move column nine to column four",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-066",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "um, move nine over to four please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-067",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "nine to for",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-068",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "put the seven of spades on the eight of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.6"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-069",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "9 to 6",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-070",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "move column nine to column six",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-071",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "um, move nine over to six please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.9|depth=1|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-072",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "put the seven of spades on the eight of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.6"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-073",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-074",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-075",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-076",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-077",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-078",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-079",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-080",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-081",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-082",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-083",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-084",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-085",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-086",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-087",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000003",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.3"
+      ],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.6|depth=2|to=tableau.2",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-088",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "2 to 10",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-089",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "move column two to column ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-090",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "um, move two over to ten please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-091",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "too to ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-092",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-093",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "4 to 6",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-094",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "move column four to column six",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-095",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "um, move four over to six please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-096",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "for to six",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-097",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "put the three of spades on the four of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-098",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "6 to 1",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-099",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "move column six to column one",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-100",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "um, move six over to one please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-101",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "six to won",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-102",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-103",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-104",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-105",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-106",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-107",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-108",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-109",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-110",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-111",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-112",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-113",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-114",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-115",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-116",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-117",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000004",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.6",
+        "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.7"
+      ],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.4|depth=2|to=tableau.6"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-118",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "1 to 10",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-119",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column one to column ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-120",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move one over to ten please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-121",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "won to ten",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-122",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the three of spades on the four of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-123",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "2 to 9",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-124",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column two to column nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-125",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move two over to nine please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-126",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "too to nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-127",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-128",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "3 to 9",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-129",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column three to column nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-130",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move three over to nine please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-131",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-132",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-133",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-134",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-135",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-136",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-137",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-138",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-139",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-140",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-141",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-142",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-143",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-144",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000005",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.10",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-145",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "3 to 4",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-146",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "move column three to column four",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-147",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "um, move three over to four please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-148",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "three to for",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-149",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "put the three of spades on the four of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.8"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-150",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "3 to 8",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-151",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "move column three to column eight",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-152",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "um, move three over to eight please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-153",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "three to ate",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-154",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "put the three of spades on the four of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.8"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-155",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "5 to 1",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-156",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "move column five to column one",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-157",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "um, move five over to one please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-158",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "five to won",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.1"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-159",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "put the queen of spades on the king of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.7",
+          "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.1",
+          "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-160",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-161",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-162",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-163",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-164",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-165",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-166",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-167",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-168",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-169",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-170",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-171",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-172",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-173",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-174",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000006",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4"],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.8"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-175",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "2 to 3",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-176",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "move column two to column three",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-177",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "um, move two over to three please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-178",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "too to three",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-179",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "put the nine of spades on the ten of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-180",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "6 to 9",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-181",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "move column six to column nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-182",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "um, move six over to nine please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-183",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "put the ace of spades on the two of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-184",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "7 to 9",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.7|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-185",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "move column seven to column nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.7|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-186",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "um, move seven over to nine please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.7|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-187",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "put the ace of spades on the two of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.7|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.8|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-188",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-189",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-190",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-191",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-192",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-193",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-194",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-195",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-196",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-197",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-198",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-199",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-200",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-201",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-202",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000007",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.2"
+      ],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.3",
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-203",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "1 to 4",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-204",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "move column one to column four",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-205",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "um, move one over to four please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-206",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "won to for",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-207",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-208",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "5 to 4",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-209",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "move column five to column four",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-210",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "um, move five over to four please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-211",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "five to for",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-212",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-213",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "6 to 9",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-214",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "move column six to column nine",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-215",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "um, move six over to nine please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-216",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "put the ace of spades on the two of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.6|depth=1|to=tableau.9",
+          "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.9"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-217",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-218",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-219",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-220",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-221",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-222",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-223",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-224",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-225",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-226",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-227",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-228",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-229",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-230",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-231",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000008",
+      "options": {
+        "suits": 1
+      },
+      "history": [
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.2",
+        "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+        "MOVE_UNIT|from=tableau.4|depth=1|to=tableau.6"
+      ],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-232",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "1 to 8",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-233",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column one to column eight",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-234",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move one over to eight please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-235",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "won to ate",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-236",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the four of spades on the five of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.5|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.10|depth=1|to=tableau.8"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-237",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "2 to 4",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-238",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column two to column four",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-239",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move two over to four please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-240",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "too to for",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-241",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the seven of spades on the eight of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-242",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "2 to 7",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-243",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "move column two to column seven",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-244",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "um, move two over to seven please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-245",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "too to seven",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-246",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "put the seven of spades on the eight of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.7",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.4",
+          "MOVE_UNIT|from=tableau.9|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-247",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-248",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-249",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-250",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-251",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-252",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-253",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-254",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-255",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-256",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-257",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-258",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-259",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000009",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.8",
+          "MOVE_UNIT|from=tableau.2|depth=1|to=tableau.4"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-260",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "1 to 5",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-261",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "move column one to column five",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-262",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "um, move one over to five please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-263",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "won to five",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-264",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "put the two of spades on the three of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.9|depth=2|to=tableau.5"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-265",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "3 to 2",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-266",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "move column three to column two",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-267",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "um, move three over to two please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-268",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "three to too",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-269",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "put the jack of spades on the queen of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-270",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "3 to 7",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-271",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "move column three to column seven",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-272",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "um, move three over to seven please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["MOVE_UNIT|from=tableau.3|depth=1|to=tableau.7"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-273",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "put the jack of spades on the queen of spades",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": [
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.7"
+        ],
+        "ambiguous": true
+      }
+    },
+    {
+      "id": "spider-274",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "deal",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-275",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "deal a new row",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-276",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "deal the cards",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["DEAL_ROW"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-277",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "give me a hint",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-278",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "hint please",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["HINT"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-279",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "undo",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-280",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "take that back",
+      "pending": null,
+      "expect": {
+        "kind": "GAME",
+        "accept": ["UNDO"],
+        "ambiguous": false
+      }
+    },
+    {
+      "id": "spider-281",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "yes",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-282",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "yeah do it",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-283",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "confirm",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-284",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "no",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-285",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "cancel that",
+      "pending": {
+        "kind": "CONFIRMATION",
+        "actionIds": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-286",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "two",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-287",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "number one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-288",
+      "gameId": "spider-solitaire",
+      "seed": "0000000000000000000000000000000a",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.9"],
+      "transcript": "the first one",
+      "pending": {
+        "kind": "CHOICES",
+        "actionIds": [
+          "MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5",
+          "MOVE_UNIT|from=tableau.3|depth=1|to=tableau.2"
+        ]
+      },
+      "expect": {
+        "kind": "RESPONSE"
+      }
+    },
+    {
+      "id": "spider-289",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "make everything bigger",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_IN"
+      }
+    },
+    {
+      "id": "spider-290",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "zoom out",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_OUT"
+      }
+    },
+    {
+      "id": "spider-291",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "switch to dark mode",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME"
+      }
+    },
+    {
+      "id": "spider-292",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "use high contrast",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME"
+      }
+    },
+    {
+      "id": "spider-293",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "turn off the voice",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_VOICE_OUTPUT"
+      }
+    },
+    {
+      "id": "spider-294",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "start a new game",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "NEW_GAME"
+      }
+    },
+    {
+      "id": "spider-295",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "go back home",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "GO_HOME"
+      }
+    },
+    {
+      "id": "spider-296",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "show me my stats",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SHOW_STATS"
+      }
+    },
+    {
+      "id": "spider-297",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "open the settings",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SHOW_SETTINGS"
+      }
+    },
+    {
+      "id": "spider-298",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "say that again",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "REPEAT"
+      }
+    },
+    {
+      "id": "spider-299",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "what is the weather today",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-300",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "sing me a song",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-301",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "banana",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-302",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000001",
+      "options": {
+        "suits": 1
+      },
+      "history": [],
+      "transcript": "how old are you",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-303",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "make everything bigger",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_IN"
+      }
+    },
+    {
+      "id": "spider-304",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "zoom out",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "ZOOM_OUT"
+      }
+    },
+    {
+      "id": "spider-305",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "switch to dark mode",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME"
+      }
+    },
+    {
+      "id": "spider-306",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "use high contrast",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_THEME"
+      }
+    },
+    {
+      "id": "spider-307",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "turn off the voice",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SET_VOICE_OUTPUT"
+      }
+    },
+    {
+      "id": "spider-308",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "start a new game",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "NEW_GAME"
+      }
+    },
+    {
+      "id": "spider-309",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "go back home",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "GO_HOME"
+      }
+    },
+    {
+      "id": "spider-310",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "show me my stats",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SHOW_STATS"
+      }
+    },
+    {
+      "id": "spider-311",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "open the settings",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "SHOW_SETTINGS"
+      }
+    },
+    {
+      "id": "spider-312",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "say that again",
+      "pending": null,
+      "expect": {
+        "kind": "APP",
+        "action": "REPEAT"
+      }
+    },
+    {
+      "id": "spider-313",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "what is the weather today",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-314",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "sing me a song",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-315",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "banana",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    },
+    {
+      "id": "spider-316",
+      "gameId": "spider-solitaire",
+      "seed": "00000000000000000000000000000002",
+      "options": {
+        "suits": 1
+      },
+      "history": ["MOVE_UNIT|from=tableau.1|depth=1|to=tableau.5"],
+      "transcript": "how old are you",
+      "pending": null,
+      "expect": {
+        "kind": "UNRECOGNIZED"
+      }
+    }
+  ]
+}
