@@ -63,7 +63,8 @@ export function VoiceProvider({
 
   const say = (text: string, spoken: string = text, force = false): void => {
     setMessage(text);
-    if (force || preferences.voiceOutputEnabled) output.speak(spoken, preferences.speechRate);
+    if (force || preferences.voiceOutputEnabled)
+      output.speak(spoken, preferences.speechRate, preferences.voiceId);
   };
   const latency = (): number => Math.max(0, Math.round(now() - captureEnded.current));
   const restingPhase = (current: DecisionResponse | null): VoicePhase => {

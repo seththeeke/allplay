@@ -32,12 +32,14 @@ describe("AllPlayAppStack", () => {
     expect(JSON.stringify(api)).toContain("WebDistribution");
   });
 
-  it("writes config.json with the stage, memory mode and the API URL", () => {
+  it("writes config.json with the stage, live mode, voice through AWS and the API URL", () => {
     const { template, stage } = synth();
     expect(stage.app.resolve(stage.app.webConfig)).toMatchObject({
       stage: "TEST",
       dataMode: "LIVE",
       region: "us-east-1",
+      speechInput: "TRANSCRIBE",
+      speechOutput: "POLLY",
     });
     const deployments = JSON.stringify(template.findResources("Custom::CDKBucketDeployment"));
     expect(deployments).toMatch(

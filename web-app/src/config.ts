@@ -21,6 +21,8 @@ export const AppConfigSchema = z.object({
   /* Voice providers (action-decision.md section 16); absent means the in-memory prototype path. */
   speechInput: z.enum(["TRANSCRIBE", "LOCAL_SERVER", "TYPED"]).optional(),
   speechOutput: z.enum(["POLLY", "LOCAL_SERVER", "BROWSER", "OFF"]).optional(),
+  /** The stage's Transcribe custom vocabulary, once the stage has one (cdk-stacks.md section 6). */
+  vocabularyName: z.string().min(1).optional(),
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;

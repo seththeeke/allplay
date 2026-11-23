@@ -3,7 +3,8 @@
  * section 13); the prototype uses the browser's speech synthesis instead.
  */
 export interface SpeechOutput {
-  speak: (text: string, rate: number) => void;
+  /** Speaks `text` at `rate`; voices that can choose use the player's `voiceId`. */
+  speak: (text: string, rate: number, voiceId?: string) => void;
 }
 
 interface BrowserSpeech {

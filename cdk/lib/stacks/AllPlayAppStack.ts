@@ -443,6 +443,9 @@ export class AllPlayAppStack extends Stack {
       userPoolClientId: this.webClient.userPoolClientId,
       oauthDomain: users.domain.baseUrl().replace("https://", ""),
       identityPoolId: this.identity.identityPool.ref,
+      /* Voice through the Identity Pool credentials: Transcribe in, Polly out (action-decision.md section 3.1). */
+      speechInput: "TRANSCRIBE",
+      speechOutput: "POLLY",
     };
     this.web.publish(this.webConfig);
     this.apiUrl = new CfnOutput(this, "ApiUrl", { value: this.api.url });

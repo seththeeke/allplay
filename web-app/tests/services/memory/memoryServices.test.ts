@@ -118,6 +118,32 @@ describe("createServices", () => {
     expect(mock.player.providers).toEqual(["GOOGLE", "APPLE"]);
   });
 
+  it("speaks and listens through AWS on a deployed stage that asks for it", () => {
+    const deployed = createServices({
+      stage: "TEST",
+      dataMode: "MEMORY",
+      apiUrl: "https://api.example.com/",
+      region: "us-east-1",
+      userPoolId: "us-east-1_pool",
+      userPoolClientId: "client",
+      identityPoolId: "us-east-1:pool",
+      oauthDomain: "allplay-test-x.auth.us-east-1.amazoncognito.com",
+      speechInput: "TRANSCRIBE",
+      speechOutput: "POLLY",
+      vocabularyName: "allplay-vocabulary-test",
+    });
+    expect(deployed.speechInput.kind).toBe("TRANSCRIBE");
+    expect(typeof deployed.speechOutput.speak).toBe("function");
+    /* Without Cognito there are no credentials, so voice stays typed and the browser speaks. */
+    const local = createServices({
+      stage: "LOCAL",
+      dataMode: "MEMORY",
+      speechInput: "TRANSCRIBE",
+      speechOutput: "POLLY",
+    });
+    expect(local.speechInput.kind).toBe("TYPED");
+  });
+
   it("checks health live when the stage config has an API URL", async () => {
     const local = createServices({ stage: "LOCAL", dataMode: "MEMORY" });
     await expect(local.health.check()).resolves.toMatchObject({ body: { stage: "LOCAL" } });

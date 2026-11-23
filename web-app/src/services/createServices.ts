@@ -11,7 +11,14 @@ import {
   type CallHeaders,
   type CognitoConfig,
   localAuthHeaders,
+  amplifyCredentials,
 } from "./live/amplifyServices";
+import {
+  createPollySpeechOutput,
+  createTranscribeSpeechInput,
+  pollySynthesizer,
+  transcribeSender,
+} from "../voice/awsVoice";
 import { createApiClient, type ApiClient } from "./live/apiClient";
 import { createLiveAdminService } from "./live/liveAdminService";
 import { withGuestMerge } from "./live/guestMerge";
@@ -44,10 +51,12 @@ import {
   type SpeechOutput,
 } from "../voice/speechOutput";
 
-/** Voice output from the stage config (action-decision.md section 16); Polly arrives with AD-9. */
-function speechOutputFor(config: AppConfig): SpeechOutput {
+/** Voice output from the stage config (action-decision.md section 16): Polly deployed, Kokoro locally. */
+function speechOutputFor(config: AppConfig, cognito: CognitoConfig | null): SpeechOutput {
   const browser = createBrowserSpeechOutput();
   if (config.speechOutput === "OFF") return silentSpeechOutput;
+  if (config.speechOutput === "POLLY" && cognito !== null)
+    return createPollySpeechOutput(pollySynthesizer(cognito.region, amplifyCredentials), browser);
   if (config.speechOutput === "LOCAL_SERVER" && config.apiUrl !== undefined)
     return createLocalServerSpeechOutput(config.apiUrl, browser);
   return browser;
@@ -120,11 +129,16 @@ export function createServices(
       ? createMemoryVoiceLabService()
       : createLiveVoiceLabService(config.apiUrl);
   return {
-    speechOutput: speechOutputFor(config),
+    speechOutput: speechOutputFor(config, cognito),
     speechInput:
-      config.speechInput === "LOCAL_SERVER" && config.apiUrl !== undefined
-        ? createLocalServerSpeechInput((wav) => voiceLab.transcribe(wav))
-        : typedSpeechInput,
+      config.speechInput === "TRANSCRIBE" && cognito !== null
+        ? createTranscribeSpeechInput(
+            transcribeSender(cognito.region, amplifyCredentials),
+            config.vocabularyName,
+          )
+        : config.speechInput === "LOCAL_SERVER" && config.apiUrl !== undefined
+          ? createLocalServerSpeechInput((wav) => voiceLab.transcribe(wav))
+          : typedSpeechInput,
     health:
       config.apiUrl === undefined ? memoryHealthService : createLiveHealthService(config.apiUrl),
     voiceLab,

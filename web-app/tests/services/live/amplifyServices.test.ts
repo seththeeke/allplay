@@ -24,6 +24,7 @@ import {
   createAmplifyPlayerService,
   createAmplifyAdminService,
   createAmplifyApiClient,
+  amplifyCredentials,
   createAmplifyMergeApi,
   createAmplifyPreferencesService,
   localAuthHeaders,
@@ -387,5 +388,15 @@ describe("Amplify API client", () => {
     });
     api.get.mockReturnValueOnce(failed(undefined));
     await expect(client.get("v1/games", GamesResponseSchema)).rejects.toThrow("failed");
+  });
+});
+
+describe("Amplify credentials for voice", () => {
+  it("hands over the Identity Pool credentials, and fails without them", async () => {
+    const credentials = { accessKeyId: "a", secretAccessKey: "s", sessionToken: "t" };
+    auth.fetchAuthSession.mockResolvedValueOnce({ credentials });
+    expect(await amplifyCredentials()).toEqual(credentials);
+    auth.fetchAuthSession.mockResolvedValueOnce({});
+    await expect(amplifyCredentials()).rejects.toThrow("No AWS credentials");
   });
 });

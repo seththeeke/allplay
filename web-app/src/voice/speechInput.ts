@@ -19,7 +19,7 @@ export interface SpeechCapture {
  * config's `speechInput`. `start` is null when only typed commands are taken.
  */
 export interface SpeechInput {
-  readonly kind: "LOCAL_SERVER" | "TYPED";
+  readonly kind: "LOCAL_SERVER" | "TRANSCRIBE" | "TYPED";
   readonly start: (() => Promise<SpeechCapture>) | null;
 }
 

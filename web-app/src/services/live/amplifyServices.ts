@@ -29,6 +29,7 @@ import type { AdminService, PlayerService, PreferencesService, SignInProvider } 
 import type { z } from "zod";
 import { ApiRequestError } from "../errors";
 import type { ApiClient } from "./apiClient";
+import type { AwsCredentials } from "../../voice/awsVoice";
 import type { MergeApi } from "./guestMerge";
 
 /** The config fields Amplify needs; present on deployed stages from AA-1 and AA-4. */
@@ -438,3 +439,10 @@ export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
       ),
   };
 }
+
+/** The Identity Pool credentials Amplify holds for the caller, guest or signed in (action-decision.md section 3.1). */
+export const amplifyCredentials = async (): Promise<AwsCredentials> => {
+  const { credentials } = await fetchAuthSession();
+  if (credentials === undefined) throw new Error("No AWS credentials for voice.");
+  return credentials;
+};
