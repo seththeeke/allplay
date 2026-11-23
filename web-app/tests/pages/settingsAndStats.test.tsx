@@ -39,6 +39,17 @@ describe("settings page", () => {
     expect(document.documentElement.dataset["theme"]).toBe("FOUR_COLOR");
   });
 
+  it("defaults to conversational voice and switches to turn-based", async () => {
+    const user = userEvent.setup();
+    const { services } = renderApp("/settings");
+    expect(await screen.findByRole("radio", { name: "Conversational voice" })).toBeChecked();
+    expect(screen.getByText(/keeps a transcript of what it hears for 90 days/)).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: "Turn-based voice" }));
+    expect(await screen.findByText("Voice mode saved.")).toBeInTheDocument();
+    expect((await services.preferences.get()).app.voiceMode).toBe("TURN_BASED");
+    expect(screen.getByText(/Press Space or Talk/)).toBeInTheDocument();
+  });
+
   it("disables size buttons at the limits", async () => {
     const services = createServices(LOCAL_CONFIG, createMemoryStore(null));
     await services.preferences.patchApp({ zoomLevel: 3 });

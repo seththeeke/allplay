@@ -26,6 +26,11 @@ const RATES = [
   { value: 1.25, label: "Fast" },
 ];
 
+const VOICE_MODES: { value: AppPreferences["voiceMode"]; label: string }[] = [
+  { value: "CONVERSATIONAL", label: "Conversational voice" },
+  { value: "TURN_BASED", label: "Turn-based voice" },
+];
+
 const TIMEOUTS = [
   { value: 800, label: "Short pause" },
   { value: 1200, label: "Normal pause" },
@@ -82,6 +87,20 @@ export function SettingsPage(): React.JSX.Element {
           save({ theme }, "Colors");
         }}
       />
+      <ChoiceSetting
+        name="voice-mode"
+        legend="How voice works in a game"
+        value={preferences.voiceMode}
+        options={VOICE_MODES}
+        onChange={(voiceMode) => {
+          save({ voiceMode }, "Voice mode");
+        }}
+      />
+      <p className="text-xl">
+        {preferences.voiceMode === "CONVERSATIONAL"
+          ? "Listens during a game and keeps a transcript of what it hears for 90 days."
+          : "Press Space or Talk, say your move, then confirm it."}
+      </p>
       <ToggleSetting
         id="auto-confirm"
         label="Make voice moves right away"

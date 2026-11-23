@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   DEFAULT_APP_PREFERENCES,
   DEFAULT_GAME_PREFERENCES,
@@ -9,10 +10,17 @@ import type { PreferencesService } from "../types";
 import type { MemoryStore } from "./memoryStore";
 
 const KEY = "allplay.memory.preferences";
+const StoredPreferencesSchema = z.looseObject({ app: z.record(z.string(), z.unknown()) });
 
 export function createMemoryPreferencesService(store: MemoryStore): PreferencesService {
   const load = (): PreferencesResponse => {
-    const parsed = PreferencesResponseSchema.safeParse(store.read<unknown>(KEY, null));
+    const stored = StoredPreferencesSchema.safeParse(store.read<unknown>(KEY, null));
+    /* A setting added since this was saved takes its default; the player's choices stay. */
+    const parsed = PreferencesResponseSchema.safeParse(
+      stored.success
+        ? { ...stored.data, app: { ...DEFAULT_APP_PREFERENCES, ...stored.data.app } }
+        : null,
+    );
     return parsed.success ? parsed.data : { app: DEFAULT_APP_PREFERENCES, games: {} };
   };
   /*
