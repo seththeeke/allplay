@@ -1,5 +1,6 @@
 import type { TranscriptionResponse, TranscriptSource } from "../models/api";
 import { startRecording, type Recording } from "./audioCapture";
+import { localServerListener, type StartListening } from "./continuousListeners";
 
 export interface Heard {
   text: string;
@@ -21,9 +22,11 @@ export interface SpeechCapture {
 export interface SpeechInput {
   readonly kind: "LOCAL_SERVER" | "TRANSCRIBE" | "TYPED";
   readonly start: (() => Promise<SpeechCapture>) | null;
+  /** Continuous listening for conversational voice (conversational-ai.md section 3). */
+  readonly listen?: StartListening | null;
 }
 
-export const typedSpeechInput: SpeechInput = { kind: "TYPED", start: null };
+export const typedSpeechInput: SpeechInput = { kind: "TYPED", start: null, listen: null };
 
 /** Captures 16 kHz audio in the browser and transcribes it on the local server (action-decision.md section 3.4). */
 export function createLocalServerSpeechInput(
@@ -32,6 +35,7 @@ export function createLocalServerSpeechInput(
 ): SpeechInput {
   return {
     kind: "LOCAL_SERVER",
+    listen: localServerListener(transcribe),
     start: async () => {
       const recording = await record();
       return {

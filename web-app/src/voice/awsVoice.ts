@@ -1,7 +1,8 @@
+import { transcribeListener, type OpenTranscribeStream } from "./continuousListeners";
 import type { Heard, SpeechInput } from "./speechInput";
 import { startRecording, type Recording } from "./audioCapture";
 import type { Playback, PlayAudio, SpeechOutput } from "./speechOutput";
-import { playBlob } from "./speechOutput";
+import { once, playBlob } from "./speechOutput";
 
 /** Temporary AWS credentials from the Identity Pool, guest or signed in (action-decision.md section 3.1). */
 export interface AwsCredentials {
@@ -62,6 +63,71 @@ export function transcribeSender(region: string, credentials: CredentialSource):
 }
 
 /**
+ * A live Transcribe stream for conversational voice: audio is queued as it
+ * arrives, and partial and final text come back through `onText`.
+ */
+export function transcribeStreamOpener(
+  region: string,
+  credentials: CredentialSource,
+  vocabularyName?: string,
+): OpenTranscribeStream {
+  return (onText, onError, onClosed) => {
+    const queue: Uint8Array[] = [];
+    let closed = false;
+    let wake: (() => void) | null = null;
+    const notify = (): void => {
+      wake?.();
+      wake = null;
+    };
+    async function* audio(): AsyncGenerator<{ AudioEvent: { AudioChunk: Uint8Array } }> {
+      for (;;) {
+        const chunk = queue.shift();
+        if (chunk !== undefined) yield { AudioEvent: { AudioChunk: chunk } };
+        else if (closed) return;
+        else
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+      }
+    }
+    void (async () => {
+      const { TranscribeStreamingClient, StartStreamTranscriptionCommand } =
+        await import("@aws-sdk/client-transcribe-streaming");
+      const client = new TranscribeStreamingClient({ region, credentials });
+      const response = await client.send(
+        new StartStreamTranscriptionCommand({
+          LanguageCode: "en-US",
+          MediaEncoding: "pcm",
+          MediaSampleRateHertz: 16000,
+          EnablePartialResultsStabilization: true,
+          PartialResultsStability: "high",
+          ...(vocabularyName === undefined ? {} : { VocabularyName: vocabularyName }),
+          AudioStream: audio(),
+        }),
+      );
+      for await (const event of response.TranscriptResultStream ?? []) {
+        for (const result of event.TranscriptEvent?.Transcript?.Results ?? []) {
+          const text = result.Alternatives?.[0]?.Transcript;
+          if (text !== undefined) onText(text, result.IsPartial !== true);
+        }
+      }
+      onClosed();
+    })().catch(onError);
+    return {
+      send: (pcm) => {
+        if (closed) return;
+        queue.push(pcm);
+        notify();
+      },
+      close: () => {
+        closed = true;
+        notify();
+      },
+    };
+  };
+}
+
+/**
  * Speech input through Amazon Transcribe streaming with the player's
  * Identity Pool credentials (action-decision.md section 3.1). Audio is
  * captured at 16 kHz while the player speaks and streamed when listening
@@ -71,9 +137,11 @@ export function createTranscribeSpeechInput(
   send: TranscribeSend,
   vocabularyName?: string,
   record: () => Promise<Recording> = startRecording,
+  openStream?: OpenTranscribeStream,
 ): SpeechInput {
   return {
     kind: "TRANSCRIBE",
+    listen: openStream === undefined ? null : transcribeListener(openStream),
     start: async () => {
       const recording = await record();
       return {
@@ -128,10 +196,21 @@ export function createPollySpeechOutput(
 ): SpeechOutput {
   const cache = new Map<string, Promise<Blob>>();
   let playing: Playback | null = null;
+  let finishCurrent: () => void = () => undefined;
+  let turn = 0;
+  const interrupt = (): void => {
+    turn += 1;
+    playing?.stop();
+    playing = null;
+    finishCurrent();
+  };
   return {
-    speak: (text, rate, voiceId = "Joanna") => {
-      playing?.stop();
-      playing = null;
+    stop: interrupt,
+    speak: (text, rate, voiceId = "Joanna", onEnd) => {
+      interrupt();
+      const mine = turn;
+      const finished = once(onEnd);
+      finishCurrent = finished;
       const voice = voiceId;
       const key = `${voice}|${String(rate)}|${text}`;
       const ssml = `<speak><prosody rate="${String(Math.round(rate * 100))}%">${escapeXml(text)}</prosody></speak>`;
@@ -139,11 +218,13 @@ export function createPollySpeechOutput(
       cache.set(key, audio);
       void audio
         .then((blob) => {
-          playing = play(blob);
+          if (mine === turn) playing = play(blob, finished);
         })
         .catch(() => {
           cache.delete(key);
-          fallback.speak(text, rate);
+          if (mine !== turn) return;
+          if (onEnd === undefined) fallback.speak(text, rate);
+          else fallback.speak(text, rate, voice, finished);
         });
     },
   };

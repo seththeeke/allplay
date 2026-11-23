@@ -3,9 +3,24 @@
  * section 13); the prototype uses the browser's speech synthesis instead.
  */
 export interface SpeechOutput {
-  /** Speaks `text` at `rate`; voices that can choose use the player's `voiceId`. */
-  speak: (text: string, rate: number, voiceId?: string) => void;
+  /**
+   * Speaks `text` at `rate`; voices that can choose use the player's
+   * `voiceId`. `onEnd` runs once when the reply finishes, fails or is cut off.
+   */
+  speak: (text: string, rate: number, voiceId?: string, onEnd?: () => void) => void;
+  /** Stops the current reply, for a player who talks over it. */
+  stop?: () => void;
 }
+
+/** Wraps a callback so that only its first call runs. */
+export const once = (callback?: () => void): (() => void) => {
+  let called = false;
+  return () => {
+    if (called) return;
+    called = true;
+    callback?.();
+  };
+};
 
 interface BrowserSpeech {
   speechSynthesis?: SpeechSynthesis;
@@ -14,13 +29,22 @@ interface BrowserSpeech {
 
 export function createBrowserSpeechOutput(browser: BrowserSpeech = globalThis): SpeechOutput {
   return {
-    speak: (text, rate) => {
+    speak: (text, rate, _voiceId, onEnd) => {
+      const finished = once(onEnd);
       const { speechSynthesis: synthesis, SpeechSynthesisUtterance: Utterance } = browser;
-      if (synthesis === undefined || Utterance === undefined) return;
+      if (synthesis === undefined || Utterance === undefined) {
+        finished();
+        return;
+      }
       synthesis.cancel();
       const utterance = new Utterance(text);
       utterance.rate = rate;
+      utterance.onend = finished;
+      utterance.onerror = finished;
       synthesis.speak(utterance);
+    },
+    stop: () => {
+      browser.speechSynthesis?.cancel();
     },
   };
 }
@@ -30,15 +54,18 @@ export interface Playback {
   stop: () => void;
 }
 
-export type PlayAudio = (audio: Blob) => Playback;
+export type PlayAudio = (audio: Blob, onEnd?: () => void) => Playback;
 
-export const playBlob: PlayAudio = (audio) => {
+export const playBlob: PlayAudio = (audio, onEnd) => {
   const url = URL.createObjectURL(audio);
   const element = new Audio(url);
-  const release = () => {
+  const release = once(() => {
     URL.revokeObjectURL(url);
-  };
+    onEnd?.();
+  });
   element.addEventListener("ended", release);
+  element.addEventListener("error", release);
+  /* A browser that blocks autoplay rejects here; the reply still counts as finished. */
   void element.play().catch(release);
   return {
     stop: () => {
@@ -65,7 +92,14 @@ export function createLocalServerSpeechOutput(
   const url = new URL("local/speech/synthesize", apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`);
   const cache = new Map<string, Promise<Blob>>();
   let current: Playback | null = null;
+  let finishCurrent: () => void = () => undefined;
   let turn = 0;
+  const interrupt = (): void => {
+    turn += 1;
+    current?.stop();
+    current = null;
+    finishCurrent();
+  };
   const audioFor = (text: string, rate: number): Promise<Blob> => {
     const key = `${String(rate)}|${text}`;
     const cached = cache.get(key);
@@ -83,21 +117,28 @@ export function createLocalServerSpeechOutput(
     return request;
   };
   return {
-    speak: (text, rate) => {
-      turn += 1;
+    speak: (text, rate, voiceId, onEnd) => {
+      interrupt();
       const mine = turn;
-      current?.stop();
-      current = null;
+      const finished = once(onEnd);
+      finishCurrent = finished;
       audioFor(text, rate)
         .then((audio) => {
-          if (mine === turn) current = play(audio);
+          if (mine === turn) current = play(audio, finished);
         })
         .catch(() => {
-          if (mine === turn) fallback.speak(text, rate);
+          if (mine !== turn) return;
+          if (onEnd === undefined) fallback.speak(text, rate);
+          else fallback.speak(text, rate, voiceId, finished);
         });
     },
+    stop: interrupt,
   };
 }
 
 /** Speaks nothing (`speechOutput: OFF`). */
-export const silentSpeechOutput: SpeechOutput = { speak: () => undefined };
+export const silentSpeechOutput: SpeechOutput = {
+  speak: (_text, _rate, _voiceId, onEnd) => {
+    onEnd?.();
+  },
+};

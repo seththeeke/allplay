@@ -51,9 +51,12 @@ import {
   createTranscribeSpeechInput,
   pollySynthesizer,
   transcribeSender,
+  transcribeStreamOpener,
 } from "../../src/voice/awsVoice";
 
 const credentials = () => Promise.resolve({ accessKeyId: "a", secretAccessKey: "s" });
+const partial = (text: string) => ({ IsPartial: true, Alternatives: [{ Transcript: text }] });
+const final = (text: string) => ({ IsPartial: false, Alternatives: [{ Transcript: text }] });
 
 describe("Transcribe speech input", () => {
   it("records, then sends the clip's samples without the WAV header", async () => {
@@ -169,5 +172,118 @@ describe("Polly speech output", () => {
     });
     polly.audio = false;
     await expect(synthesize("<speak>Hi</speak>", "Joanna")).rejects.toThrow("no audio");
+  });
+});
+
+describe("live Transcribe stream", () => {
+  it("streams queued audio and reports partial and final text until closed", async () => {
+    transcribe.sent.length = 0;
+    transcribe.results = [
+      { TranscriptEvent: { Transcript: { Results: [partial("move")] } } },
+      { TranscriptEvent: { Transcript: { Results: [final("move eight"), { Alternatives: [] }] } } },
+      {},
+    ];
+    const onText = vi.fn();
+    const onError = vi.fn();
+    const onClosed = vi.fn();
+    const stream = transcribeStreamOpener("us-east-1", credentials, "vocab")(
+      onText,
+      onError,
+      onClosed,
+    );
+    stream.send(new Uint8Array([1]));
+    await vi.waitFor(() => {
+      expect(onClosed).toHaveBeenCalled();
+    });
+    expect(onText.mock.calls).toEqual([
+      ["move", false],
+      ["move eight", true],
+    ]);
+    const input = transcribe.sent[0] as {
+      VocabularyName: string;
+      AudioStream: AsyncIterable<{ AudioEvent: { AudioChunk: Uint8Array } }>;
+    };
+    expect(input.VocabularyName).toBe("vocab");
+    const chunks: number[] = [];
+    const reading = (async () => {
+      for await (const event of input.AudioStream) chunks.push(...event.AudioEvent.AudioChunk);
+    })();
+    await vi.waitFor(() => {
+      expect(chunks).toEqual([1]);
+    });
+    stream.send(new Uint8Array([2]));
+    await vi.waitFor(() => {
+      expect(chunks).toEqual([1, 2]);
+    });
+    stream.close();
+    await reading;
+    stream.send(new Uint8Array([3]));
+    expect(chunks).toEqual([1, 2]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("leaves the vocabulary out when none is set and reports a failure", async () => {
+    transcribe.sent.length = 0;
+    transcribe.results = [];
+    const onClosed = vi.fn();
+    transcribeStreamOpener("us-east-1", credentials)(vi.fn(), vi.fn(), onClosed).close();
+    await vi.waitFor(() => {
+      expect(onClosed).toHaveBeenCalled();
+    });
+    expect(transcribe.sent[0]).not.toHaveProperty("VocabularyName");
+    const onError = vi.fn();
+    transcribeStreamOpener("us-east-1", () => credentials(), undefined);
+    transcribe.results = [
+      {
+        get TranscriptEvent() {
+          throw new Error("broken");
+        },
+      },
+    ];
+    transcribeStreamOpener("us-east-1", credentials)(vi.fn(), onError, vi.fn());
+    await vi.waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("interruptible Polly speech", () => {
+  it("reports the end once, and drops audio that arrives after a stop", async () => {
+    let deliver: (blob: Blob) => void = () => undefined;
+    const synthesize = vi.fn(
+      () =>
+        new Promise<Blob>((resolve) => {
+          deliver = resolve;
+        }),
+    );
+    const play = vi.fn(() => ({ stop: vi.fn() }));
+    const output = createPollySpeechOutput(synthesize, { speak: vi.fn() }, play);
+    const onEnd = vi.fn();
+    output.speak("Hello", 1, "Joanna", onEnd);
+    output.stop?.();
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    deliver(new Blob(["a"]));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it("gives the fallback voice the end callback, and not after a stop", async () => {
+    const fallback = { speak: vi.fn() };
+    const output = createPollySpeechOutput(
+      () => Promise.reject(new Error("down")),
+      fallback,
+      vi.fn(),
+    );
+    output.speak("Hello", 1, "Joanna", vi.fn());
+    await vi.waitFor(() => {
+      expect(fallback.speak).toHaveBeenCalledWith("Hello", 1, "Joanna", expect.any(Function));
+    });
+    fallback.speak.mockClear();
+    output.speak("Again", 1, "Joanna", vi.fn());
+    output.stop?.();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fallback.speak).not.toHaveBeenCalled();
   });
 });

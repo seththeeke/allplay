@@ -18,6 +18,7 @@ import {
   createTranscribeSpeechInput,
   pollySynthesizer,
   transcribeSender,
+  transcribeStreamOpener,
 } from "../voice/awsVoice";
 import { createApiClient, type ApiClient } from "./live/apiClient";
 import { createLiveAdminService } from "./live/liveAdminService";
@@ -135,6 +136,8 @@ export function createServices(
         ? createTranscribeSpeechInput(
             transcribeSender(cognito.region, amplifyCredentials),
             config.vocabularyName,
+            undefined,
+            transcribeStreamOpener(cognito.region, amplifyCredentials, config.vocabularyName),
           )
         : config.speechInput === "LOCAL_SERVER" && config.apiUrl !== undefined
           ? createLocalServerSpeechInput((wav) => voiceLab.transcribe(wav))
