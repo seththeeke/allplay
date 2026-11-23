@@ -136,4 +136,43 @@ describeWrites("game sessions as a guest", () => {
       }),
     ]);
   });
+
+  /*
+   * Performance (game-engine.md section 11): the targets are server time, 150
+   * ms at p50 and 300 ms at p95 on a warm Lambda. Measured here from the
+   * verification step, the time includes the network, so the limits are wider.
+   */
+  it("answers moves on a warm Lambda within the performance budget", async () => {
+    const me = guest ?? (await guestCredentials(identityPoolId() ?? ""));
+    guest = me;
+    const post = async (path: string, body: unknown) =>
+      SessionEnvelopeSchema.parse(
+        await (await signedFetch(url(path), me, { method: "POST", body })).json(),
+      );
+    let envelope = await post("v1/sessions", { gameId: "spider-solitaire", options: { suits: 1 } });
+    const times: number[] = [];
+    for (let move = 0; move < 20; move += 1) {
+      const action = envelope.legalActions.find((candidate) => candidate.actionId !== "DEAL_ROW");
+      const started = performance.now();
+      envelope = action
+        ? await post(`v1/sessions/${envelope.session.sessionId}/actions`, {
+            actionId: action.actionId,
+            expectedVersion: envelope.session.version,
+            source: "POINTER",
+          })
+        : await post(`v1/sessions/${envelope.session.sessionId}/undo`, {
+            expectedVersion: envelope.session.version,
+            source: "POINTER",
+          });
+      times.push(performance.now() - started);
+    }
+    const sorted = times.slice(1).sort((a, b) => a - b);
+    const at = (quantile: number) =>
+      sorted[Math.min(sorted.length - 1, Math.floor(quantile * sorted.length))] ?? 0;
+    process.stdout.write(
+      `Move latency p50 ${String(Math.round(at(0.5)))} ms, p95 ${String(Math.round(at(0.95)))} ms\n`,
+    );
+    expect(at(0.5)).toBeLessThan(400);
+    expect(at(0.95)).toBeLessThan(1000);
+  }, 60_000);
 });
