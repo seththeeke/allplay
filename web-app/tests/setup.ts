@@ -12,3 +12,7 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-motion");
   document.documentElement.style.fontSize = "";
 });
+
+/* jsdom has no canvas; the orb then shows its CSS gradient, as a browser without canvas would. */
+HTMLCanvasElement.prototype.getContext = (() =>
+  null) as typeof HTMLCanvasElement.prototype.getContext;

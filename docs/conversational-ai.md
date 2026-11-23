@@ -21,10 +21,10 @@ Related specs: `day-0-designs/action-decision.md` (decider, providers, turn log)
 
 The `APP` preference `voiceMode` selects the experience.
 
-| Value | Label in Settings | Behavior |
-|---|---|---|
+| Value            | Label in Settings    | Behavior                                                          |
+| ---------------- | -------------------- | ----------------------------------------------------------------- |
 | `CONVERSATIONAL` | Conversational voice | Default. Continuous listening, the voice orb, and automatic moves |
-| `TURN_BASED` | Turn-based voice | The existing voice bar: Space or Talk, then confirm each move |
+| `TURN_BASED`     | Turn-based voice     | The existing voice bar: Space or Talk, then confirm each move     |
 
 A player with no stored `voiceMode` gets `CONVERSATIONAL`. In conversational mode the speaker always speaks, and `voiceOutputEnabled` applies to turn-based mode only. `autoConfirm` also applies to turn-based mode only.
 
@@ -60,23 +60,23 @@ Utterances are handled in order, one at a time, so a second command spoken durin
 
 ### 3.2 Transcription
 
-| `speechInput` | Behavior |
-|---|---|
-| `LOCAL_SERVER` | Each utterance is encoded as WAV and sent to `POST /local/speech/transcribe` |
-| `TRANSCRIBE` | Speech-gated stream: detected speech opens a Transcribe stream, starting with the 500 ms of buffered audio. The stream stays open through pauses and closes after 15 seconds without speech |
-| `TYPED` | The typed command field only |
+| `speechInput`  | Behavior                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOCAL_SERVER` | Each utterance is encoded as WAV and sent to `POST /local/speech/transcribe`                                                                                                                |
+| `TRANSCRIBE`   | Speech-gated stream: detected speech opens a Transcribe stream, starting with the 500 ms of buffered audio. The stream stays open through pauses and closes after 15 seconds without speech |
+| `TYPED`        | The typed command field only                                                                                                                                                                |
 
 The maximum Transcribe cost is $1.44 per player-hour. No stream is open during long silences.
 
 ### 3.3 Controls
 
-| Input | Action |
-|---|---|
-| Space, or pressing the orb | Pause or resume listening |
-| Enter | Confirm the waiting prompt |
-| Escape | Cancel the waiting prompt, or stop the current reply |
-| 1 to 4 | Pick a numbered choice |
-| Type button | Open the typed command field |
+| Input                      | Action                                               |
+| -------------------------- | ---------------------------------------------------- |
+| Space, or pressing the orb | Pause or resume listening                            |
+| Enter                      | Confirm the waiting prompt                           |
+| Escape                     | Cancel the waiting prompt, or stop the current reply |
+| 1 to 4                     | Pick a numbered choice                               |
+| Type button                | Open the typed command field                         |
 
 ## 4. Decisions
 
@@ -86,26 +86,26 @@ The maximum Transcribe cost is $1.44 per player-hour. No stream is open during l
 
 Conversational classification adds two categories and one field.
 
-| Category | Meaning |
-|---|---|
+| Category   | Meaning                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
 | `QUESTION` | A question about this game or what happened in it, such as "did I already deal?" |
-| `IGNORED` | No request for the game or app, such as room conversation or nonsense |
+| `IGNORED`  | No request for the game or app, such as room conversation or nonsense            |
 
 `command` holds only the words directed at the game. For "move 8 to 7, dinner's ready", `command` is "move 8 to 7", and layer 2 receives that text. The last six conversation messages are supplied as quoted data, so "do that again" and "undo that" can be understood.
 
 ### 4.2 Outcomes
 
-| Result | Outcome | Spoken reply |
-|---|---|---|
-| One action, `HIGH` confidence | `AUTO_APPLIED` | A rotating acknowledgement |
-| One action, `LOW` confidence | `PROPOSED` | A short confirmation question |
-| Two to four actions | `CHOICES` | The numbered options |
-| Undo | `AUTO_APPLIED` | A rotating acknowledgement |
-| Hint | `PROPOSED` | The hint and an offer to make it |
-| Application action | `APP_ACTION` | A rotating acknowledgement; `NEW_GAME`, `SIGN_IN` and `SIGN_OUT` still confirm |
-| Game request with no legal match | `UNRECOGNIZED` | A brief explanation |
-| `QUESTION` | `ANSWERED` | The layer 2 answer |
-| `IGNORED` | `IGNORED` | None; `silent` is true |
+| Result                           | Outcome        | Spoken reply                                                                   |
+| -------------------------------- | -------------- | ------------------------------------------------------------------------------ |
+| One action, `HIGH` confidence    | `AUTO_APPLIED` | A rotating acknowledgement                                                     |
+| One action, `LOW` confidence     | `PROPOSED`     | A short confirmation question                                                  |
+| Two to four actions              | `CHOICES`      | The numbered options                                                           |
+| Undo                             | `AUTO_APPLIED` | A rotating acknowledgement                                                     |
+| Hint                             | `PROPOSED`     | The hint and an offer to make it                                               |
+| Application action               | `APP_ACTION`   | A rotating acknowledgement; `NEW_GAME`, `SIGN_IN` and `SIGN_OUT` still confirm |
+| Game request with no legal match | `UNRECOGNIZED` | A brief explanation                                                            |
+| `QUESTION`                       | `ANSWERED`     | The layer 2 answer                                                             |
+| `IGNORED`                        | `IGNORED`      | None; `silent` is true                                                         |
 
 `ANSWERED` and `IGNORED` have failure class `NONE`. A waiting prompt stays open through an `IGNORED` turn.
 
@@ -117,16 +117,16 @@ A `QUESTION` turn loads the full conversation with one `Query` and asks layer 2 
 
 `game-speaker.md` has these level two headings, each required:
 
-| Heading | Use |
-|---|---|
-| `Persona` | System prompt block for every conversational LLM call |
-| `Greeting` | Spoken when a new game starts |
-| `Welcome Back` | Spoken when a game with history is reopened |
-| `Acknowledgements` | Bulleted replies after a completed action |
-| `Confirm` | Confirmation template containing `{action}` |
-| `Choices` | Choice prompt template containing `{options}` |
-| `Not Allowed` | Reply when a requested move is not legal |
-| `Unavailable` | Reply when the language model cannot answer |
+| Heading            | Use                                                   |
+| ------------------ | ----------------------------------------------------- |
+| `Persona`          | System prompt block for every conversational LLM call |
+| `Greeting`         | Spoken when a new game starts                         |
+| `Welcome Back`     | Spoken when a game with history is reopened           |
+| `Acknowledgements` | Bulleted replies after a completed action             |
+| `Confirm`          | Confirmation template containing `{action}`           |
+| `Choices`          | Choice prompt template containing `{options}`         |
+| `Not Allowed`      | Reply when a requested move is not legal              |
+| `Unavailable`      | Reply when the language model cannot answer           |
 
 The file is parsed and validated with zod when the decider starts. It ships with the `DecisionApi` Lambda and is read from the source tree locally. Local changes take effect when the server restarts.
 
@@ -134,22 +134,22 @@ The file is parsed and validated with zod when the decider starts. It ships with
 
 Entity `ConversationMessage`, table `AllPlay-ConversationMessages-<Stage>`.
 
-| Key | Attribute | Type |
-|---|---|---|
-| Partition key | `sessionId` | String |
-| Sort key | `messageId` | String (ULID) |
+| Key           | Attribute   | Type          |
+| ------------- | ----------- | ------------- |
+| Partition key | `sessionId` | String        |
+| Sort key      | `messageId` | String (ULID) |
 
 No GSIs. One `Query` on `sessionId` returns the full conversation in order.
 
-| Attribute | Type | Notes |
-|---|---|---|
-| `role` | String | `PLAYER`, `SPEAKER` or `ACTION` |
-| `text` | String | The full transcript, spoken reply, or action description |
-| `decisionId` | String | Optional, the related turn |
-| `actionId` | String | Optional, `ACTION` messages only |
-| `sessionVersion` | Number | Optional, the game version after an action |
-| `ttl` | Number | Last message time + 90 days, epoch seconds |
-| `entityVersion`, `createdAt`, `updatedAt` | | `data-model.md` Section 1 |
+| Attribute                                 | Type   | Notes                                                    |
+| ----------------------------------------- | ------ | -------------------------------------------------------- |
+| `role`                                    | String | `PLAYER`, `SPEAKER` or `ACTION`                          |
+| `text`                                    | String | The full transcript, spoken reply, or action description |
+| `decisionId`                              | String | Optional, the related turn                               |
+| `actionId`                                | String | Optional, `ACTION` messages only                         |
+| `sessionVersion`                          | Number | Optional, the game version after an action               |
+| `ttl`                                     | Number | Last message time + 90 days, epoch seconds               |
+| `entityVersion`, `createdAt`, `updatedAt` |        | `data-model.md` Section 1                                |
 
 1. Messages carry no `playerId`, so a guest merge needs no change here. Access is checked through the session's seats.
 2. The first write that moves a conversation's expiry forward by at least one day refreshes `ttl` on every message, so a conversation expires as a whole 90 days after its last message.
@@ -166,19 +166,20 @@ Both routes are appended to the decisions bundle with IAM authorization and the 
 
 ## 8. Voice Orb
 
-| State | Appearance | Status text for assistive technology |
-|---|---|---|
-| `GREETING` | Large and centered, pulsing, with the greeting beneath it | The greeting |
-| `IDLE` | Small, bottom left, slow spin | "Listening for your voice" |
-| `HEARING` | Small, faster spin | "Hearing you" |
-| `THINKING` | Small, faster spin, dimmed | "Working on it" |
-| `SPEAKING` | Small, pulsing | The reply text |
-| `PAUSED` | Small, still, with a slash | "Listening paused" |
+| State      | Appearance                                                               | Status text for assistive technology |
+| ---------- | ------------------------------------------------------------------------ | ------------------------------------ |
+| `GREETING` | Large and centered, pulsing while it turns, with the greeting beneath it | The greeting                         |
+| `IDLE`     | Small, bottom left, turning slowly                                       | "Listening for your voice"           |
+| `HEARING`  | Small, turning fast, with a bright ring                                  | "Hearing you"                        |
+| `THINKING` | Small, turning quickly, dimmed                                           | "Working on it"                      |
+| `SPEAKING` | Small, pulsing while it turns gently                                     | The reply text                       |
+| `PAUSED`   | Small, still, desaturated, with a slash                                  | "Listening paused"                   |
 
-1. After the greeting ends, the orb shrinks and falls into the bottom left corner over 700 ms.
-2. With reduced motion, the orb moves without animation and each state is shown by a static ring style and its text.
-3. The orb is a real button of at least 56 CSS pixels, with an accessible name that states the action.
-4. Prompts and choices appear in a compact panel beside the orb only while they wait for an answer. Game actions stay available at the bottom right.
+1. The orb is a three-dimensional planet in the style of Jupiter: a lit, tilted sphere with gradient cloud bands and a red storm that rotate around its axis. It is drawn on a 2D canvas with no 3D library.
+2. After the greeting ends, the orb shrinks and falls into the bottom left corner over 700 ms.
+3. With reduced motion, the planet is one still frame, the orb moves without animation, and each state is shown by a static ring style and its text.
+4. The orb is a real button of at least 56 CSS pixels, with an accessible name that states the action.
+5. Prompts and choices appear in a compact panel beside the orb only while they wait for an answer. Game actions stay available at the bottom right.
 
 ## 9. Infrastructure
 
@@ -195,21 +196,22 @@ The `local` preset uses Claude Code for layers 1 and 2, macOS speech or whisper.
 
 Each leg is one commit.
 
-| Leg | Scope |
-|---|---|
-| CA-1 | This spec, with `data-model.md` and `action-decision.md` references |
-| CA-2 | `ConversationMessage` model, DAOs and contract tests, table, grants, and account deletion |
+| Leg  | Scope                                                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ |
+| CA-1 | This spec, with `data-model.md` and `action-decision.md` references                                                      |
+| CA-2 | `ConversationMessage` model, DAOs and contract tests, table, grants, and account deletion                                |
 | CA-3 | Personality file and parser; conversational layer 1, question answering, decisions, greeting route and message recording |
-| CA-4 | `voiceMode` preference and Settings control |
-| CA-5 | Speech detector, continuous local and Transcribe listeners, interruptible speech output |
-| CA-6 | Voice orb, conversational game screen, and an end-to-end check on the local Claude Code stack |
+| CA-4 | `voiceMode` preference and Settings control                                                                              |
+| CA-5 | Speech detector, continuous local and Transcribe listeners, interruptible speech output                                  |
+| CA-6 | Voice orb, conversational game screen, and an end-to-end check on the local Claude Code stack                            |
+| CA-7 | Three-dimensional Jupiter-style orb on a 2D canvas                                                                       |
 
 ## Appendix: Implementation Progress
 
 Status as of 2026-11-22.
 
-| Leg | Status | Notes |
-|---|---|---|
-| CA-1 to CA-6 | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
-| Transcribe listener | Unit tested only | The speech-gated stream has not run against Amazon Transcribe |
-| Bedrock | Not run | The conversational prompts have not been evaluated on Nova Micro, because the Bedrock quota is still 0 |
+| Leg                 | Status                     | Notes                                                                                                                                                                                                                                                                                                                             |
+| ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CA-1 to CA-7        | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
+| Transcribe listener | Unit tested only           | The speech-gated stream has not run against Amazon Transcribe                                                                                                                                                                                                                                                                     |
+| Bedrock             | Not run                    | The conversational prompts have not been evaluated on Nova Micro, because the Bedrock quota is still 0                                                                                                                                                                                                                            |

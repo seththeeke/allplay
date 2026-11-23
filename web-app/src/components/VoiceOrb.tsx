@@ -1,3 +1,5 @@
+import { useOrbCanvas, ORB_PIXELS } from "../hooks/useOrbCanvas";
+import { usePreferences } from "../hooks/usePreferences";
 import type { OrbState } from "../voice/useConversation";
 
 export interface VoiceOrbProps {
@@ -7,11 +9,14 @@ export interface VoiceOrbProps {
 }
 
 /**
- * The game speaker (conversational-ai.md section 8): large while greeting,
- * then small in the bottom left corner. Pressing it pauses or resumes
- * listening. With reduced motion each state is a still ring style.
+ * The game speaker (conversational-ai.md section 8): a turning, Jupiter-like
+ * planet, large while greeting and then small in the bottom left corner.
+ * Pressing it pauses or resumes listening. With reduced motion it holds
+ * still and the ring style shows each state.
  */
 export function VoiceOrb({ state, paused, onPress }: VoiceOrbProps): React.JSX.Element {
+  const { preferences } = usePreferences();
+  const canvas = useOrbCanvas(state, preferences.reducedMotion);
   return (
     <button
       type="button"
@@ -23,11 +28,18 @@ export function VoiceOrb({ state, paused, onPress }: VoiceOrbProps): React.JSX.E
       onClick={onPress}
       className="ap-orb"
     >
+      <canvas
+        ref={canvas}
+        aria-hidden="true"
+        width={ORB_PIXELS}
+        height={ORB_PIXELS}
+        className="ap-orb-planet"
+      />
       <span aria-hidden="true" className="ap-orb-ring" />
-      <span aria-hidden="true" className="ap-orb-core" />
       {state === "PAUSED" ? (
         <svg aria-hidden="true" viewBox="0 0 24 24" className="ap-orb-slash">
-          <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="3" />
+          <line x1="4" y1="4" x2="20" y2="20" stroke="#000000" strokeWidth="5" />
+          <line x1="4" y1="4" x2="20" y2="20" stroke="#ffffff" strokeWidth="2.5" />
         </svg>
       ) : null}
     </button>
