@@ -1,6 +1,7 @@
 import {
   DecisionResponseSchema,
   GamesResponseSchema,
+  GreetingResponseSchema,
   HintResponseSchema,
   ResolutionResponseSchema,
   SessionEnvelopeSchema,
@@ -52,6 +53,12 @@ export function createLiveDecisionService(api: ApiClient): DecisionService {
         `v1/decisions/${encodeURIComponent(decisionId)}/resolution`,
         request,
         ResolutionResponseSchema,
+      ),
+    greet: (sessionId) =>
+      api.post(
+        `v1/conversations/${encodeURIComponent(sessionId)}/greeting`,
+        {},
+        GreetingResponseSchema,
       ),
   };
 }

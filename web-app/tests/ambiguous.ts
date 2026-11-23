@@ -1,15 +1,14 @@
 import type { SpiderState } from "../test-data/spider/simulator";
 import { createServices } from "../src/services/createServices";
-import { createMemoryStore } from "../src/services/memory/memoryStore";
 import type { Services } from "../src/services/types";
 import { must } from "./must";
-import { LOCAL_CONFIG } from "./renderApp";
+import { LOCAL_CONFIG, turnBasedStore } from "./renderApp";
 
 const KEY = "allplay.memory.session.spider-solitaire";
 
 /** Services with a started game where two sevens can each go onto an eight, so "the seven onto the eight" is ambiguous. */
 export async function ambiguousServices(): Promise<Services> {
-  const store = createMemoryStore(null);
+  const store = turnBasedStore();
   const services = createServices(LOCAL_CONFIG, store, () => 7);
   await services.sessions.start("spider-solitaire");
   const stored = store.read<{ state: SpiderState }>(KEY, null as never);

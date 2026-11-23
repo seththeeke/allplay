@@ -8,11 +8,12 @@ import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
 import { usePreferences } from "../hooks/usePreferences";
+import { ConversationDock } from "../components/ConversationDock";
 import { VoiceBar } from "../components/VoiceBar";
 import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
 import { isMove } from "../hooks/selection";
 import type { GameCatalogEntry } from "../models/api";
-import { GAME_HELP_STEPS } from "./helpSteps";
+import { CONVERSATION_HELP_STEPS, GAME_HELP_STEPS } from "./helpSteps";
 
 export interface GamePageProps {
   game: GameCatalogEntry;
@@ -79,21 +80,30 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
     void work();
   };
 
-  return (
-    /* Room below the board for the compact voice bar fixed to the bottom of the game. */
-    <main className="pb-24">
-      <VoiceBar
-        actions={
-          envelope === undefined ? undefined : (
-            <GameActions
-              envelope={envelope}
-              onUndo={run(() => session.undo("POINTER"))}
-              onHint={run(() => session.requestHint())}
-              onNewGame={run(() => session.newGame())}
-            />
-          )
-        }
+  const actions =
+    envelope === undefined ? undefined : (
+      <GameActions
+        envelope={envelope}
+        onUndo={run(() => session.undo("POINTER"))}
+        onHint={run(() => session.requestHint())}
+        onNewGame={run(() => session.newGame())}
       />
+    );
+  const conversational = help.preferences.voiceMode === "CONVERSATIONAL";
+
+  return (
+    /* Room below the board for the voice controls fixed to the bottom of the game. */
+    <main className="pb-24">
+      {/* The saved mode must be known first, so a turn-based player's microphone never opens. */}
+      {!help.loaded ? null : conversational ? (
+        <ConversationDock
+          sessionId={envelope?.session.sessionId ?? null}
+          ready={help.game.helpSeen}
+          actions={actions}
+        />
+      ) : (
+        <VoiceBar actions={actions} />
+      )}
       {envelope === undefined ? (
         <p className="text-2xl">Dealing the cards...</p>
       ) : (
@@ -118,7 +128,7 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
           />
           {help.loaded && !help.game.helpSeen ? (
             <HelpWalkthrough
-              steps={GAME_HELP_STEPS}
+              steps={conversational ? CONVERSATION_HELP_STEPS : GAME_HELP_STEPS}
               onFinish={() => {
                 help.updateGame({ helpSeen: true });
               }}

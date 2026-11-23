@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import type { Choice, DecisionResponse, GameOptions, SessionEnvelope } from "../models/api";
+import type { Heard } from "./speechInput";
 
 export type VoicePhase = "IDLE" | "LISTENING" | "DECIDING" | "PROPOSAL" | "CHOICES" | "CONFIRM_APP";
 
@@ -22,6 +23,8 @@ export interface VoiceState {
   recording: boolean;
   /** Speech input can capture audio, not only typed commands. */
   canRecord: boolean;
+  /** The game speaker is talking (conversational-ai.md section 8). */
+  speaking: boolean;
 }
 
 export interface VoiceControls extends VoiceState {
@@ -35,6 +38,13 @@ export interface VoiceControls extends VoiceState {
   setGameTarget: (target: VoiceGameTarget | null) => void;
   /** Voice is offered only while its controls are on screen (a game); the keys listen only then. */
   setActive: (active: boolean) => void;
+  /** Sends what the continuous listener heard; resolves when the turn is finished. */
+  submitHeard: (heard: Heard) => Promise<void>;
+  /** Speaks a line regardless of the turn-based voice setting. */
+  speakLine: (text: string, onEnd?: () => void) => void;
+  stopSpeaking: () => void;
+  /** Replaces what Space does while conversational voice is on screen. */
+  setSpaceHandler: (handler: (() => void) | null) => void;
 }
 
 export const VoiceContext = createContext<VoiceControls | null>(null);

@@ -8,6 +8,7 @@ import type {
   StartDeploymentResponse,
   DecisionRequest,
   DecisionResponse,
+  GreetingResponse,
   ResolutionRequest,
   ResolutionResponse,
   ApplyActionRequest,
@@ -82,6 +83,8 @@ export interface SessionService {
 export interface DecisionService {
   decide(request: DecisionRequest): Promise<DecisionResponse>;
   resolve(decisionId: string, request: ResolutionRequest): Promise<ResolutionResponse>;
+  /** The game speaker's opening line (conversational-ai.md section 7). */
+  greet(sessionId: string): Promise<GreetingResponse>;
 }
 
 /** Player statistics (data-model.md section 8). */

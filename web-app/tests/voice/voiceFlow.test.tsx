@@ -2,11 +2,10 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServices } from "../../src/services/createServices";
-import { createMemoryStore } from "../../src/services/memory/memoryStore";
 import type { Services } from "../../src/services/types";
-import { LOCAL_CONFIG, renderApp } from "../renderApp";
+import { LOCAL_CONFIG, renderApp, turnBasedStore } from "../renderApp";
 
-const seeded = (): Services => createServices(LOCAL_CONFIG, createMemoryStore(null), () => 7);
+const seeded = (): Services => createServices(LOCAL_CONFIG, turnBasedStore(), () => 7);
 const voiceBar = () => screen.getByRole("region", { name: "Voice control" });
 
 async function open(path = "/spider", services: Services = seeded()) {

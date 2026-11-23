@@ -169,4 +169,35 @@ describe("memory decision service", () => {
       "RESOLVED",
     );
   });
+
+  it("acts without asking in conversational mode and stays silent on side talk", async () => {
+    const { services, request } = await setup();
+    const spoken = (transcript: string) => {
+      const base = request(transcript);
+      return { ...base, context: { ...base.context, voiceMode: "CONVERSATIONAL" as const } };
+    };
+    expect(await services.decisions.decide(spoken("banana sandwich"))).toMatchObject({
+      outcome: "IGNORED",
+      silent: true,
+    });
+    const moved = await services.decisions.decide(spoken("deal"));
+    expect(moved).toMatchObject({ outcome: "AUTO_APPLIED", speech: "Done." });
+    expect(moved.session?.session.version).toBe(1);
+  });
+
+  it("greets once and then welcomes back, and acknowledges a conversational resolution", async () => {
+    const { services, envelope, game } = await setup();
+    const id = envelope.session.sessionId;
+    expect((await services.decisions.greet(id)).kind).toBe("GREETING");
+    expect((await services.decisions.greet(id)).kind).toBe("WELCOME_BACK");
+    const resolved = await services.decisions.resolve("d", {
+      resolution: "CONFIRMED",
+      sessionId: game.sessionId,
+      actionId: "DEAL_ROW",
+      expectedVersion: 0,
+      clientLatencyMs: 1,
+      voiceMode: "CONVERSATIONAL",
+    });
+    expect(resolved.speech).toBe("Done.");
+  });
 });

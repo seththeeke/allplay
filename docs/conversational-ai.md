@@ -203,3 +203,13 @@ Each leg is one commit.
 | CA-4 | `voiceMode` preference and Settings control |
 | CA-5 | Speech detector, continuous local and Transcribe listeners, interruptible speech output |
 | CA-6 | Voice orb, conversational game screen, and an end-to-end check on the local Claude Code stack |
+
+## Appendix: Implementation Progress
+
+Status as of 2026-11-22.
+
+| Leg | Status | Notes |
+|---|---|---|
+| CA-1 to CA-6 | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
+| Transcribe listener | Unit tested only | The speech-gated stream has not run against Amazon Transcribe |
+| Bedrock | Not run | The conversational prompts have not been evaluated on Nova Micro, because the Bedrock quota is still 0 |

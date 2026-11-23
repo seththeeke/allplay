@@ -33,3 +33,20 @@ export const GAME_HELP_STEPS: HelpStep[] = [
     body: 'Say "zoom in", "zoom out" or "high contrast" while you play, or open Settings.',
   },
 ];
+
+/** The same tour for conversational voice (conversational-ai.md section 2). */
+export const CONVERSATION_HELP_STEPS: HelpStep[] = GAME_HELP_STEPS.map((step, index) => {
+  if (index === 0)
+    return {
+      ...step,
+      title: "Just talk to play",
+      body: 'I listen while you play. Say what you want, like "three to seven" or "deal". Press Space or this circle to pause listening.',
+    };
+  if (index === 4)
+    return {
+      ...step,
+      title: "I ask only when unsure",
+      body: 'Moves happen right away. If I am not sure, say "yes" or press Enter. Say "no" or press Escape to cancel.',
+    };
+  return step;
+});

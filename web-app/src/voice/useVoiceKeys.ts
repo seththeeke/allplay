@@ -16,17 +16,26 @@ function isTextEntry(target: EventTarget | null): boolean {
  * alone, and Enter on a focused button keeps its normal meaning. Nothing
  * listens unless voice is active, which is only while a game is open.
  */
-export function useVoiceKeys(controls: VoiceControls, active = true): void {
-  const { phase, startListening, confirm, cancel, choose } = controls;
+export function useVoiceKeys(
+  controls: VoiceControls,
+  active = true,
+  spaceHandler: { readonly current: (() => void) | null } = { current: null },
+): void {
+  const { phase, speaking, startListening, confirm, cancel, choose } = controls;
   useEffect(() => {
     if (!active) return undefined;
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && phase !== "IDLE") {
+      if (event.key === "Escape" && (phase !== "IDLE" || speaking)) {
         event.preventDefault();
         cancel();
         return;
       }
       if (isTextEntry(event.target) || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === " " && spaceHandler.current !== null) {
+        event.preventDefault();
+        spaceHandler.current();
+        return;
+      }
       if (event.key === " " && phase !== "LISTENING" && phase !== "DECIDING") {
         event.preventDefault();
         startListening();
@@ -48,5 +57,5 @@ export function useVoiceKeys(controls: VoiceControls, active = true): void {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [active, phase, startListening, confirm, cancel, choose]);
+  }, [active, phase, speaking, spaceHandler, startListening, confirm, cancel, choose]);
 }

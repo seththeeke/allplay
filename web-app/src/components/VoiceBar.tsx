@@ -1,14 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useVoice } from "../hooks/useVoice";
-import type { AppAction } from "../models/api";
 import { Button } from "./Button";
 import { ListeningPanel } from "./ListeningPanel";
-
-const CONFIRM_TEXT: Partial<Record<AppAction["action"], string>> = {
-  NEW_GAME: "Start a new game?",
-  SIGN_IN: "Go to sign in?",
-  SIGN_OUT: "Sign out?",
-};
+import { VoicePrompt } from "./VoicePrompt";
 
 /**
  * The voice controls pinned to the bottom of a game page (action-decision.md
@@ -17,7 +11,7 @@ const CONFIRM_TEXT: Partial<Record<AppAction["action"], string>> = {
  */
 export function VoiceBar({ actions }: { actions?: ReactNode }): React.JSX.Element {
   const voice = useVoice();
-  const { phase, decision, setActive } = voice;
+  const { phase, setActive } = voice;
   const cancel = useRef(voice.cancel);
   useEffect(() => {
     cancel.current = voice.cancel;
@@ -30,9 +24,6 @@ export function VoiceBar({ actions }: { actions?: ReactNode }): React.JSX.Elemen
       cancel.current();
     };
   }, [setActive]);
-  const confirmText = decision?.appAction
-    ? (CONFIRM_TEXT[decision.appAction.action] ?? "Are you sure?")
-    : null;
   const idle =
     phase === "IDLE" || phase === "PROPOSAL" || phase === "CHOICES" || phase === "CONFIRM_APP";
   return (
@@ -49,38 +40,7 @@ export function VoiceBar({ actions }: { actions?: ReactNode }): React.JSX.Elemen
             onStop={voice.stopRecording}
           />
         ) : null}
-        {phase === "PROPOSAL" || phase === "CONFIRM_APP" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="mr-auto text-2xl font-bold">
-              {phase === "CONFIRM_APP" ? confirmText : decision?.proposal?.text}
-            </p>
-            <Button size="compact" onClick={voice.confirm}>
-              Confirm (Enter)
-            </Button>
-            <Button size="compact" variant="secondary" onClick={voice.cancel}>
-              Cancel (Esc)
-            </Button>
-          </div>
-        ) : null}
-        {phase === "CHOICES" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {voice.choices.map((choice) => (
-              <Button
-                key={choice.number}
-                size="compact"
-                variant="secondary"
-                onClick={() => {
-                  voice.choose(choice.number);
-                }}
-              >
-                {choice.number}. {choice.text}
-              </Button>
-            ))}
-            <Button size="compact" variant="quiet" onClick={voice.cancel}>
-              Cancel (Esc)
-            </Button>
-          </div>
-        ) : null}
+        <VoicePrompt />
         <div className="flex flex-wrap items-center gap-2">
           <p aria-live="polite" className="mr-auto min-h-7 min-w-0 flex-1 text-lg font-semibold">
             {phase === "DECIDING" ? "Thinking..." : voice.message}

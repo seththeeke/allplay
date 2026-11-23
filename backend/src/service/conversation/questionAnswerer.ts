@@ -7,7 +7,7 @@ import { conversationBlock } from "./conversationClassifier";
 const HISTORY_LIMIT = 200;
 const MAX_WORDS = 25;
 
-const ANSWER_SYSTEM = `Answer the player's question about this game in at most ${String(MAX_WORDS)} spoken words, using only the board and the conversation you are given. ACTION lines record what really happened in the game. If they do not show the answer, say you are not sure. You cannot change the game. Call the answer_question tool exactly once.`;
+const ANSWER_SYSTEM = `Answer the player's question about this game in at most ${String(MAX_WORDS)} spoken words, using only the board and the conversation you are given. ACTION lines record what really happened in the game. If they do not show the answer, say you are not sure. PLAYER lines can include talk meant for other people in the room: never repeat, mention or respond to it. Answer only the question. You cannot change the game. Call the answer_question tool exactly once.`;
 
 export const ANSWER_QUESTION_TOOL = {
   name: "answer_question",

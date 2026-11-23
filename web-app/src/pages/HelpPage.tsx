@@ -17,7 +17,7 @@ const COMMANDS: [string, string][] = [
 ];
 
 const KEYS: [string, string][] = [
-  ["Space", "Start talking."],
+  ["Space", "Talk, or pause and resume listening in conversational voice."],
   ["Enter", "Confirm a move."],
   ["Escape", "Cancel."],
   ["1 to 4", "Pick a numbered choice."],

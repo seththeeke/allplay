@@ -20,6 +20,7 @@ export function createMemoryDecisionService(
   preferences: PreferencesService,
 ): DecisionService {
   let counter = 0;
+  const greeted = new Set<string>();
 
   const perform = (
     sessionId: string,
@@ -98,6 +99,9 @@ export function createMemoryDecisionService(
         (envelope?.legalActions ?? []).map((action) => [action.actionId, action.text]),
       );
       texts.set(UNDO_ACTION_ID, "Undo the last move");
+      const conversational = context.voiceMode === "CONVERSATIONAL";
+      if (conversational && decision.kind === "UNRECOGNIZED")
+        return respond("IGNORED", "No game request heard.", { silent: true });
       if (sessionId === null || ids.length === 0 || ids.length > 4) {
         return respond(
           "UNRECOGNIZED",
@@ -116,8 +120,8 @@ export function createMemoryDecisionService(
       const actionId = ids[0] ?? UNDO_ACTION_ID;
       const text = texts.get(actionId) ?? actionId;
       const { app } = await preferences.get();
-      if (app.autoConfirm) {
-        return respond("AUTO_APPLIED", text, {
+      if (app.autoConfirm || conversational) {
+        return respond("AUTO_APPLIED", conversational ? "Done." : text, {
           session: await perform(sessionId, actionId, version),
         });
       }
@@ -127,7 +131,19 @@ export function createMemoryDecisionService(
       const applies = request.resolution === "CONFIRMED" || request.resolution === "CHOSE_OPTION";
       const { sessionId, actionId } = request;
       if (!applies || sessionId === null || actionId === null) return { session: null };
-      return { session: await perform(sessionId, actionId, request.expectedVersion ?? 0) };
+      return {
+        session: await perform(sessionId, actionId, request.expectedVersion ?? 0),
+        ...(request.voiceMode === "CONVERSATIONAL" ? { speech: "Done." } : {}),
+      };
+    },
+    greet: (sessionId) => {
+      const returning = greeted.has(sessionId);
+      greeted.add(sessionId);
+      return Promise.resolve(
+        returning
+          ? { text: "Welcome back. Your game's right where you left it.", kind: "WELCOME_BACK" }
+          : { text: "Game's started. Let me know what you'd like to do.", kind: "GREETING" },
+      );
     },
   };
 }

@@ -2,11 +2,10 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServices } from "../../src/services/createServices";
-import { createMemoryStore } from "../../src/services/memory/memoryStore";
 import type { Services } from "../../src/services/types";
 import type { Heard, SpeechInput } from "../../src/voice/speechInput";
 import { MAX_CAPTURE_MS } from "../../src/voice/VoiceProvider";
-import { LOCAL_CONFIG, renderApp } from "../renderApp";
+import { LOCAL_CONFIG, renderApp, turnBasedStore } from "../renderApp";
 
 const voiceBar = () => screen.getByRole("region", { name: "Voice control" });
 
@@ -17,7 +16,7 @@ function withMicrophone(heard: () => Promise<Heard>, start?: () => Promise<never
     start: start ?? (() => Promise.resolve({ stop: heard, cancel })),
   };
   const services: Services = {
-    ...createServices(LOCAL_CONFIG, createMemoryStore(null), () => 7),
+    ...createServices(LOCAL_CONFIG, turnBasedStore(), () => 7),
     speechInput,
   };
   return { services, cancel };

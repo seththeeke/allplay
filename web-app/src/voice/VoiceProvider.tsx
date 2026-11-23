@@ -7,9 +7,10 @@ import {
   type DecisionResponse,
   type ResolutionRequest,
   type Screen,
+  type SessionEnvelope,
   type TranscriptSource,
 } from "../models/api";
-import type { SpeechCapture } from "./speechInput";
+import type { Heard, SpeechCapture } from "./speechInput";
 import type { SpeechOutput } from "./speechOutput";
 import { pendingPromptOf, resolutionFor } from "./turns";
 import { useAppActions } from "./useAppActions";
@@ -52,7 +53,17 @@ export function VoiceProvider({
   const { preferences } = usePreferences();
   const { pathname } = useLocation();
   const [phase, setPhase] = useState<VoicePhase>("IDLE");
-  const [decision, setDecision] = useState<DecisionResponse | null>(null);
+  const [decision, setDecisionState] = useState<DecisionResponse | null>(null);
+  /* Queued utterances run before React renders, so the waiting prompt is read from here. */
+  const currentDecision = useRef<DecisionResponse | null>(null);
+  const setDecision = (next: DecisionResponse | null): void => {
+    currentDecision.current = next;
+    setDecisionState(next);
+  };
+  const [speaking, setSpeaking] = useState(false);
+  const speechTurn = useRef(0);
+  const spaceHandler = useRef<(() => void) | null>(null);
+  const conversational = preferences.voiceMode === "CONVERSATIONAL";
   const [message, setMessage] = useState<string | null>(null);
   const [active, setActive] = useState(false);
   const target = useRef<VoiceGameTarget | null>(null);
@@ -61,10 +72,26 @@ export function VoiceProvider({
   const captureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [recording, setRecording] = useState(false);
 
+  const speakLine = (spoken: string, onEnd?: () => void): void => {
+    speechTurn.current += 1;
+    const mine = speechTurn.current;
+    setSpeaking(true);
+    output.speak(spoken, preferences.speechRate, preferences.voiceId, () => {
+      if (mine === speechTurn.current) setSpeaking(false);
+      onEnd?.();
+    });
+  };
   const say = (text: string, spoken: string = text, force = false): void => {
     setMessage(text);
-    if (force || preferences.voiceOutputEnabled)
+    if (conversational) speakLine(spoken);
+    else if (force || preferences.voiceOutputEnabled)
       output.speak(spoken, preferences.speechRate, preferences.voiceId);
+  };
+  /* The next queued utterance needs the new version before the page re-renders. */
+  const showSession = (session: SessionEnvelope): void => {
+    if (target.current === null) return;
+    target.current = { ...target.current, version: session.session.version };
+    target.current.replace(session);
   };
   const latency = (): number => Math.max(0, Math.round(now() - captureEnded.current));
   const restingPhase = (current: DecisionResponse | null): VoicePhase => {
@@ -83,15 +110,19 @@ export function VoiceProvider({
     resolution: ResolutionRequest["resolution"],
     optionNumber: number | null = null,
   ): void => {
-    const current = decision;
+    const current = currentDecision.current;
     setPhase("IDLE");
     setDecision(null);
     if (current === null) return;
-    const request = resolutionFor(current, resolution, target.current, latency(), optionNumber);
+    const request = {
+      ...resolutionFor(current, resolution, target.current, latency(), optionNumber),
+      ...(conversational ? { voiceMode: "CONVERSATIONAL" as const } : {}),
+    };
     void decisions
       .resolve(current.decisionId, request)
       .then((result) => {
-        if (result.session !== null) target.current?.replace(result.session);
+        if (result.session !== null) showSession(result.session);
+        if (result.speech !== undefined) say(result.speech);
         if (resolution === "CONFIRMED" && current.appAction !== null) runApp(current.appAction);
       })
       .catch(() => {
@@ -100,8 +131,13 @@ export function VoiceProvider({
   };
 
   const handle = (response: DecisionResponse): void => {
+    /* Side talk changes nothing, so a waiting prompt keeps waiting (conversational-ai.md section 4.2). */
+    if (response.silent === true) {
+      setPhase(restingPhase(currentDecision.current));
+      return;
+    }
     say(response.displayText, response.speech);
-    if (response.session !== null) target.current?.replace(response.session);
+    if (response.session !== null) showSession(response.session);
     const confirmApp =
       response.outcome === "APP_ACTION" &&
       response.appAction !== null &&
@@ -139,10 +175,10 @@ export function VoiceProvider({
     void current
       .stop()
       .then((heard) => {
-        submit(heard.text, heard.transcriptSource);
+        void submit(heard.text, heard.transcriptSource);
       })
       .catch(() => {
-        setPhase(restingPhase(decision));
+        setPhase(restingPhase(currentDecision.current));
         say("I couldn't hear that. Please try again, or type the command.");
       });
   };
@@ -161,16 +197,19 @@ export function VoiceProvider({
       });
   };
 
-  const submit = (transcript: string, transcriptSource: TranscriptSource = "TYPED"): void => {
+  const submit = (
+    transcript: string,
+    transcriptSource: TranscriptSource = "TYPED",
+  ): Promise<void> => {
     const text = transcript.trim();
     if (text.length === 0) {
       say("I didn't hear anything.");
-      setPhase(restingPhase(decision));
-      return;
+      setPhase(restingPhase(currentDecision.current));
+      return Promise.resolve();
     }
     captureEnded.current = now();
     setPhase("DECIDING");
-    void decisions
+    return decisions
       .decide({
         transcript: text,
         transcriptSource,
@@ -178,7 +217,8 @@ export function VoiceProvider({
           screen: SCREENS[pathname] ?? (target.current === null ? "HOME" : "GAME"),
           sessionId: target.current?.sessionId ?? null,
           expectedVersion: target.current?.version ?? null,
-          pendingPrompt: pendingPromptOf(decision),
+          pendingPrompt: pendingPromptOf(currentDecision.current),
+          voiceMode: conversational ? "CONVERSATIONAL" : "TURN_BASED",
         },
       })
       .then(handle)
@@ -197,6 +237,7 @@ export function VoiceProvider({
     choices: phase === "CHOICES" ? (decision?.choices ?? []) : [],
     recording,
     canRecord: speechInput.start !== null,
+    speaking,
     startListening: () => {
       setPhase("LISTENING");
       startCapture();
@@ -204,13 +245,28 @@ export function VoiceProvider({
     stopRecording,
     submit: (transcript) => {
       endCapture()?.cancel();
-      submit(transcript);
+      void submit(transcript);
+    },
+    submitHeard: (heard: Heard) => submit(heard.text, heard.transcriptSource),
+    speakLine,
+    stopSpeaking: () => {
+      speechTurn.current += 1;
+      setSpeaking(false);
+      output.stop?.();
+    },
+    setSpaceHandler: (handler) => {
+      spaceHandler.current = handler;
     },
     confirm: () => {
       if (phase === "PROPOSAL" || phase === "CONFIRM_APP") finish("CONFIRMED");
     },
     cancel: () => {
       endCapture()?.cancel();
+      if (conversational) {
+        speechTurn.current += 1;
+        setSpeaking(false);
+        output.stop?.();
+      }
       if (decision !== null && phase !== "LISTENING") {
         finish("REJECTED");
         say("Cancelled.");
@@ -231,6 +287,6 @@ export function VoiceProvider({
     },
     setActive,
   };
-  useVoiceKeys(controls, active);
+  useVoiceKeys(controls, active, spaceHandler);
   return <VoiceContext.Provider value={controls}>{children}</VoiceContext.Provider>;
 }

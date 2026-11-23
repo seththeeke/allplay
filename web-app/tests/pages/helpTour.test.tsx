@@ -2,7 +2,8 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { GAME_HELP_STEPS } from "../../src/pages/helpSteps";
-import { freshServices, renderApp } from "../renderApp";
+import { createServices } from "../../src/services/createServices";
+import { freshServices, LOCAL_CONFIG, renderApp, turnBasedStore } from "../renderApp";
 
 const highlighted = () =>
   document.querySelector("[data-help-highlight]")?.getAttribute("data-help-id");
@@ -10,7 +11,7 @@ const highlighted = () =>
 describe("first-game tour", () => {
   it("walks through every step, highlighting each target, and is not shown again", async () => {
     const user = userEvent.setup();
-    const services = freshServices();
+    const services = createServices(LOCAL_CONFIG, turnBasedStore());
     renderApp("/spider", services);
     expect(await screen.findByRole("heading", { level: 2, name: "Talk to play" })).toHaveFocus();
     expect(screen.getByText(`Step 1 of ${String(GAME_HELP_STEPS.length)}`)).toBeInTheDocument();
@@ -36,7 +37,7 @@ describe("first-game tour", () => {
 
   it("can be skipped", async () => {
     const user = userEvent.setup();
-    renderApp("/spider");
+    renderApp("/spider", createServices(LOCAL_CONFIG, turnBasedStore()));
     await user.click(await screen.findByRole("button", { name: "Skip the tour" }));
     await waitFor(() => {
       expect(
@@ -46,7 +47,7 @@ describe("first-game tour", () => {
   });
 
   it("does not appear once seen", async () => {
-    const services = freshServices();
+    const services = createServices(LOCAL_CONFIG, turnBasedStore());
     await services.preferences.patchGame("spider-solitaire", { helpSeen: true });
     renderApp("/spider", services);
     await screen.findByRole("region", { name: "Card table" });
@@ -66,7 +67,7 @@ describe("help page", () => {
     expect(screen.getByText("Space")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Show the Spider Solitaire tour" }));
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Talk to play" }),
+      await screen.findByRole("heading", { level: 2, name: "Just talk to play" }),
     ).toBeInTheDocument();
   });
 });
