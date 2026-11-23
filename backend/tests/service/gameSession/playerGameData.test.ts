@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { createInMemoryConversationMessageDao } from "../../../src/dao/conversationMessage/inMemoryConversationMessageDao";
 import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createBundledRulesRepository } from "../../../src/game-catalog";
 import { createGameSessionService } from "../../../src/service/gameSession/gameSessionService";
 import { createPlayerGameData } from "../../../src/service/gameSession/playerGameData";
+import { conversationMessage } from "../../dao/conversationMessage/conversationMessageDaoContract";
 
 const repository = createBundledRulesRepository();
 const GUEST = "GUEST#g1";
@@ -13,6 +15,7 @@ const KEY = "spider-solitaire#dealStyle=MICROSOFT;suits=1";
 function world() {
   let now = new Date("2026-11-22T10:00:00.000Z");
   const tables = createInMemoryGameTables();
+  const conversations = createInMemoryConversationMessageDao();
   const sessions = createGameSessionService({
     ...tables,
     games: (gameId, version) => repository.compiled(gameId, version),
@@ -23,7 +26,13 @@ function world() {
     now = new Date(now.getTime() + 60_000);
     return now;
   };
-  return { tables, sessions, data: createPlayerGameData(tables), tick };
+  return {
+    tables,
+    conversations,
+    sessions,
+    data: createPlayerGameData({ ...tables, conversations }),
+    tick,
+  };
 }
 
 async function playOne(w: ReturnType<typeof world>, playerId: string, finish: boolean) {
@@ -110,7 +119,11 @@ describe("player game data", () => {
       { ...session, seats: [...session.seats, { seatId: "S2", playerId: "ACCT#friend" }] },
       session.version,
     );
+    await w.conversations.append(conversationMessage(mine, "01A"));
+    await w.conversations.append(conversationMessage(shared, "01B"));
     await w.data.deleteAll(ACCOUNT);
+    expect(await w.conversations.list(mine)).toEqual([]);
+    expect(await w.conversations.list(shared)).toHaveLength(1);
     expect(await w.tables.dao.get(mine)).toBeNull();
     expect(await w.tables.dao.get(shared)).not.toBeNull();
     expect(await w.tables.seats.list(ACCOUNT)).toEqual([]);

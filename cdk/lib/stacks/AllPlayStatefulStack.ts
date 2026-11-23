@@ -35,6 +35,8 @@ export class AllPlayStatefulStack extends Stack {
   readonly rateLimits: AllPlayTable;
   /** Daily aggregates for /admin (data-model.md section 11). */
   readonly metricRollups: AllPlayTable;
+  /** The game speaker conversation of each session (conversational-ai.md section 6). */
+  readonly conversationMessages: AllPlayTable;
   /** Accounts and groups (authn-authz.md section 3). */
   readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
@@ -45,6 +47,7 @@ export class AllPlayStatefulStack extends Stack {
   readonly playerStatsTableName: CfnOutput;
   readonly rateLimitsTableName: CfnOutput;
   readonly metricRollupsTableName: CfnOutput;
+  readonly conversationMessagesTableName: CfnOutput;
   readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
@@ -118,6 +121,13 @@ export class AllPlayStatefulStack extends Stack {
       partitionKey: { name: "rollupType" },
       sortKey: { name: "period" },
     });
+    this.conversationMessages = new AllPlayTable(this, "ConversationMessages", {
+      stage: props.stage,
+      entity: "ConversationMessages",
+      partitionKey: { name: "sessionId" },
+      sortKey: { name: "messageId" },
+      timeToLiveAttribute: "ttl",
+    });
     const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
     if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
     this.users = new AllPlayUserPool(this, "Users", {
@@ -149,6 +159,9 @@ export class AllPlayStatefulStack extends Stack {
     });
     this.metricRollupsTableName = new CfnOutput(this, "MetricRollupsTableName", {
       value: this.metricRollups.table.tableName,
+    });
+    this.conversationMessagesTableName = new CfnOutput(this, "ConversationMessagesTableName", {
+      value: this.conversationMessages.table.tableName,
     });
     this.userPoolId = new CfnOutput(this, "UserPoolId", { value: this.users.userPool.userPoolId });
     if (props.stage === "Test") {

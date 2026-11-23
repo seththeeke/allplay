@@ -98,6 +98,7 @@ export class AllPlayAppStack extends Stack {
     });
     const { players, preferences, mergeTokens } = props.stateful;
     const { gameSessions, seatAssignments, playerStats, metricRollups } = props.stateful;
+    const { conversationMessages } = props.stateful;
     const gameTables = {
       GAME_SESSIONS_TABLE: gameSessions.table.tableName,
       SEAT_ASSIGNMENTS_TABLE: seatAssignments.table.tableName,
@@ -147,6 +148,7 @@ export class AllPlayAppStack extends Stack {
         PREFERENCES_TABLE: preferences.table.tableName,
         MERGE_TOKENS_TABLE: mergeTokens.table.tableName,
         ...gameTables,
+        CONVERSATION_MESSAGES_TABLE: conversationMessages.table.tableName,
         IDENTITY_POOL_ID: this.identity.identityPool.ref,
         USER_POOL_ID: users.userPool.userPoolId,
         FEDERATION_SECRET_ID: props.stateful.federation.secret.secretName,
@@ -162,6 +164,13 @@ export class AllPlayAppStack extends Stack {
       new PolicyStatement({
         actions: ["dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:DeleteItem"],
         resources: [preferences.table.tableArn],
+      }),
+    );
+    /* Account deletion removes the conversations of deleted sessions (conversational-ai.md section 6). */
+    playerApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query", "dynamodb:BatchWriteItem"],
+        resources: [conversationMessages.table.tableArn],
       }),
     );
     /* Merge tokens are written once and redeemed with a conditional update (data-model.md section 9). */

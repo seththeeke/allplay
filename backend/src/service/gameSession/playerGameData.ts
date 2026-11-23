@@ -1,3 +1,5 @@
+import type { ConversationMessageDao } from "../../dao/conversationMessage/conversationMessageDao";
+import { createDynamoConversationMessageDao } from "../../dao/conversationMessage/dynamoConversationMessageDao";
 import { createDynamoGameSessionDao } from "../../dao/gameSession/dynamoGameSessionDao";
 import type { GameSessionDao } from "../../dao/gameSession/gameSessionDao";
 import { createDynamoPlayerStatsDao } from "../../dao/playerStats/dynamoPlayerStatsDao";
@@ -16,6 +18,8 @@ export interface PlayerGameDataDeps {
   dao: GameSessionDao;
   seats: SeatAssignmentDao;
   stats: PlayerStatsDao;
+  /** Deleted with the session they belong to (conversational-ai.md section 6). */
+  conversations?: ConversationMessageDao;
 }
 
 /** A player's sessions, seats and stats as a whole: the stats route, the merge and deletion. */
@@ -110,8 +114,10 @@ export function createPlayerGameData(deps: PlayerGameDataDeps): PlayerGameData {
     deleteAll: async (playerId) => {
       for (const seat of await deps.seats.list(playerId)) {
         const session = await deps.dao.get(seat.sessionId);
-        if (session?.seats.every((held) => held.playerId === playerId) === true)
+        if (session?.seats.every((held) => held.playerId === playerId) === true) {
+          await deps.conversations?.deleteAll(seat.sessionId);
           await deps.dao.delete(seat.sessionId);
+        }
         await deps.seats.delete(playerId, seat.sessionId);
       }
       for (const item of await deps.stats.list(playerId))
@@ -137,5 +143,11 @@ export function createDeployedGameTables(
 export function createDeployedPlayerGameData(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): PlayerGameData {
-  return createPlayerGameData(createDeployedGameTables(env));
+  const conversations = env["CONVERSATION_MESSAGES_TABLE"];
+  return createPlayerGameData({
+    ...createDeployedGameTables(env),
+    ...(conversations === undefined
+      ? {}
+      : { conversations: createDynamoConversationMessageDao(conversations) }),
+  });
 }

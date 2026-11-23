@@ -1,6 +1,8 @@
 import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { documentClient } from "../../src/dao/dynamo";
 import { createHash } from "node:crypto";
+import { createDynamoConversationMessageDao } from "../../src/dao/conversationMessage/dynamoConversationMessageDao";
+import { conversationMessageDaoContract } from "../dao/conversationMessage/conversationMessageDaoContract";
 import { createDynamoMergeTokenDao } from "../../src/dao/mergeToken/dynamoMergeTokenDao";
 import { createDynamoPlayerDao } from "../../src/dao/player/dynamoPlayerDao";
 import { createDynamoGameSessionDao } from "../../src/dao/gameSession/dynamoGameSessionDao";
@@ -134,6 +136,13 @@ describeTables("RateLimits table", () => {
     ),
   );
   rateLimitCounterDaoContract(() => createDynamoRateLimitCounterDao(tableName(), client), id);
+});
+
+describeTables("ConversationMessages table", () => {
+  const dao = () =>
+    createDynamoConversationMessageDao(table("CONVERSATION_MESSAGES_TABLE"), client);
+  cleanUp(() => Promise.all([...made].map((value) => dao().deleteAll(value))));
+  conversationMessageDaoContract(dao, id);
 });
 
 /* A day long before All Play existed, so the contract never touches a real day's counters. */

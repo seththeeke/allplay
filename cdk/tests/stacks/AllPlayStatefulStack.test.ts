@@ -120,6 +120,14 @@ describe("AllPlayStatefulStack", () => {
       ],
     });
     template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
+      TableName: "AllPlay-ConversationMessages-Test",
+      KeySchema: [
+        { AttributeName: "sessionId", KeyType: "HASH" },
+        { AttributeName: "messageId", KeyType: "RANGE" },
+      ],
+      TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
+    });
+    template.hasResourceProperties("AWS::DynamoDB::GlobalTable", {
       TableName: "AllPlay-RateLimits-Test",
       KeySchema: [{ AttributeName: "counterKey", KeyType: "HASH" }],
       TimeToLiveSpecification: { AttributeName: "ttl", Enabled: true },
@@ -127,6 +135,7 @@ describe("AllPlayStatefulStack", () => {
     expect(Object.keys(template.findOutputs("*"))).toEqual(
       expect.arrayContaining([
         "RateLimitsTableName",
+        "ConversationMessagesTableName",
         "MetricRollupsTableName",
         "GameSessionsTableName",
         "SeatAssignmentsTableName",
@@ -166,6 +175,7 @@ describe("AllPlayStatefulStack", () => {
       ':dynamodb:us-east-1:111111111111:table/AllPlay-PlayerStats-Test"',
       ':dynamodb:us-east-1:111111111111:table/AllPlay-RateLimits-Test"',
       ':dynamodb:us-east-1:111111111111:table/AllPlay-MetricRollups-Test"',
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-ConversationMessages-Test"',
     ])
       expect(arns).toContain(suffix);
     expect(arns).not.toContain("*");

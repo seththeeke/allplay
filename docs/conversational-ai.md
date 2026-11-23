@@ -184,7 +184,7 @@ Both routes are appended to the decisions bundle with IAM authorization and the 
 
 1. `AllPlayStatefulStack` adds the table with the standard `AllPlayTable` settings and `ttl`.
 2. `DecisionApi` gets `Query`, `PutItem`, `UpdateItem` on the table and the `CONVERSATION_MESSAGES_TABLE` variable.
-3. `PlayerApi` and `AdminApi` get `Query` and `BatchWriteItem` on the table for deletion.
+3. `PlayerApi` gets `Query` and `BatchWriteItem` on the table and the same variable for account deletion. A merge leaves messages untouched, so `AdminApi` needs no access.
 4. Test's verification role gets access to the table for the DAO contract tests.
 
 ## 10. Local Development
