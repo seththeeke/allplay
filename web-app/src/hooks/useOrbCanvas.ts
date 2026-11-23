@@ -1,18 +1,18 @@
 import { useEffect, useRef, type RefObject } from "react";
 import type { AppPreferences } from "../models/api";
-import { createJupiterSphere } from "../voice/jupiterSphere";
+import { createCloudSky } from "../voice/cloudSky";
 import type { OrbState } from "../voice/useConversation";
 
 /** Canvas pixels per side: sharp at the greeting size on a high-density screen. */
 export const ORB_PIXELS = 320;
 
-/* Radians per second for each state: a slow drift at rest, quicker while engaged. */
-const SPIN: Record<OrbState, number> = {
-  GREETING: 0.5,
-  IDLE: 0.3,
-  HEARING: 2.4,
-  THINKING: 1.6,
-  SPEAKING: 0.6,
+/* Drifts per second for each state: barely moving at rest, a little livelier while engaged. */
+const DRIFT: Record<OrbState, number> = {
+  GREETING: 0.008,
+  IDLE: 0.005,
+  HEARING: 0.03,
+  THINKING: 0.018,
+  SPEAKING: 0.01,
   PAUSED: 0,
 };
 const EASING_PER_SECOND = 4;
@@ -26,24 +26,24 @@ function prefersStill(setting: AppPreferences["reducedMotion"]): boolean {
   );
 }
 
-/** Draws the planet on a canvas and turns it; with reduced motion it is one still frame. */
+/** Draws the cloudy sky on a canvas and drifts it; with reduced motion it is one still frame. */
 export function useOrbCanvas(
   state: OrbState,
   reducedMotion: AppPreferences["reducedMotion"],
 ): RefObject<HTMLCanvasElement | null> {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const target = useRef(SPIN[state]);
+  const target = useRef(DRIFT[state]);
   useEffect(() => {
-    target.current = SPIN[state];
+    target.current = DRIFT[state];
   }, [state]);
   useEffect(() => {
     const context = canvas.current?.getContext("2d");
     if (!context) return undefined;
-    const sphere = createJupiterSphere(ORB_PIXELS);
+    const sky = createCloudSky(ORB_PIXELS);
     const image = context.createImageData(ORB_PIXELS, ORB_PIXELS);
-    let rotation = 0;
+    let phase = 0;
     const paint = (): void => {
-      sphere.draw(image.data, rotation);
+      sky.draw(image.data, phase);
       context.putImageData(image, 0, 0);
     };
     paint();
@@ -54,7 +54,7 @@ export function useOrbCanvas(
       const seconds = last === null ? 0 : Math.min(MAX_FRAME_SECONDS, (now - last) / 1000);
       last = now;
       speed += (target.current - speed) * Math.min(1, seconds * EASING_PER_SECOND);
-      rotation += speed * seconds;
+      phase += speed * seconds;
       paint();
       frame = requestAnimationFrame(tick);
     });

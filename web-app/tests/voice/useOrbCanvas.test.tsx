@@ -37,7 +37,7 @@ describe("orb canvas", () => {
     vi.unstubAllGlobals();
   });
 
-  it("turns frame by frame and stops when removed", () => {
+  it("drifts frame by frame and stops when removed", () => {
     const t = fakeCanvas();
     const view = render(<Orb state="HEARING" motion="OFF" />);
     expect(t.putImageData).toHaveBeenCalledTimes(1);

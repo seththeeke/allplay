@@ -9,8 +9,8 @@ export interface VoiceOrbProps {
 }
 
 /**
- * The game speaker (conversational-ai.md section 8): a turning, Jupiter-like
- * planet, large while greeting and then small in the bottom left corner.
+ * The game speaker (conversational-ai.md section 8): a round view of a cloudy
+ * sky, large while greeting and then small in the bottom left corner.
  * Pressing it pauses or resumes listening. With reduced motion it holds
  * still and the ring style shows each state.
  */

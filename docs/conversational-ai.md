@@ -166,18 +166,18 @@ Both routes are appended to the decisions bundle with IAM authorization and the 
 
 ## 8. Voice Orb
 
-| State      | Appearance                                                               | Status text for assistive technology |
-| ---------- | ------------------------------------------------------------------------ | ------------------------------------ |
-| `GREETING` | Large and centered, pulsing while it turns, with the greeting beneath it | The greeting                         |
-| `IDLE`     | Small, bottom left, turning slowly                                       | "Listening for your voice"           |
-| `HEARING`  | Small, turning fast, with a bright ring                                  | "Hearing you"                        |
-| `THINKING` | Small, turning quickly, dimmed                                           | "Working on it"                      |
-| `SPEAKING` | Small, pulsing while it turns gently                                     | The reply text                       |
-| `PAUSED`   | Small, still, desaturated, with a slash                                  | "Listening paused"                   |
+| State      | Appearance                                                                       | Status text for assistive technology |
+| ---------- | -------------------------------------------------------------------------------- | ------------------------------------ |
+| `GREETING` | Large and centered, pulsing while its clouds drift, with the greeting beneath it | The greeting                         |
+| `IDLE`     | Small, bottom left, clouds barely drifting                                       | "Listening for your voice"           |
+| `HEARING`  | Small, clouds drifting faster, with a bright ring                                | "Hearing you"                        |
+| `THINKING` | Small, clouds drifting, dimmed                                                   | "Working on it"                      |
+| `SPEAKING` | Small, pulsing while its clouds drift gently                                     | The reply text                       |
+| `PAUSED`   | Small, still, desaturated, with a slash                                          | "Listening paused"                   |
 
-1. The orb is a three-dimensional planet in the style of Jupiter: a lit, tilted sphere with gradient cloud bands and a red storm that rotate around its axis. It is drawn on a 2D canvas with no 3D library.
+1. The orb is a round view of a cloudy sky: deep blue at the top, a soft ragged line of white cloud through the middle, and pale periwinkle haze below. Two cloud layers drift slowly past each other. It is drawn on a 2D canvas with no 3D library.
 2. After the greeting ends, the orb shrinks and falls into the bottom left corner over 700 ms.
-3. With reduced motion, the planet is one still frame, the orb moves without animation, and each state is shown by a static ring style and its text.
+3. With reduced motion, the sky is one still frame, the orb moves without animation, and each state is shown by a static ring style and its text.
 4. The orb is a real button of at least 56 CSS pixels, with an accessible name that states the action.
 5. Prompts and choices appear in a compact panel beside the orb only while they wait for an answer. Game actions stay available at the bottom right.
 
@@ -204,7 +204,8 @@ Each leg is one commit.
 | CA-4 | `voiceMode` preference and Settings control                                                                              |
 | CA-5 | Speech detector, continuous local and Transcribe listeners, interruptible speech output                                  |
 | CA-6 | Voice orb, conversational game screen, and an end-to-end check on the local Claude Code stack                            |
-| CA-7 | Three-dimensional Jupiter-style orb on a 2D canvas                                                                       |
+| CA-7 | Three-dimensional orb on a 2D canvas                                                                                     |
+| CA-8 | Cloudy sky appearance for the orb                                                                                        |
 
 ## Appendix: Implementation Progress
 
@@ -212,6 +213,6 @@ Status as of 2026-11-22.
 
 | Leg                 | Status                     | Notes                                                                                                                                                                                                                                                                                                                             |
 | ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CA-1 to CA-7        | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
+| CA-1 to CA-8        | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
 | Transcribe listener | Unit tested only           | The speech-gated stream has not run against Amazon Transcribe                                                                                                                                                                                                                                                                     |
 | Bedrock             | Not run                    | The conversational prompts have not been evaluated on Nova Micro, because the Bedrock quota is still 0                                                                                                                                                                                                                            |

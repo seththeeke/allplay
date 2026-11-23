@@ -95,15 +95,15 @@ body {
   transform: translate(-50%, 50%);
 }
 
-/* The gradient stands in for the planet until, or if ever not, the canvas draws. */
+/* The gradient stands in for the sky until, or if ever not, the canvas draws. */
 .ap-orb-planet {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   border-radius: 9999px;
-  background: radial-gradient(circle at 32% 28%, #f3e3c5, #bb8258 48%, #4a3024 100%);
-  box-shadow: 0 0.35rem 0.9rem rgb(0 0 0 / 45%);
+  background: linear-gradient(#4264de, #708ef0 34%, #eef1fd 52%, #b5c3f4 80%);
+  box-shadow: 0 0.25rem 0.8rem rgb(0 0 0 / 22%);
   transition: filter 300ms ease;
 }
 
@@ -127,7 +127,7 @@ body {
 }
 
 .ap-orb[data-state="THINKING"] .ap-orb-planet {
-  filter: brightness(0.78);
+  filter: brightness(0.88);
 }
 
 .ap-orb[data-state="SPEAKING"] .ap-orb-planet,
@@ -136,7 +136,7 @@ body {
 }
 
 .ap-orb[data-state="PAUSED"] .ap-orb-planet {
-  filter: grayscale(0.85) brightness(0.8);
+  filter: grayscale(0.8) brightness(0.86);
 }
 
 .ap-orb-greeting {
