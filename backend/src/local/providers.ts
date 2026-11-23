@@ -21,6 +21,9 @@ import { createInMemoryPlayerDao } from "../dao/player/inMemoryPlayerDao";
 import { createInMemoryPreferenceDao } from "../dao/preference/inMemoryPreferenceDao";
 import { createBundledRulesRepository } from "../game-catalog";
 import { logger as rootLogger, type Logger } from "../logger";
+import { createInMemoryConversationMessageDao } from "../dao/conversationMessage/inMemoryConversationMessageDao";
+import { createConversationService } from "../service/conversation/conversationService";
+import { loadPersonality } from "../service/conversation/personality";
 import { createDecisionService, type DecisionService } from "../service/decision/decisionService";
 import { readApiKey } from "../service/decision/llm/apiKey";
 import {
@@ -230,7 +233,8 @@ export async function createLocalProviders(
   const build = () => {
     /* One in-memory store per table, shared by every service as the deployed tables are. */
     const gameTables = createInMemoryGameTables();
-    const gameData = createPlayerGameData(gameTables);
+    const conversations = createInMemoryConversationMessageDao();
+    const gameData = createPlayerGameData({ ...gameTables, conversations });
     const sessions = createGameSessionService({
       ...gameTables,
       games: (gameId, version) => repository.compiled(gameId, version),
@@ -245,6 +249,14 @@ export async function createLocalProviders(
       catalog: () => repository.list(),
       guidance: async (gameId, version) =>
         (await repository.get(gameId, version)).speech.deciderGuidance ?? [],
+      conversation: createConversationService({
+        dao: conversations,
+        personality: loadPersonality({}),
+        onError: (error) => {
+          logger.warn("CONVERSATION_STORE_FAILED", { error: String(error) });
+        },
+        ...(overrides.now ? { now: overrides.now } : {}),
+      }),
       ...(overrides.now ? { now: overrides.now } : {}),
     });
     const playerDao = createInMemoryPlayerDao();

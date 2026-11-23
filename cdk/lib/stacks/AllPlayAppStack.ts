@@ -306,9 +306,12 @@ export class AllPlayAppStack extends Stack {
       memorySize: 1024,
       timeout: Duration.seconds(10),
       logRetention: RetentionDays.ONE_MONTH,
+      /* The game speaker's personality ships with the decider (conversational-ai.md section 5). */
+      bundledFiles: ["service/conversation/personality/game-speaker.md"],
       environment: {
         ...gameTables,
         PREFERENCES_TABLE: preferences.table.tableName,
+        CONVERSATION_MESSAGES_TABLE: conversationMessages.table.tableName,
         RATE_LIMITS_TABLE: props.stateful.rateLimits.table.tableName,
         METRIC_ROLLUPS_TABLE: metricRollups.table.tableName,
         DECIDER_MODEL_ID,
@@ -337,6 +340,12 @@ export class AllPlayAppStack extends Stack {
       new PolicyStatement({
         actions: ["dynamodb:UpdateItem"],
         resources: [props.stateful.rateLimits.table.tableArn],
+      }),
+    );
+    decisionApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+        resources: [conversationMessages.table.tableArn],
       }),
     );
     decisionApi.function.addToRolePolicy(

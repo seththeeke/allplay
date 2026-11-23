@@ -5,19 +5,25 @@ import {
   type DecisionRequestSchema,
   type DecisionResponse,
   type GameCatalogEntry,
+  type GreetingResponse,
   type PendingPrompt,
   type ResolutionRequest,
   type ResolutionResponse,
   type SessionEnvelope,
 } from "../../models/api";
+import type { ConversationMessage } from "../../models/conversationMessage";
 import type { Decision, DecisionCategory } from "../../models/decision";
+import { classifyConversation } from "../conversation/conversationClassifier";
+import type { ConversationEntry, ConversationService } from "../conversation/conversationService";
+import { answerQuestion } from "../conversation/questionAnswerer";
+import { speakTurn } from "../conversation/speakTurn";
 import { GameSessionError, invalidRequest } from "../gameSession/errors";
 import type { RateLimiter } from "./rateLimiter";
 import type { GameSessionService } from "../gameSession/gameSessionService";
 import { newUlid } from "../gameSession/ulid";
 import { selectAppAction } from "./appSelector";
 import { classify } from "./classifier";
-import { HINT_ID, selectGameActions, UNDO_ID } from "./gameSelector";
+import { boardSummary, HINT_ID, selectGameActions, UNDO_ID } from "./gameSelector";
 import { LlmUnavailableError, type LlmClient } from "./llm/llmClient";
 import { appActionText, failureClassOf, TEXT } from "./outcomes";
 import type { TurnLog } from "./turnLog";
@@ -36,6 +42,8 @@ export interface DecisionServiceDeps {
   guidance: (gameId: string, rulesVersion: number) => Promise<string[]>;
   /** The player's preferences; until DM-1 the defaults (action-decision.md section 6). */
   preferences?: (playerId: string) => Promise<{ autoConfirm: boolean }>;
+  /** The game speaker's personality and stored conversations (conversational-ai.md). */
+  conversation?: ConversationService;
   now?: () => Date;
   newId?: () => string;
 }
@@ -47,6 +55,8 @@ export interface DecisionService {
     decisionId: string,
     request: ResolutionRequest,
   ): Promise<ResolutionResponse>;
+  /** The speaker's opening line for a session the player sits in. */
+  greet(playerId: string, sessionId: string): Promise<GreetingResponse>;
 }
 
 /** What a turn decided, before it is recorded and answered. */
@@ -54,7 +64,19 @@ interface Turn {
   outcome: Decision["outcome"];
   response: Omit<DecisionResponse, "decisionId">;
   record?: Partial<Decision>;
+  /** The game action this turn applied, for the stored conversation. */
+  applied?: { actionId: string; text: string };
+  /** A hint keeps its own wording in conversational mode. */
+  hint?: boolean;
+  /** The player named a move the board does not allow. */
+  refused?: boolean;
 }
+
+/** An action's words for the stored conversation; its id when the board no longer lists it. */
+const actionTextOf = (envelope: SessionEnvelope | null, actionId: string): string =>
+  actionId === UNDO_ID
+    ? "Undo the last move"
+    : (envelope?.legalActions.find((action) => action.actionId === actionId)?.text ?? actionId);
 
 const reply = (
   outcome: DecisionResponse["outcome"],
@@ -145,6 +167,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
     prompt: PendingPrompt,
     response: "CONFIRM" | "REJECT" | "OPTION" | null,
     optionNumber: number | null,
+    envelope: SessionEnvelope | null,
   ): Promise<Turn> => {
     const { sessionId, expectedVersion } = request.context;
     if (response === "REJECT") {
@@ -178,13 +201,18 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       expectedVersion: expectedVersion ?? 0,
     });
     await settle(playerId, prompt.decisionId, resolution, resolution, { sessionId });
-    return { outcome: "RESOLVED", response: reply("RESOLVED", TEXT.done, { session }) };
+    return {
+      outcome: "RESOLVED",
+      response: reply("RESOLVED", TEXT.done, { session }),
+      applied: { actionId, text: actionTextOf(envelope, actionId) },
+    };
   };
 
   const gameTurn = async (
     playerId: string,
     request: ParsedDecisionRequest,
     envelope: SessionEnvelope,
+    conversational: boolean,
   ): Promise<Turn> => {
     const { gameId, rulesVersion } = envelope.view;
     const games = await deps.catalog();
@@ -212,6 +240,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         outcome: "UNRECOGNIZED",
         response: reply("UNRECOGNIZED", said === null ? TEXT.whichMove : TEXT.notAllowed(said)),
         record,
+        refused: said !== null,
       };
     }
     if (ids.length > 4) {
@@ -232,6 +261,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       const shown = TEXT.hint(hinted.text);
       return {
         outcome: "PROPOSED",
+        hint: true,
         response: {
           ...reply("PROPOSED", shown, {
             proposal: { actionId: hinted.actionId, text: hinted.text },
@@ -270,12 +300,17 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
     }
     const actionId = only as string;
     const actionText = text.get(actionId) ?? actionId;
-    if (selection.confidence === "HIGH" && (await preferences(playerId)).autoConfirm) {
+    /* Conversational play acts unless unsure; undo is always safe to act on (section 4.2). */
+    const auto = conversational
+      ? selection.confidence === "HIGH" || actionId === UNDO_ID
+      : selection.confidence === "HIGH" && (await preferences(playerId)).autoConfirm;
+    if (auto) {
       const session = await perform(playerId, sessionId, actionId, version);
       return {
         outcome: "AUTO_APPLIED",
         response: reply("AUTO_APPLIED", actionText, { session }),
         record,
+        applied: { actionId, text: actionText },
       };
     }
     const shown = `${actionText}?`;
@@ -361,11 +396,19 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       const pending = request.context.pendingPrompt;
       /* GAME is offered on the game screen; the session loads in parallel with layer 1 (section 11). */
       const inGame = request.context.screen === "GAME" && request.context.sessionId !== null;
+      const sessionId = request.context.sessionId;
+      const conversation =
+        request.context.voiceMode === "CONVERSATIONAL" && inGame && sessionId !== null
+          ? (deps.conversation ?? null)
+          : null;
+      const history: ConversationMessage[] =
+        conversation === null || sessionId === null ? [] : await conversation.history(sessionId);
       const envelopePromise = loadSession(playerId, request);
       const categories: DecisionCategory[] = [
         ...(inGame ? (["GAME"] as const) : []),
         "APPLICATION",
         ...(pending === null ? [] : (["RESPONSE"] as const)),
+        ...(conversation === null ? [] : (["QUESTION", "IGNORED"] as const)),
         "UNRECOGNIZED",
       ];
 
@@ -373,19 +416,29 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       let classification: Decision["classification"];
       let envelope: SessionEnvelope | null = null;
       try {
+        const classifyInput = {
+          transcript,
+          alternatives: request.alternatives,
+          categories,
+          pending:
+            pending === null ? null : { kind: pending.kind, choiceCount: pending.actionIds.length },
+        };
         const [classified, loaded] = await Promise.all([
-          classify(deps.llm, {
-            transcript,
-            alternatives: request.alternatives,
-            categories,
-            pending:
-              pending === null
-                ? null
-                : { kind: pending.kind, choiceCount: pending.actionIds.length },
-          }),
+          conversation === null
+            ? classify(deps.llm, classifyInput).then((plain) => ({ ...plain, command: null }))
+            : classifyConversation(deps.llm, {
+                ...classifyInput,
+                persona: conversation.personality.persona,
+                history,
+              }),
           envelopePromise,
         ]);
         envelope = loaded;
+        /* Only the words meant for the game reach layer 2 (conversational-ai.md section 4.1). */
+        const directed: ParsedDecisionRequest =
+          classified.command === null
+            ? request
+            : { ...request, transcript: classified.command, alternatives: [] };
         classification = {
           ...classified.call,
           category: classified.category,
@@ -403,14 +456,37 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
             pending,
             classified.response,
             classified.optionNumber,
+            envelope,
           );
         } else if (classified.category === "GAME") {
           turn =
             envelope === null
               ? { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.noGame) }
-              : await gameTurn(playerId, request, envelope);
+              : await gameTurn(playerId, directed, envelope, conversation !== null);
         } else if (classified.category === "APPLICATION") {
-          turn = await appTurn(request, envelope);
+          turn = await appTurn(directed, envelope);
+        } else if (classified.category === "IGNORED") {
+          turn = {
+            outcome: "IGNORED",
+            response: reply("IGNORED", TEXT.ignored, { silent: true }),
+          };
+        } else if (classified.category === "QUESTION" && conversation !== null) {
+          if (envelope === null) {
+            turn = { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.noGame) };
+          } else {
+            const { answer: said, call } = await answerQuestion(deps.llm, {
+              persona: conversation.personality.persona,
+              board: boardSummary(envelope.view),
+              history,
+              question: directed.transcript,
+            });
+            const text = said ?? conversation.personality.unavailable;
+            turn = {
+              outcome: "ANSWERED",
+              response: reply("ANSWERED", text),
+              record: { selection: { ...call, selectedIds: [] } },
+            };
+          }
         } else {
           turn = { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.unrecognized) };
         }
@@ -420,10 +496,14 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         turn = {
           outcome: "UNRECOGNIZED",
           response: reply("UNRECOGNIZED", TEXT.modelUnavailable(error.message), {
-            speech: TEXT.modelUnavailableSpeech,
+            speech: conversation?.personality.unavailable ?? TEXT.modelUnavailableSpeech,
           }),
         };
       }
+      const answered =
+        conversation === null
+          ? turn.response
+          : speakTurn(turn, conversation.personality, history.length);
 
       const decisionId = newId();
       const at = started.toISOString();
@@ -454,7 +534,21 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         serverLatencyMs: Math.max(0, now().getTime() - started.getTime()),
         createdAt: at,
       });
-      return { decisionId, ...turn.response };
+      if (conversation !== null && sessionId !== null) {
+        const entries: ConversationEntry[] = [{ role: "PLAYER", text: transcript, decisionId }];
+        if (turn.applied !== undefined && answered.session !== null)
+          entries.push({
+            role: "ACTION",
+            text: turn.applied.text,
+            decisionId,
+            actionId: turn.applied.actionId,
+            sessionVersion: answered.session.session.version,
+          });
+        if (answered.silent !== true)
+          entries.push({ role: "SPEAKER", text: answered.speech, decisionId });
+        await conversation.record(sessionId, entries, history);
+      }
+      return { decisionId, ...answered };
     },
 
     resolve: async (playerId, decisionId, request) => {
@@ -470,13 +564,51 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
       }
       if (sessionId === null || actionId === null)
         throw invalidRequest("Send the session and the action to apply.");
+      const conversation = request.voiceMode === "CONVERSATIONAL" ? deps.conversation : undefined;
+      /* The legal actions name the move only before it is applied. */
+      const before =
+        conversation === undefined ? null : await deps.sessions.get(playerId, sessionId);
       const session = await applyPending(playerId, decisionId, resolution, {
         sessionId,
         actionId,
         expectedVersion: request.expectedVersion ?? 0,
       });
       await settle(playerId, decisionId, resolution, resolution, { sessionId, clientLatencyMs });
-      return { session };
+      if (conversation === undefined) return { session };
+      const history = await conversation.history(sessionId);
+      const { acknowledgements } = conversation.personality;
+      const speech = acknowledgements[history.length % acknowledgements.length] as string;
+      await conversation.record(
+        sessionId,
+        [
+          {
+            role: "ACTION",
+            text: actionTextOf(before, actionId),
+            decisionId,
+            actionId,
+            sessionVersion: session.session.version,
+          },
+          { role: "SPEAKER", text: speech, decisionId },
+        ],
+        history,
+      );
+      return { session, speech };
+    },
+
+    greet: async (playerId, sessionId) => {
+      /* Reading through the session service checks that the caller holds a seat. */
+      await deps.sessions.get(playerId, sessionId);
+      if (deps.conversation === undefined)
+        throw invalidRequest("Conversational voice is not available.");
+      const { personality } = deps.conversation;
+      const history = await deps.conversation.history(sessionId);
+      if (history.length > 0) return { text: personality.welcomeBack, kind: "WELCOME_BACK" };
+      await deps.conversation.record(
+        sessionId,
+        [{ role: "SPEAKER", text: personality.greeting }],
+        history,
+      );
+      return { text: personality.greeting, kind: "GREETING" };
     },
   };
 }

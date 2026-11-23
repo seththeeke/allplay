@@ -27,6 +27,10 @@ function answer(request: LlmRequest, words: string): unknown {
         return { category: "RESPONSE", response: "OPTION", optionNumber: number };
       if (words === "zoom in")
         return { category: "APPLICATION", response: null, optionNumber: null };
+      if (words === "side talk")
+        return { category: "IGNORED", response: null, optionNumber: null, command: null };
+      if (words === "what happened")
+        return { category: "QUESTION", response: null, optionNumber: null, command: null };
       if (words === "gibberish")
         return { category: "UNRECOGNIZED", response: null, optionNumber: null };
       return { category: "GAME", response: null, optionNumber: null };
@@ -43,6 +47,8 @@ function answer(request: LlmRequest, words: string): unknown {
               : [];
       return { selected, confidence: "HIGH", requested: null };
     }
+    case "answer_question":
+      return { answer: "Fixed answer." };
     default:
       return words === "zoom in"
         ? { action: "ZOOM_IN", params: {} }

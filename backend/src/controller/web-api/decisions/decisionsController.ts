@@ -2,6 +2,7 @@ import type { Logger } from "../../../logger";
 import {
   DecisionRequestSchema,
   DecisionResponseSchema,
+  GreetingResponseSchema,
   ResolutionRequestSchema,
   ResolutionResponseSchema,
 } from "../../../models/api";
@@ -51,6 +52,12 @@ export function createDecisionsHandler(
         });
         return [200, response];
       },
+      "POST /v1/conversations/{sessionId}/greeting": async ({ caller, param }) => [
+        200,
+        GreetingResponseSchema.parse(
+          await deps.decisions.greet(caller.playerId, param("sessionId")),
+        ),
+      ],
     },
     deps.logger,
     decisionsRoutes,

@@ -78,6 +78,7 @@ export const TEXT = {
     `That move is not allowed right now: ${move}. Say hint if you'd like a suggestion.`,
   hint: (move: string) => `Hint: ${move}. Confirm to make this move.`,
   noHint: "There are no moves left. Try undo or a new game.",
+  ignored: "No game request heard.",
   unrecognized: "I didn't understand that. Try a move like three to seven, or say help.",
   choices: (count: number) => `There are ${String(count)} matching moves.`,
   modelUnavailable: (detail: string) => `I can't understand commands right now: ${detail}`,

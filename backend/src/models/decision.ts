@@ -8,7 +8,14 @@ import {
 } from "./api";
 
 /** Layer 1 categories (action-decision.md section 5). */
-export const DecisionCategorySchema = z.enum(["GAME", "APPLICATION", "RESPONSE", "UNRECOGNIZED"]);
+export const DecisionCategorySchema = z.enum([
+  "GAME",
+  "APPLICATION",
+  "RESPONSE",
+  "UNRECOGNIZED",
+  "QUESTION",
+  "IGNORED",
+]);
 export type DecisionCategory = z.infer<typeof DecisionCategorySchema>;
 
 const ModelCallSchema = z.object({

@@ -16,6 +16,10 @@ export type Theme = z.infer<typeof ThemeSchema>;
 export const ScreenSchema = z.enum(["HOME", "GAME", "STATS", "SETTINGS", "HELP"]);
 export type Screen = z.infer<typeof ScreenSchema>;
 
+/** How voice works in a game (conversational-ai.md section 2). */
+export const VoiceModeSchema = z.enum(["CONVERSATIONAL", "TURN_BASED"]);
+export type VoiceMode = z.infer<typeof VoiceModeSchema>;
+
 export const AppActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("ZOOM_IN") }),
   z.object({ action: z.literal("ZOOM_OUT") }),
@@ -92,6 +96,7 @@ export const DecisionRequestSchema = z.object({
     sessionId: z.string().min(1).nullable(),
     expectedVersion: z.number().int().min(0).nullable(),
     pendingPrompt: PendingPromptSchema.nullable(),
+    voiceMode: VoiceModeSchema.default("TURN_BASED"),
   }),
 });
 export type DecisionRequest = z.input<typeof DecisionRequestSchema>;
@@ -110,6 +115,8 @@ export const DecisionOutcomeSchema = z.enum([
   "APP_ACTION",
   "RESOLVED",
   "UNRECOGNIZED",
+  "ANSWERED",
+  "IGNORED",
 ]);
 export type DecisionOutcome = z.infer<typeof DecisionOutcomeSchema>;
 
@@ -122,6 +129,8 @@ export const DecisionResponseSchema = z.object({
   choices: z.array(ChoiceSchema).min(2).max(4).nullable(),
   appAction: AppActionSchema.nullable(),
   session: SessionEnvelopeSchema.nullable(),
+  /** True when the speaker says nothing (conversational-ai.md section 4.2). */
+  silent: z.boolean().optional(),
 });
 export type DecisionResponse = z.infer<typeof DecisionResponseSchema>;
 
@@ -132,8 +141,20 @@ export const ResolutionRequestSchema = z.object({
   actionId: z.string().min(1).max(200).nullable(),
   expectedVersion: z.number().int().min(0).nullable(),
   clientLatencyMs: z.number().int().min(0),
+  voiceMode: VoiceModeSchema.optional(),
 });
 export type ResolutionRequest = z.infer<typeof ResolutionRequestSchema>;
 
-export const ResolutionResponseSchema = z.object({ session: SessionEnvelopeSchema.nullable() });
+export const ResolutionResponseSchema = z.object({
+  session: SessionEnvelopeSchema.nullable(),
+  /** The acknowledgement to speak in conversational mode. */
+  speech: z.string().min(1).optional(),
+});
 export type ResolutionResponse = z.infer<typeof ResolutionResponseSchema>;
+
+/** The game speaker's opening line (conversational-ai.md section 7). */
+export const GreetingResponseSchema = z.object({
+  text: z.string().min(1),
+  kind: z.enum(["GREETING", "WELCOME_BACK"]),
+});
+export type GreetingResponse = z.infer<typeof GreetingResponseSchema>;

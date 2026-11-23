@@ -35,6 +35,11 @@ describe("fixed responses for Test", () => {
     expect(await input("classify", "itest zoom in")).toMatchObject({ category: "APPLICATION" });
     expect(await input("classify", "itest gibberish")).toMatchObject({ category: "UNRECOGNIZED" });
     expect(await input("classify", "itest deal")).toMatchObject({ category: "GAME" });
+    expect(await input("classify", "itest side talk")).toMatchObject({ category: "IGNORED" });
+    expect(await input("classify", "itest what happened")).toMatchObject({ category: "QUESTION" });
+    expect(await input("answer_question", "itest what happened")).toEqual({
+      answer: "Fixed answer.",
+    });
     expect(await input("select_actions", "itest deal", CANDIDATES)).toEqual({
       selected: [3],
       confidence: "HIGH",

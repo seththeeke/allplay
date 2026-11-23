@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { GameOptionsSchema, IsoTimestampSchema } from "./common";
-import { ThemeSchema } from "./decision";
+import { ThemeSchema, VoiceModeSchema } from "./decision";
 
 /** Player, preference and statistics contracts (data-model.md sections 4, 5 and 8; authn-authz.md section 5). */
 
@@ -47,6 +47,7 @@ export const AppPreferencesSchema = z.object({
   reducedMotion: z.enum(["SYSTEM", "ON", "OFF"]),
   listenTimeoutMs: z.number().int().min(500).max(5000),
   appHelpSeen: z.boolean(),
+  voiceMode: VoiceModeSchema,
 });
 export type AppPreferences = z.infer<typeof AppPreferencesSchema>;
 
@@ -60,6 +61,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   reducedMotion: "SYSTEM",
   listenTimeoutMs: 1200,
   appHelpSeen: false,
+  voiceMode: "CONVERSATIONAL",
 };
 
 export const GamePreferencesSchema = z.object({

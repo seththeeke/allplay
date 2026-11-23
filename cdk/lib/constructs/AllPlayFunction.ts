@@ -21,7 +21,16 @@ export interface AllPlayFunctionProps {
   environment?: Record<string, string>;
   /** Log retention; 14 days unless the Lambda's logs are a record, as the turn log is (cdk-stacks.md section 4). */
   logRetention?: RetentionDays;
+  /** Files relative to `backend/src`, copied beside the bundle under their own names. */
+  bundledFiles?: readonly string[];
 }
+
+/** Shell commands that copy each file from `backend/src` beside the bundle. */
+export const bundledFileCommands = (
+  files: readonly string[],
+  inputDir: string,
+  outputDir: string,
+): string[] => files.map((file) => `cp "${join(inputDir, "src", file)}" "${outputDir}/"`);
 
 /**
  * Node.js Lambda with All Play defaults (cdk-stacks.md section 3): Node.js 22
@@ -78,6 +87,16 @@ export class AllPlayFunction extends Construct {
         sourceMap: true,
         target: "node22",
         format: OutputFormat.CJS,
+        ...(props.bundledFiles === undefined
+          ? {}
+          : {
+              commandHooks: {
+                beforeBundling: () => [],
+                beforeInstall: () => [],
+                afterBundling: (inputDir: string, outputDir: string) =>
+                  bundledFileCommands(props.bundledFiles ?? [], inputDir, outputDir),
+              },
+            }),
       },
     });
     Validations.of(this.function).acknowledge({

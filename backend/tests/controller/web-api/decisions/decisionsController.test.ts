@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDecisionsHandler } from "../../../../src/controller/web-api/decisions/decisionsController";
 import { decisionsRoutes } from "../../../../src/controller/web-api/decisions/decisionsRoutes";
+import { createInMemoryConversationMessageDao } from "../../../../src/dao/conversationMessage/inMemoryConversationMessageDao";
 import { createLogger } from "../../../../src/logger";
+import { createConversationService } from "../../../../src/service/conversation/conversationService";
+import { loadPersonality } from "../../../../src/service/conversation/personality";
 import {
   ask,
   FIRST_MOVE,
@@ -33,6 +36,29 @@ async function setup() {
 }
 
 describe("decisions controller", () => {
+  it("greets through the game speaker for a player in the session", async () => {
+    const dao = createInMemoryConversationMessageDao();
+    const conversation = createConversationService({
+      dao,
+      personality: loadPersonality({}),
+      onError: vi.fn(),
+    });
+    const t = setupDecider({}, { conversation });
+    const envelope = await t.sessions.start(PLAYER, { gameId: "spider-solitaire" });
+    const handler = createDecisionsHandler({
+      decisions: t.decider,
+      logger: createLogger({ write }),
+    });
+    const greeted = await handler(
+      apiEvent("POST /v1/conversations/{sessionId}/greeting", {
+        pathParameters: { sessionId: envelope.session.sessionId },
+        identity: "p1",
+      }),
+    );
+    expect(greeted.statusCode).toBe(200);
+    expect(JSON.parse(greeted.body)).toMatchObject({ kind: "GREETING" });
+  });
+
   it("decides for the IAM caller and resolves the decision", async () => {
     const { handler, envelope } = await setup();
     const body = ask("deal", { sessionId: envelope.session.sessionId, expectedVersion: 0 });
@@ -95,7 +121,7 @@ describe("decisions controller", () => {
       }),
     );
     expect(JSON.parse(rejected.body)).toEqual({ session: null });
-    expect(decisionsRoutes).toHaveLength(2);
+    expect(decisionsRoutes).toHaveLength(3);
   });
 });
 

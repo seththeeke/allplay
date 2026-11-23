@@ -10,4 +10,10 @@ export const decisionsRoutes = [
     auth: "IAM",
     minimumTier: "GUEST",
   },
+  {
+    method: "POST",
+    path: "/v1/conversations/{sessionId}/greeting",
+    auth: "IAM",
+    minimumTier: "GUEST",
+  },
 ] as const;

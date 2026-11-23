@@ -1,8 +1,11 @@
+import { createDynamoConversationMessageDao } from "../../dao/conversationMessage/dynamoConversationMessageDao";
 import { createDynamoPreferenceDao } from "../../dao/preference/dynamoPreferenceDao";
 import { createDynamoRateLimitCounterDao } from "../../dao/rateLimitCounter/dynamoRateLimitCounterDao";
 import { createBundledRulesRepository } from "../../game-catalog";
 import type { Logger } from "../../logger";
 import { DEFAULT_APP_PREFERENCES } from "../../models/api";
+import { createConversationService } from "../conversation/conversationService";
+import { loadPersonality } from "../conversation/personality";
 import { createDeployedGameSessionService } from "../gameSession/gameSessionService";
 import { createDecisionService, type DecisionService } from "./decisionService";
 import { createBedrockLlm, DEFAULT_AWS_REGION, DEFAULT_BEDROCK_MODEL } from "./llm/bedrockConverse";
@@ -57,5 +60,12 @@ export function createDeployedDecisionService(
       return { autoConfirm: app?.autoConfirm ?? DEFAULT_APP_PREFERENCES.autoConfirm };
     },
     rateLimiter: createRateLimiter(createDynamoRateLimitCounterDao(env["RATE_LIMITS_TABLE"] ?? "")),
+    conversation: createConversationService({
+      dao: createDynamoConversationMessageDao(env["CONVERSATION_MESSAGES_TABLE"] ?? ""),
+      personality: loadPersonality(env),
+      onError: (error) => {
+        logger.warn("CONVERSATION_STORE_FAILED", { error: String(error) });
+      },
+    }),
   });
 }

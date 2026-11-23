@@ -25,6 +25,7 @@ describe("decision bundle", () => {
           GAME_SESSIONS_TABLE: Match.anyValue(),
           PREFERENCES_TABLE: Match.anyValue(),
           RATE_LIMITS_TABLE: Match.anyValue(),
+          CONVERSATION_MESSAGES_TABLE: Match.anyValue(),
           DECIDER_MODEL_ID: "us.amazon.nova-micro-v1:0",
           DECIDER_FIXED_RESPONSES: "ENABLED",
         }),
@@ -34,7 +35,11 @@ describe("decision bundle", () => {
       LogGroupName: "/aws/lambda/AllPlay-DecisionApi-Test",
       RetentionInDays: 30,
     });
-    for (const routeKey of ["POST /v1/decisions", "POST /v1/decisions/{decisionId}/resolution"])
+    for (const routeKey of [
+      "POST /v1/decisions",
+      "POST /v1/decisions/{decisionId}/resolution",
+      "POST /v1/conversations/{sessionId}/greeting",
+    ])
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
         AuthorizationType: "AWS_IAM",

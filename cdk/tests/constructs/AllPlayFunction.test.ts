@@ -3,7 +3,7 @@ import { Match, Template } from "aws-cdk-lib/assertions";
 import { AwsSolutionsChecks } from "cdk-nag";
 import { describe, expect, it } from "vitest";
 import type { StageName } from "../../lib/config";
-import { AllPlayFunction } from "../../lib/constructs/AllPlayFunction";
+import { AllPlayFunction, bundledFileCommands } from "../../lib/constructs/AllPlayFunction";
 import { testApp } from "../testApp";
 
 function synth(stage: StageName, environment?: Record<string, string>) {
@@ -21,6 +21,23 @@ function synth(stage: StageName, environment?: Record<string, string>) {
 }
 
 describe("AllPlayFunction", () => {
+  it("copies bundled files from the backend source beside the handler", () => {
+    expect(bundledFileCommands(["service/a/file.md"], "/backend", "/out")).toEqual([
+      'cp "/backend/src/service/a/file.md" "/out/"',
+    ]);
+    const app = testApp();
+    const stack = new Stack(app, "BundledFiles", { env: { region: "us-east-1" } });
+    new AllPlayFunction(stack, "HealthApi", {
+      stage: "Test",
+      name: "HealthApi",
+      entry: "controller/web-api/health/handler.ts",
+      memorySize: 256,
+      timeout: Duration.seconds(5),
+      bundledFiles: ["service/conversation/personality/game-speaker.md"],
+    });
+    Template.fromStack(stack).resourceCountIs("AWS::Lambda::Function", 1);
+  });
+
   it("creates a stage-named Node.js 22 arm64 function with JSON logs", () => {
     const { template } = synth("Test");
     template.hasResourceProperties("AWS::Lambda::Function", {
