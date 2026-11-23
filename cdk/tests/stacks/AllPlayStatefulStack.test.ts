@@ -151,6 +151,9 @@ describe("AllPlayStatefulStack", () => {
     expect(JSON.stringify(scan?.Resource)).toContain(
       ":dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test/index/ByEmail",
     );
+    expect(JSON.stringify(scan?.Resource)).toContain(
+      ':dynamodb:us-east-1:111111111111:table/AllPlay-Players-Test"',
+    );
     /* ARNs carry the partition as a CloudFormation reference; compare the rest. */
     const arns = JSON.stringify(tables?.Resource);
     for (const suffix of [

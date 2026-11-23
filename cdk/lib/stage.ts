@@ -94,20 +94,21 @@ export class AllPlayStage extends Stage {
             }),
           }),
       );
-      /* The player DAO contract checks the admin duplicate list, which scans ByEmail only. */
-      this.verifyGrants.push(
-        (pipeline) =>
-          new PolicyStatement({
-            actions: ["dynamodb:Scan"],
-            resources: [
-              `${pipeline.formatArn({
-                service: "dynamodb",
-                resource: "table",
-                resourceName: resourceName("Players", stage),
-              })}/index/ByEmail`,
-            ],
-          }),
-      );
+      /*
+       * The player DAO contract checks the admin duplicate list (a scan of
+       * ByEmail) and the daily rollup's one scan of the table.
+       */
+      this.verifyGrants.push((pipeline) => {
+        const players = pipeline.formatArn({
+          service: "dynamodb",
+          resource: "table",
+          resourceName: resourceName("Players", stage),
+        });
+        return new PolicyStatement({
+          actions: ["dynamodb:Scan"],
+          resources: [players, `${players}/index/ByEmail`],
+        });
+      });
     }
     Tags.of(this).add("Project", PROJECT_NAME);
     Tags.of(this).add("Stage", stage);
