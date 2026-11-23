@@ -4,6 +4,8 @@ Status: Day 0 design, 2026-11-17.
 
 The action decider turns a player's spoken request into one deterministic action. It owns speech capture contracts, transcription, the two-layer LLM decision, verification against the game engine, the confirmation flow, and the turn log that feeds the turn failure metric. It never changes game state itself: game actions are applied only through the game session service (`game-engine.md` Section 11).
 
+Conversational voice, the default mode, extends this flow and is specified in `../conversational-ai.md`. This document's push-to-talk flow is the turn-based voice setting.
+
 Related specs: `game-engine.md` (legal actions), `data-model.md` (`RateLimitCounter`, `MetricRollup`), `authn-authz.md` (Identity Pool credentials), `spider-solitaire.md` (decider guidance).
 
 ## 1. Principles

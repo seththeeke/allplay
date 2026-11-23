@@ -43,6 +43,7 @@ A guest who signs up or signs in has their data merged into the account player (
 | RateLimitCounter | `AllPlay-RateLimits-<Stage>` | Per-player request counters for the decision endpoint | 2 days |
 | MetricRollup | `AllPlay-MetricRollups-<Stage>` | Daily aggregates shown on /admin | No |
 | GameDefinition | `AllPlay-GameDefinitions-<Stage>` | Community rules documents (Game Building phase) | No |
+| ConversationMessage | `AllPlay-ConversationMessages-<Stage>` | The game speaker conversation of one session (`conversational-ai.md` Section 6) | 90 days after the conversation's last message |
 
 Core game rules documents (Spider Solitaire and every other game built by the All Play team) are not stored in DynamoDB. They are versioned JSON files bundled with the backend (`game-engine.md` Section 3). `GameDefinition` holds only community-built games and is provisioned in the Game Building phase; its key design is fixed here so that the engine's rules repository interface covers both sources from day one.
 
@@ -148,6 +149,7 @@ Preferences are saved automatically as the player changes them (there is no sett
 | `autoConfirm` | Boolean | `false` | Apply a uniquely matched voice action without confirmation |
 | `reducedMotion` | String | `SYSTEM` | `SYSTEM`, `ON`, `OFF` |
 | `listenTimeoutMs` | Number | `1200` | Silence after speech that ends listening |
+| `voiceMode` | String | `CONVERSATIONAL` | `CONVERSATIONAL` or `TURN_BASED` (`conversational-ai.md` Section 2) |
 | `appHelpSeen` | Boolean | `false` | First-visit help walkthrough for the portal |
 
 `GAME#<gameId>` scope attributes are generic plus game-specific. Generic attributes:
@@ -512,7 +514,7 @@ Sample:
 
 ## 13. Account Deletion
 
-`DELETE /players/me` (`authn-authz.md` Section 8) removes the account's `Preference`, `SeatAssignment` and `PlayerStats` items, deletes every `GameSession` where the account holds the only seat, and deletes the Cognito user. Turn log events expire with their log group (`action-decision.md` Section 9.1). The `Player` item is written back as a minimal tombstone (`status = DELETED`, no email or name) so that daily rollups remain consistent.
+`DELETE /players/me` (`authn-authz.md` Section 8) removes the account's `Preference`, `SeatAssignment` and `PlayerStats` items, deletes every `GameSession` where the account holds the only seat with its `ConversationMessage` items, and deletes the Cognito user. Turn log events expire with their log group (`action-decision.md` Section 9.1). The `Player` item is written back as a minimal tombstone (`status = DELETED`, no email or name) so that daily rollups remain consistent.
 
 ## 14. Implementation Legs
 
