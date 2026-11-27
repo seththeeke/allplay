@@ -84,6 +84,7 @@ export class AllPlayStage extends Stage {
               "dynamodb:UpdateItem",
               "dynamodb:DeleteItem",
               "dynamodb:Query",
+              "dynamodb:BatchWriteItem",
             ],
             resources: tables.flatMap(([name, indexes]) => {
               const arn = pipeline.formatArn({

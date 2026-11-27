@@ -179,6 +179,8 @@ describe("AllPlayStatefulStack", () => {
     ])
       expect(arns).toContain(suffix);
     expect(arns).not.toContain("*");
+    /* The conversation DAO deletes a session's messages in write batches. */
+    expect(tables?.Action).toContain("dynamodb:BatchWriteItem");
     expect(arns).toContain(':dynamodb:us-east-1:111111111111:table/AllPlay-MergeTokens-Test"');
     /* Test accounts are managed through one named role, assumed without a wildcard. */
     expect(JSON.stringify(assume?.Resource)).toContain(
