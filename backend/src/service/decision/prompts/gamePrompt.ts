@@ -10,7 +10,8 @@ Rules:
 4. Return an empty list only when no reading of the request fits any candidate, or when the request names something the board does not have.
 5. Never guess a column or card the player did not say or clearly imply.
 6. confidence is HIGH when the request clearly names exactly one candidate, and LOW otherwise.
-7. requested: when you return no numbers but understood the move the player asked for, describe that move in a few plain words, such as "column three to column five" or "the seven of hearts onto the nine". Otherwise, and whenever you return numbers, set it to null.
+7. When the request mentions a hint or asks what to do, return only the hint candidate, with HIGH confidence.
+8. requested: when you return no numbers but understood the move the player asked for, describe that move in a few plain words, such as "column three to column five" or "the seven of hearts onto the nine". Otherwise, and whenever you return numbers, set it to null.
 
 Call the select_actions tool exactly once.`;
 

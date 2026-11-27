@@ -15,7 +15,6 @@ type Script = {
   selected?: string[];
   confidence?: "HIGH" | "LOW";
   requested?: string | null;
-  answer?: unknown;
   app?: unknown;
 };
 
@@ -44,7 +43,6 @@ async function setup(script: Script) {
         };
       },
       select_app_action: () => script.app ?? { action: "ZOOM_IN", params: {} },
-      answer_question: () => script.answer ?? { answer: "You dealt once." },
     },
     { conversation },
   );
@@ -113,23 +111,15 @@ describe("conversational turns", () => {
     expect(t.log.resolved).toEqual([]);
   });
 
-  it("answers a question from the conversation without changing the game", async () => {
-    const t = await setup({ category: "QUESTION" });
-    const reply = await t.say("did I already deal?");
-    expect(reply).toMatchObject({ outcome: "ANSWERED", speech: "You dealt once.", session: null });
+  it("rotates fixed replies to anything it did not understand, without changing the game", async () => {
+    const t = await setup({ category: "UNRECOGNIZED" });
+    const first = await t.say("did I already deal?");
+    const second = await t.say("what was that?");
+    expect(first).toMatchObject({ outcome: "UNRECOGNIZED", session: null });
+    expect(personality.notUnderstood).toContain(first.speech);
+    expect(personality.notUnderstood).toContain(second.speech);
+    expect(second.speech).not.toBe(first.speech);
     expect((await t.sessions.get(PLAYER, t.sessionId)).session.version).toBe(0);
-    expect((await t.stored()).at(-1)).toEqual(["SPEAKER", "You dealt once."]);
-  });
-
-  it("says it is unavailable when a question gets no usable answer", async () => {
-    const t = await setup({ category: "QUESTION", answer: { answer: "" } });
-    expect((await t.say("did I deal?")).speech).toBe(personality.unavailable);
-  });
-
-  it("reports no game for a question once the game is gone", async () => {
-    const t = await setup({ category: "QUESTION" });
-    await t.sessions.abandon(PLAYER, t.sessionId, { expectedVersion: 0 });
-    expect((await t.say("did I deal?")).outcome).toBe("UNRECOGNIZED");
   });
 
   it("speaks the personality's refusal and outage lines", async () => {

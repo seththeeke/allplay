@@ -17,11 +17,14 @@ describe("game speaker personality", () => {
     expect(personality.acknowledgements).toContain("All set.");
     expect(personality.confirm).toContain("{action}");
     expect(personality.choices).toContain("{options}");
+    expect(personality.notUnderstood.length).toBeGreaterThan(1);
+    expect(personality.notUnderstood.every((line) => line.includes("help"))).toBe(true);
   });
 
   it("refuses a file with a missing section or template slot", () => {
     const file = readFileSync(SOURCE, "utf8");
     expect(() => parsePersonality(file.replace("## Greeting", "## Hello"))).toThrow();
+    expect(() => parsePersonality(file.replace("## Not Understood", "## Sorry"))).toThrow();
     expect(() => parsePersonality(file.replace("{action}", "that"))).toThrow();
     expect(() => parsePersonality(file.replace(/^- .*$/gm, ""))).toThrow();
     expect(() => parsePersonality("")).toThrow();

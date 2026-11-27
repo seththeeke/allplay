@@ -115,7 +115,6 @@ export const DecisionOutcomeSchema = z.enum([
   "APP_ACTION",
   "RESOLVED",
   "UNRECOGNIZED",
-  "ANSWERED",
   "IGNORED",
 ]);
 export type DecisionOutcome = z.infer<typeof DecisionOutcomeSchema>;

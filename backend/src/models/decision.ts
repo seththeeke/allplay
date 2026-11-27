@@ -13,7 +13,6 @@ export const DecisionCategorySchema = z.enum([
   "APPLICATION",
   "RESPONSE",
   "UNRECOGNIZED",
-  "QUESTION",
   "IGNORED",
 ]);
 export type DecisionCategory = z.infer<typeof DecisionCategorySchema>;

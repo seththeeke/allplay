@@ -11,7 +11,7 @@ Related specs: `day-0-designs/action-decision.md` (decider, providers, turn log)
 ## 1. Principles
 
 1. The LLM selects; the engine executes. Conversational turns use the same server-built candidates, validation and game session service as turn-based turns.
-2. A turn makes at most two LLM calls: layer 1 classifies and extracts, and layer 2 selects a move or answers a question.
+2. A turn makes at most two LLM calls: layer 1 classifies and extracts, and layer 2 selects a move or an application action. The LLM never writes a reply; every spoken reply is fixed text from the personality file or the decider.
 3. One file, `backend/src/service/conversation/personality/game-speaker.md`, defines the game speaker's voice, behavior and spoken phrases.
 4. Speech with no game request produces no spoken reply and no state change.
 5. Every provider stays behind its interface. The feature runs on the local Claude Code language model, on-device speech and Kokoro with no AWS access.
@@ -43,7 +43,7 @@ Player speaks
   -> silence for listenTimeoutMs ends the utterance
   -> client transcribes the utterance
   -> POST /v1/decisions with context.voiceMode = CONVERSATIONAL
-  <- reply: applied move, question, answer, or silence
+  <- reply: applied move, confirmation, choices, a fixed reply, or silence
   -> orb speaks the reply and listening continues
 ```
 
@@ -84,12 +84,13 @@ The maximum Transcribe cost is $1.44 per player-hour. No stream is open during l
 
 ### 4.1 Layer 1
 
-Conversational classification adds two categories and one field.
+Conversational classification adds one category and one field.
 
-| Category   | Meaning                                                                          |
-| ---------- | -------------------------------------------------------------------------------- |
-| `QUESTION` | A question about this game or what happened in it, such as "did I already deal?" |
-| `IGNORED`  | No request for the game or app, such as room conversation or nonsense            |
+| Category  | Meaning                                                               |
+| --------- | --------------------------------------------------------------------- |
+| `IGNORED` | No request for the game or app, such as room conversation or nonsense |
+
+Anything that mentions a hint or asks what to do next is `GAME` and selects the engine's hint, including questions and requests to repeat a hint, such as "what was your hint". Any other question to the game is `UNRECOGNIZED`.
 
 `command` holds only the words directed at the game. For "move 8 to 7, dinner's ready", `command` is "move 8 to 7", and layer 2 receives that text. The last six conversation messages are supplied as quoted data, so "do that again" and "undo that" can be understood.
 
@@ -104,14 +105,10 @@ Conversational classification adds two categories and one field.
 | Hint                             | `PROPOSED`     | The hint and an offer to make it                                               |
 | Application action               | `APP_ACTION`   | A rotating acknowledgement; `NEW_GAME`, `SIGN_IN` and `SIGN_OUT` still confirm |
 | Game request with no legal match | `UNRECOGNIZED` | A brief explanation                                                            |
-| `QUESTION`                       | `ANSWERED`     | The layer 2 answer                                                             |
+| `UNRECOGNIZED` from layer 1 or 2 | `UNRECOGNIZED` | A rotating `Not Understood` line                                               |
 | `IGNORED`                        | `IGNORED`      | None; `silent` is true                                                         |
 
-`ANSWERED` and `IGNORED` have failure class `NONE`. A waiting prompt stays open through an `IGNORED` turn.
-
-### 4.3 Questions
-
-A `QUESTION` turn loads the full conversation with one `Query` and asks layer 2 for an answer of at most 25 words, using the personality, the board summary and the most recent 200 messages as quoted data. The answer tool returns text only and cannot change game state.
+`IGNORED` has failure class `NONE`. A waiting prompt stays open through an `IGNORED` turn.
 
 ## 5. Game Speaker Personality
 
@@ -126,6 +123,7 @@ A `QUESTION` turn loads the full conversation with one `Query` and asks layer 2 
 | `Confirm`          | Confirmation template containing `{action}`           |
 | `Choices`          | Choice prompt template containing `{options}`         |
 | `Not Allowed`      | Reply when a requested move is not legal              |
+| `Not Understood`   | Bulleted fixed replies, each pointing to help, rotated when a request is not understood |
 | `Unavailable`      | Reply when the language model cannot answer           |
 
 The file is parsed and validated with zod when the decider starts. It ships with the `DecisionApi` Lambda and is read from the source tree locally. Local changes take effect when the server restarts.
@@ -209,10 +207,10 @@ Each leg is one commit.
 
 ## Appendix: Implementation Progress
 
-Status as of 2026-11-22.
+Status as of 2026-11-27.
 
 | Leg                 | Status                     | Notes                                                                                                                                                                                                                                                                                                                             |
 | ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CA-1 to CA-8        | Done locally, not deployed | Checked in Chromium with spoken audio as the microphone, on the local server with Claude Code (`claude-haiku-5-5`), macOS speech and in-memory storage. A move, side talk and a history question each behaved as specified. Measured server time on Claude Code: about 5 s for a move or question and 2 to 3 s for ignored speech |
-| Transcribe listener | Unit tested only           | The speech-gated stream has not run against Amazon Transcribe                                                                                                                                                                                                                                                                     |
-| Bedrock             | Not run                    | The conversational prompts have not been evaluated on Nova Micro, because the Bedrock quota is still 0                                                                                                                                                                                                                            |
+| Deployment          | Deployed to Test and Prod  | Played in Test with Transcribe, Nova Micro and Polly. Polly replies needed `media-src blob:` in the web CSP |
+| Questions removed   | Done                       | In Test, Nova Micro took "can you give me a hint" as a question and answered with an illegal move it invented. The `QUESTION` category and its free-text answers were removed: hint requests go to the engine's hint, and anything not understood gets a fixed `Not Understood` line |

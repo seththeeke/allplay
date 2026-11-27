@@ -83,7 +83,11 @@ describe("speaking a turn", () => {
     expect(speakTurn({ outcome: "UNRECOGNIZED", response: reply() }, personality, 0).speech).toBe(
       "Original.",
     );
-    expect(speakTurn({ outcome: "ANSWERED", response: reply() }, personality, 0).speech).toBe(
+    expect(
+      speakTurn({ outcome: "UNRECOGNIZED", notUnderstood: true, response: reply() }, personality, 1)
+        .speech,
+    ).toBe(personality.notUnderstood[1]);
+    expect(speakTurn({ outcome: "IGNORED", response: reply() }, personality, 0).speech).toBe(
       "Original.",
     );
   });

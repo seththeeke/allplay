@@ -11,7 +11,6 @@ const CATEGORIES: DecisionCategory[] = [
   "GAME",
   "APPLICATION",
   "RESPONSE",
-  "QUESTION",
   "IGNORED",
   "UNRECOGNIZED",
 ];

@@ -12,6 +12,7 @@ export const PersonalitySchema = z.object({
   confirm: z.string().includes("{action}"),
   choices: z.string().includes("{options}"),
   notAllowed: z.string().min(1),
+  notUnderstood: z.array(z.string().min(1)).min(1),
   unavailable: z.string().min(1),
 });
 export type Personality = z.infer<typeof PersonalitySchema>;
@@ -25,6 +26,10 @@ function sections(markdown: string): Map<string, string> {
   return found;
 }
 
+/** The items of a bulleted section. */
+const bullets = (section: string | undefined): string[] =>
+  (section ?? "").split("\n").flatMap((line) => /^- +(.+)$/.exec(line.trim())?.[1] ?? []);
+
 /** Parses the personality file; a missing or malformed section stops the decider from starting. */
 export function parsePersonality(markdown: string): Personality {
   const found = sections(markdown);
@@ -32,12 +37,11 @@ export function parsePersonality(markdown: string): Personality {
     persona: found.get("Persona"),
     greeting: found.get("Greeting"),
     welcomeBack: found.get("Welcome Back"),
-    acknowledgements: (found.get("Acknowledgements") ?? "")
-      .split("\n")
-      .flatMap((line) => /^- +(.+)$/.exec(line.trim())?.[1] ?? []),
+    acknowledgements: bullets(found.get("Acknowledgements")),
     confirm: found.get("Confirm"),
     choices: found.get("Choices"),
     notAllowed: found.get("Not Allowed"),
+    notUnderstood: bullets(found.get("Not Understood")),
     unavailable: found.get("Unavailable"),
   });
 }

@@ -15,7 +15,6 @@ import type { ConversationMessage } from "../../models/conversationMessage";
 import type { Decision, DecisionCategory } from "../../models/decision";
 import { classifyConversation } from "../conversation/conversationClassifier";
 import type { ConversationEntry, ConversationService } from "../conversation/conversationService";
-import { answerQuestion } from "../conversation/questionAnswerer";
 import { speakTurn } from "../conversation/speakTurn";
 import { GameSessionError, invalidRequest } from "../gameSession/errors";
 import type { RateLimiter } from "./rateLimiter";
@@ -23,7 +22,7 @@ import type { GameSessionService } from "../gameSession/gameSessionService";
 import { newUlid } from "../gameSession/ulid";
 import { selectAppAction } from "./appSelector";
 import { classify } from "./classifier";
-import { boardSummary, HINT_ID, selectGameActions, UNDO_ID } from "./gameSelector";
+import { HINT_ID, selectGameActions, UNDO_ID } from "./gameSelector";
 import { LlmUnavailableError, type LlmClient } from "./llm/llmClient";
 import { appActionText, failureClassOf, TEXT } from "./outcomes";
 import type { TurnLog } from "./turnLog";
@@ -70,6 +69,8 @@ interface Turn {
   hint?: boolean;
   /** The player named a move the board does not allow. */
   refused?: boolean;
+  /** The request was not understood, so the speaker uses a fixed reply. */
+  notUnderstood?: boolean;
 }
 
 /** An action's words for the stored conversation; its id when the board no longer lists it. */
@@ -352,6 +353,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         outcome: "UNRECOGNIZED",
         response: reply("UNRECOGNIZED", TEXT.unrecognized),
         record,
+        notUnderstood: true,
       };
     }
     const confirm = CONFIRMED_APP_ACTIONS.has(action.action);
@@ -408,7 +410,7 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
         ...(inGame ? (["GAME"] as const) : []),
         "APPLICATION",
         ...(pending === null ? [] : (["RESPONSE"] as const)),
-        ...(conversation === null ? [] : (["QUESTION", "IGNORED"] as const)),
+        ...(conversation === null ? [] : (["IGNORED"] as const)),
         "UNRECOGNIZED",
       ];
 
@@ -470,25 +472,12 @@ export function createDecisionService(deps: DecisionServiceDeps): DecisionServic
             outcome: "IGNORED",
             response: reply("IGNORED", TEXT.ignored, { silent: true }),
           };
-        } else if (classified.category === "QUESTION" && conversation !== null) {
-          if (envelope === null) {
-            turn = { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.noGame) };
-          } else {
-            const { answer: said, call } = await answerQuestion(deps.llm, {
-              persona: conversation.personality.persona,
-              board: boardSummary(envelope.view),
-              history,
-              question: directed.transcript,
-            });
-            const text = said ?? conversation.personality.unavailable;
-            turn = {
-              outcome: "ANSWERED",
-              response: reply("ANSWERED", text),
-              record: { selection: { ...call, selectedIds: [] } },
-            };
-          }
         } else {
-          turn = { outcome: "UNRECOGNIZED", response: reply("UNRECOGNIZED", TEXT.unrecognized) };
+          turn = {
+            outcome: "UNRECOGNIZED",
+            response: reply("UNRECOGNIZED", TEXT.unrecognized),
+            notUnderstood: true,
+          };
         }
       } catch (error) {
         if (!(error instanceof LlmUnavailableError)) throw error;

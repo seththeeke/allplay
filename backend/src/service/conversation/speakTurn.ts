@@ -8,6 +8,7 @@ export interface SpokenTurn {
   response: Reply;
   hint?: boolean;
   refused?: boolean;
+  notUnderstood?: boolean;
 }
 
 const say = (response: Reply, text: string): Reply => ({
@@ -18,7 +19,8 @@ const say = (response: Reply, text: string): Reply => ({
 
 /**
  * Puts a decided turn into the game speaker's words (conversational-ai.md
- * section 4.2). `turnIndex` rotates the acknowledgements so they do not repeat.
+ * section 4.2). `turnIndex` rotates the acknowledgements and the fixed
+ * replies to a request that was not understood, so they do not repeat.
  */
 export function speakTurn(turn: SpokenTurn, personality: Personality, turnIndex: number): Reply {
   const { response } = turn;
@@ -49,7 +51,13 @@ export function speakTurn(turn: SpokenTurn, personality: Personality, turnIndex:
       return say(response, personality.choices.replace("{options}", options));
     }
     case "UNRECOGNIZED":
-      return turn.refused === true ? say(response, personality.notAllowed) : response;
+      if (turn.refused === true) return say(response, personality.notAllowed);
+      return turn.notUnderstood === true
+        ? say(
+            response,
+            personality.notUnderstood[turnIndex % personality.notUnderstood.length] as string,
+          )
+        : response;
     default:
       return response;
   }
