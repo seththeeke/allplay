@@ -73,6 +73,12 @@ describe("WebHosting", () => {
       expect(policy).toContain(host);
   });
 
+  it("lets the page play the Polly replies it holds as blob URLs", () => {
+    const { template } = synth();
+    const policy = JSON.stringify(template.findResources("AWS::CloudFront::ResponseHeadersPolicy"));
+    expect(policy).toContain("media-src 'self' blob:");
+  });
+
   it("sets security headers with a CSP that allows the stage API", () => {
     const { template } = synth();
     template.hasResourceProperties("AWS::CloudFront::ResponseHeadersPolicy", {

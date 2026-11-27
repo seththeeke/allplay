@@ -132,6 +132,8 @@ export class WebHosting extends Construct {
               `wss://transcribestreaming.${region}.amazonaws.com:8443`,
               `https://polly.${region}.amazonaws.com`,
             ].join(" "),
+            /* Polly replies play from blob: URLs made in the page. */
+            "media-src 'self' blob:",
             "img-src 'self' data:",
             "style-src 'self' 'unsafe-inline'",
             "script-src 'self'",
