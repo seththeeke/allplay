@@ -16,6 +16,7 @@ This folder holds the day 0 specification of All Play. Read the documents in thi
 | `transcribe-polly-bedrock.md` | Bedrock, Transcribe and Polly as drop-in implementations of the local provider interfaces (`local-aws` preset) |
 | `authn-authz.md` | Guests, accounts, roles, Cognito, IAM route authorization, guest merge |
 | `cdk-stacks.md` | Stacks, constructs, pipeline, cost and telemetry, codebase layout and tooling |
+| `../productionalization.md` | Invite-only Test, andon cord, game limits, variant tiles, latency metrics, model upgrade, mobile pass |
 | `/CLAUDE.md` | Working rules for Claude in this repository |
 
 ## Execution Order
@@ -94,6 +95,8 @@ DM-4, DM-5; AD-1 through AD-8 (`action-decision.md`); CDK-9.
 | CDK-10 | Browser smoke tests and Prod verification in the pipeline |
 
 Phase 7 status (2026-11-22): WP-1 is done. Deployed stages run `dataMode` `LIVE`, so games, sessions, decisions, stats and preferences use the stage's API, signed by Amplify; local `LIVE` mode uses the local server for the same services. Voice turns on deployed stages reach the deployed decider, which answers that it cannot understand commands until the Bedrock quota is raised (`transcribe-polly-bedrock.md`, TPB-5).
+
+Phase 7 status (2026-11-28): TPB-5 is done; the owner played a deployed voice game. WP-3 is done for account deletion; the merge flow UI stays as built and is revisited if duplicates become a problem. WP-2 (the rest of AD-9), WP-4 and WP-5 continue in `docs/productionalization.md` (PZ-8 for AD-9, the admin functions across PZ-2 to PZ-6, PZ-9 for WP-5), with the invite-only Test stage, the andon cord, game limits, Spider variant tiles, latency metrics and the Nova 2 Lite decider. AA-3, CDK-11, DM-6 and phase 8 stay open.
 
 ### Phase 8: Mobile App development
 

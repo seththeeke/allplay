@@ -198,6 +198,6 @@ Status as of 2026-11-20.
 | TPB-2 | Done | `transcribe.ts` and the shared `wav.ts`. A spoken "move three over to seven" transcribes to "Move 3 over to 7." in about 0.7 s |
 | TPB-3 | Done | `polly.ts`. A long reply synthesizes in about 0.3 s; Polly's WAV transcribed back through Transcribe returns the original sentence |
 | TPB-4 | Done | `npm run dev:aws`; the runbook step for Bedrock quotas |
-| TPB-5 | Waiting on the Bedrock quota | Verified so far: `GET /local/status` reports all three AWS providers available. A mixed setup (`local-aws` with `ALLPLAY_LLM=claude-code`) took a spoken clip through Transcribe, proposed the right move, and spoke the reply with Polly. The voice playthrough and the Nova Micro decision follow once Bedrock calls are allowed |
+| TPB-5 | Done | The owner played a deployed voice game with Transcribe, Bedrock and Polly (2026-11-28). Earlier: `GET /local/status` reports all three AWS providers available. A mixed setup (`local-aws` with `ALLPLAY_LLM=claude-code`) took a spoken clip through Transcribe, proposed the right move, and spoke the reply with Polly. The voice playthrough and the Nova Micro decision follow once Bedrock calls are allowed |
 
 The only files changed outside Sections 4 to 7 were their tests, and two local server tests that had asserted the old "arrives with AD-15" placeholders.

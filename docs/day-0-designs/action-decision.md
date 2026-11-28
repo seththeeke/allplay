@@ -272,7 +272,7 @@ Prompt structure: a cached system prompt listing every action with its parameter
 
 | Setting | Value |
 |---|---|
-| Model (both layers) | Amazon Nova Micro, cross-region inference profile `us.amazon.nova-micro-v1:0` |
+| Model (both layers) | Amazon Nova 2 Lite, cross-region inference profile `us.amazon.nova-2-lite-v1:0`, reasoning off (`productionalization.md` Section 8; Nova Micro until 2026-11-28) |
 | API | Bedrock Runtime `Converse` via `@aws-sdk/client-bedrock-runtime` |
 | Region | `us-east-1` |
 | Inference | `temperature: 0`, `maxTokens: 200` (layer 1: 60) |

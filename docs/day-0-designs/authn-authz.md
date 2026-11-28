@@ -2,7 +2,7 @@
 
 Status: Day 0 design, 2026-11-17; account linking, duplicate merge, App Store hooks and local authentication added 2026-11-21.
 
-All Play is free and playable without an account. Every visitor gets a guest identity automatically; signing up or signing in is optional and carries the guest's games, preferences and statistics into the account. This document defines identities, roles, the Cognito configuration, API authorization, the guest merge, and the client flows.
+All Play is free and playable without an account in `OPEN` stages (Prod). The Test stage is `INVITE_ONLY`: it has no guests and no self sign-up, and players are invited by an admin (`productionalization.md` Section 3). In `OPEN` stages every visitor gets a guest identity automatically; signing up or signing in is optional and carries the guest's games, preferences and statistics into the account. This document defines identities, roles, the Cognito configuration, API authorization, the guest merge, and the client flows.
 
 Related specs: `data-model.md` (Player, MergeToken), `cdk-stacks.md` (provisioning), `action-decision.md` (Transcribe and Polly access).
 
@@ -43,7 +43,7 @@ One pool per stage: `AllPlay-Users-<Stage>`.
 |---|---|
 | Feature plan | Essentials |
 | Sign-in identifier | Email (case insensitive) |
-| Self sign-up | Enabled |
+| Self sign-up | Enabled in `OPEN` stages; disabled in `INVITE_ONLY` stages, where admins invite players (`productionalization.md` Section 3) |
 | Verification | Email verification code |
 | Password policy | Minimum 8 characters, at least one lowercase, one uppercase and one digit |
 | MFA | Off |
@@ -80,11 +80,11 @@ Both providers are offered on web and iOS. Offering Sign in with Apple alongside
 | Pre sign-up | Federated sign-up: auto-confirm, and mark the email verified when the provider verified it. If another user with the same verified email exists and lacks this provider, link the new identity to it (`AdminLinkProviderForUser`, preferring a verified, then the oldest, user) and refuse this sign-up with the token `ALLPLAY_ACCOUNT_LINKED`: Cognito would otherwise still create a separate user for this first sign-in, which is how duplicates arise. The web and iOS clients repeat the sign-in at once on that token, and it reaches the linked user. A link that fails is logged with the `DUPLICATE_ACCOUNT` metric and the sign-up continues; the account merge (Section 6.2) repairs it. Native sign-up: if any user with that email exists, reject with `ALLPLAY_USE_SOCIAL_SIGN_IN`, which clients turn into "This email signs in with Google or Apple" |
 | Post confirmation | Add the user to `PLAYER`; create the `ACCOUNT` `Player` item (`ACCT#<sub>`) with `email`, `emailKey` and `signInProviders`. Failures are logged, not thrown, so confirmation is never blocked; post authentication creates a missing account |
 | Post authentication | Update `Player.lastActiveAt` and `signInProviders`. If another `ACTIVE` account `Player` has the same normalized email (`ByEmail`, `data-model.md` Section 4), record a `DUPLICATE_ACCOUNT` metric and log both `playerId`s for the duplicate merge (Section 6.2); sign-in is never blocked |
-| Custom message | Render the HTML email templates for sign-up code, resend code, forgot password code and attribute verification from `backend/src/controller/cognito/templates/` (large type, plain layout, the code in 32 px text) |
+| Custom message | Render the HTML email templates for sign-up code, resend code, forgot password code, attribute verification and the admin invitation from `backend/src/controller/cognito/templates/` (large type, plain layout, the code in 32 px text) |
 
 ## 4. Identity Pool and API Authorization
 
-One identity pool per stage: `AllPlay_Identities_<Stage>`, unauthenticated identities allowed, classic (basic) flow disabled, with the web and iOS app clients as providers.
+One identity pool per stage: `AllPlay_Identities_<Stage>`, unauthenticated identities allowed in `OPEN` stages only, classic (basic) flow disabled, with the web and iOS app clients as providers.
 
 Roles:
 
@@ -127,6 +127,10 @@ On a guest's first request (and at most once per hour after that), the controlle
 | `GET /v1/admin/decisions?day=&class=` (failure browsing over the turn log, `action-decision.md` Section 9.1) | ADMIN |
 | `GET /v1/admin/deployments`, `POST /v1/admin/deployments` | ADMIN |
 | `GET /v1/admin/players/duplicates`, `POST /v1/admin/players/merge` | ADMIN |
+| `GET /v1/admin/andon`, `PUT /v1/admin/andon` (`productionalization.md` Section 4.4) | ADMIN |
+| `POST /v1/admin/invitations` (`productionalization.md` Section 3) | ADMIN |
+| `GET /v1/admin/players?email=`, `PUT /v1/admin/players/{playerId}/game-limit` (`productionalization.md` Section 5) | ADMIN |
+| `POST /v1/telemetry/latency` (`productionalization.md` Section 7.2) | Guest |
 | `POST /v1/apple/notifications` | None (public); the body `{ "payload" }` is an Apple-signed JWT verified against Apple's keys (Section 12). Served by the player Lambda |
 
 `POST /v1/admin/deployments` calls `codepipeline:StartPipelineExecution` on the All Play pipeline and returns the execution id. `GET /v1/admin/deployments` lists the 20 most recent executions with their stage results. Only the admin API Lambda's role holds these CodePipeline permissions.

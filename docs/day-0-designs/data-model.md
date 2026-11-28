@@ -44,6 +44,7 @@ A guest who signs up or signs in has their data merged into the account player (
 | MetricRollup | `AllPlay-MetricRollups-<Stage>` | Daily aggregates shown on /admin | No |
 | GameDefinition | `AllPlay-GameDefinitions-<Stage>` | Community rules documents (Game Building phase) | No |
 | ConversationMessage | `AllPlay-ConversationMessages-<Stage>` | The game speaker conversation of one session (`conversational-ai.md` Section 6) | 90 days after the conversation's last message |
+| SystemFlag | `AllPlay-SystemFlags-<Stage>` | Stage-wide switches, such as the andon cord (`productionalization.md` Section 4) | No |
 
 Core game rules documents (Spider Solitaire and every other game built by the All Play team) are not stored in DynamoDB. They are versioned JSON files bundled with the backend (`game-engine.md` Section 3). `GameDefinition` holds only community-built games and is provisioned in the Game Building phase; its key design is fixed here so that the engine's rules repository interface covers both sources from day one.
 
@@ -84,6 +85,8 @@ Attributes:
 | `relayEmailEnabled` | Boolean | `ACCOUNT` with an Apple private relay email only: false after Apple's `email-disabled` notification |
 | `firstSeenAt` | String | ISO timestamp |
 | `lastActiveAt` | String | Updated at most once per hour per player (conditional write on the stored value) |
+| `gameLimit` | Map | Optional override of the stage's default game limit: `{ "count", "period" }` with `period` `DAY`, `WEEK` or `MONTH`, or `{ "unlimited": true }` (`productionalization.md` Section 5) |
+| `gamesPlayed` | Map | Games started in the current limit window: `{ "period", "windowStart", "count" }`, `windowStart` a `yyyy-mm-dd` UTC date. Reset by the first start in a new window |
 | `ttl` | Number | `GUEST` only: last activity + 90 days, epoch seconds (Section 1, principle 10). The table's TTL attribute |
 | `entityVersion`, `createdAt`, `updatedAt` | | Section 1 |
 
@@ -442,7 +445,7 @@ Two writers fill each day's item:
 1. Live counters. The decision and session services `ADD` to the current day's item as events happen: decision counts by outcome and failure class, LLM token totals, game starts, wins and abandons, and latency histogram buckets.
 2. The daily rollup job. An EventBridge Scheduler rule runs at 00:15 UTC, scans `AllPlay-Players-<Stage>` once (projection: `kind`, `status`, `lastActiveAt`, `createdAt`) and writes `totalPlayers`, `totalAccounts`, `totalGuests`, `activePlayers30d`, `newPlayers` for the previous day. It then computes `p50` and `p95` latency from the histogram buckets.
 
-Latency histogram bucket upper bounds (milliseconds): 250, 500, 750, 1000, 1500, 2000, 3000, 5000, and an overflow bucket. Two histograms are kept: `clientLatency` (end of speech to proposal shown, the "round trip for a move request" key metric) and `serverLatency`.
+Latency histogram bucket upper bounds (milliseconds): 250, 500, 750, 1000, 1500, 2000, 3000, 5000, and an overflow bucket. Six histograms are kept, each as `<name>Buckets` with `<name>P50Ms` and `<name>P95Ms`: `clientLatency` (end of speech to proposal shown, the "round trip for a move request" key metric), `serverLatency`, `llmLatency`, `transcribeLatency`, `pollyLatency` and `moveLatency` (`productionalization.md` Section 7).
 
 Sample:
 
@@ -516,7 +519,32 @@ Sample:
 
 `DELETE /players/me` (`authn-authz.md` Section 8) removes the account's `Preference`, `SeatAssignment` and `PlayerStats` items, deletes every `GameSession` where the account holds the only seat with its `ConversationMessage` items, and deletes the Cognito user. Turn log events expire with their log group (`action-decision.md` Section 9.1). The `Player` item is written back as a minimal tombstone (`status = DELETED`, no email or name) so that daily rollups remain consistent.
 
-## 14. Implementation Legs
+## 14. SystemFlag
+
+Table `AllPlay-SystemFlags-<Stage>`. Stage-wide switches read by every API bundle.
+
+| Key | Attribute | Type |
+|---|---|---|
+| Partition key | `flagId` | String: `ANDON` |
+
+No GSIs. Attributes of `ANDON`: `isAndonCordPulled` (Boolean), `reason` (String, the budget name or the admin's note), `pulledBy` (`BUDGET` or `ADMIN`), `changedAt` (ISO timestamp), `changedBy` (the admin `playerId`, absent for `BUDGET`), plus Section 1 fields. A missing item means the cord is not pulled.
+
+Sample:
+
+```json
+{
+  "flagId": "ANDON",
+  "isAndonCordPulled": true,
+  "reason": "AllPlay-Transcribe",
+  "pulledBy": "BUDGET",
+  "changedAt": "2026-12-14T08:02:11.000Z",
+  "entityVersion": 1,
+  "createdAt": "2026-12-14T08:02:11.000Z",
+  "updatedAt": "2026-12-14T08:02:11.000Z"
+}
+```
+
+## 15. Implementation Legs
 
 Each leg is one commit. Tables are created in the execution phase that first needs them.
 
@@ -528,6 +556,7 @@ Each leg is one commit. Tables are created in the execution phase that first nee
 | DM-4 | 6. Action Decider | `RateLimits` table with TTL; model and DAO |
 | DM-5 | 6. Action Decider | `MetricRollups` table, live counter writer, daily rollup job and its schedule, percentile computation tests |
 | DM-6 | Game Building (post day 0) | `GameDefinitions` table with `ByOwner` and `ByStatus` GSIs; model and DAO |
+| PZ-2, PZ-4, PZ-6 | Productionalization | `SystemFlags` table; `Player.gameLimit` and `gamesPlayed`; the four new latency histograms (`productionalization.md`) |
 
 ## Appendix: Implementation Progress
 

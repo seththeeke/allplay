@@ -17,7 +17,7 @@ Related specs: `data-model.md`, `game-engine.md`, `action-decision.md`, `authn-a
 
 | Stack | Instances | Contents |
 |---|---|---|
-| `AllPlayPipeline` | One | CodePipeline, CodeBuild projects, GitHub connection reference, daily schedule, budget, alert topic |
+| `AllPlayPipeline` | One | CodePipeline, CodeBuild projects, GitHub connection reference, daily schedule, budgets, alert topic, andon topic and `AllPlay-AndonCord` (`productionalization.md` Section 4) |
 | `AllPlayStateful-<Stage>` | Test, Prod | DynamoDB tables, the federation secret, Cognito User Pool (groups, domain, identity providers, triggers) |
 | `AllPlayApp-<Stage>` | Test, Prod | HTTP API and its Lambdas, the User Pool app clients and the Identity Pool with its four roles (the web client's URLs name this stack's CloudFront origin, so they cannot live in the stateful stack without a dependency cycle; the Identity Pool is retained on deletion so guest identities survive), metrics rollup job and schedule, web hosting (S3, CloudFront), stage `config.json`, Transcribe vocabulary, IAM route policies attached to the Identity Pool roles, alarms |
 
@@ -55,12 +55,13 @@ Cognito trigger Lambdas live in the stateful stack because the User Pool referen
 | `AllPlay-CognitoPostConfirmation-<Stage>` | User Pool | 256 | 5 s |
 | `AllPlay-CognitoPostAuthentication-<Stage>` | User Pool | 256 | 5 s |
 | `AllPlay-CognitoCustomMessage-<Stage>` | User Pool | 256 | 5 s |
+| `AllPlay-AndonCord` (one, in `AllPlayPipeline`) | SNS topic `AllPlay-Andon` | 256 | 30 s |
 
 Each Lambda role is granted only the specific table ARNs (and index ARNs), Bedrock model ARNs, and API calls its bundle uses. A new route on an existing bundle adds a route and a controller, never a Lambda; a new bundle is a design decision recorded in a doc.
 
 ## 5. API
 
-`AllPlay-Api-<Stage>` is one HTTP API. Each bundle has an import-free route list at `backend/src/controller/web-api/<bundle>/<bundle>Routes.ts` (method, path, minimum tier). `cdk/` imports these files to create routes; it is the only sanctioned import from `cdk/` into `backend/`, legal because those files import nothing. A route's CloudFormation id is its position in its list, so a list only grows at its end: a moved route would be created again under a new id and collide with itself on its route key. The same lists generate the IAM route policies for each Identity Pool role from each route's minimum tier, so route authorization is defined in one place.
+`AllPlay-Api-<Stage>` is one HTTP API. Each bundle has an import-free route list at `backend/src/controller/web-api/<bundle>/<bundle>Routes.ts` (method, path, minimum tier). `cdk/` imports these files to create routes. They and `backend/src/game-catalog/vocabulary.json` (`productionalization.md` Section 9) are the only sanctioned imports from `cdk/` into `backend/`, legal because they import nothing. A route's CloudFormation id is its position in its list, so a list only grows at its end: a moved route would be created again under a new id and collide with itself on its route key. The same lists generate the IAM route policies for each Identity Pool role from each route's minimum tier, so route authorization is defined in one place.
 
 `POST /v1/decisions` has its own throttling: 50 requests per second, burst 100.
 
@@ -101,7 +102,7 @@ The stages serve from their default CloudFront and API Gateway URLs until a doma
 
 Target: fixed infrastructure cost under $25 per month, excluding usage-driven Bedrock and Transcribe.
 
-Budget: an AWS Budgets monthly cost budget of $25 (defined in `AllPlayPipeline`) notifies the alert email at 80% actual, 100% actual and 100% forecasted spend.
+Budget: an AWS Budgets monthly cost budget of $25 (defined in `AllPlayPipeline`) notifies the alert email at 80% actual, 100% actual and 100% forecasted spend. Three more monthly budgets of $20, for Polly, Transcribe and Bedrock, pull the andon cord (`productionalization.md` Section 4).
 
 Telemetry kept:
 
@@ -177,6 +178,7 @@ backend/src/
     web-api/shared/         response helpers, resolveCaller, requireTier
     cognito/                trigger controllers and email templates
     scheduled/              metrics rollup job controller
+    alerts/                 andon cord controller (SNS)
   service/                  logical services: gameSession, decision, player, merge, metrics, admin
   dao/<entity>/             one folder per data-model.md entity, names matching exactly
   models/                   one file per type: TypeScript type plus zod schema; models/api/ for request and response contracts

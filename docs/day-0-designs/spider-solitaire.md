@@ -26,6 +26,8 @@ Source rules: `docs/game-context/spider-solitaire/basics.md` (the Hoyle deal), w
 10. The game is won when all eight runs are complete. There is no losing status. A dead end (stock empty, no legal move, game not won) leaves the game `IN_PROGRESS` with `blocked: true`; the player can undo or abandon. An abandoned game, including an abandoned dead end, counts as a loss in statistics.
 11. Scoring (Microsoft): start at 500, minus 1 for every move and every deal, plus 100 for every completed run, minus 1 for every undo. An undo does not refund the undone move's point, but it does take back a completed run bonus the undone move earned.
 
+The home page offers one tile per suit count, from `backend/src/game-catalog/spider-solitaire/tiles.json` (`productionalization.md` Section 6).
+
 ## 2. Rules Document
 
 File: `backend/src/game-catalog/spider-solitaire/rules.v1.json`.
