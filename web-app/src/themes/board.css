@@ -1,7 +1,12 @@
 /* Card table geometry. Cards scale with the viewport and the zoom preference. */
 
 .card-board {
-  --card-w: min(8.4vw, 6.5rem);
+  /*
+   * Ten columns share the width, and on a short screen (a phone held
+   * sideways) the height caps the card too, so the tableau stays on screen
+   * (productionalization.md section 10).
+   */
+  --card-w: min(8.4vw, 6.5rem, 11vh);
   --card-h: calc(var(--card-w) * 1.4);
 }
 
@@ -49,4 +54,11 @@
   outline: 6px solid var(--ap-highlight);
   outline-offset: 6px;
   border-radius: 1rem;
+}
+
+/* Phones: face-down cards overlap more tightly so long columns stay short. */
+@media (max-width: 639px) {
+  .fan-item[data-face="down"] + .fan-item {
+    margin-top: calc(var(--card-h) * -0.9);
+  }
 }

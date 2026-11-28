@@ -49,7 +49,7 @@ export function ConversationDock({
         onPress={conversation.togglePaused}
       />
       {conversation.greeting === null ? null : (
-        <p className="ap-orb-greeting text-3xl font-bold">{conversation.greeting}</p>
+        <p className="ap-orb-greeting font-bold">{conversation.greeting}</p>
       )}
       <div className="pointer-events-none fixed right-3 bottom-3 left-24 z-20 flex flex-col items-end gap-2">
         <div className="pointer-events-auto flex max-w-full flex-col gap-2 rounded-xl bg-surface empty:hidden">

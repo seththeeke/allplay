@@ -133,12 +133,11 @@ The open parts of AD-9 (`action-decision.md` Section 3):
 
 The game is long and the board is wide, so the phone layout keeps the whole tableau on screen and leans on voice.
 
-1. Below 640 px wide, the ten columns share the full width with no horizontal scroll. Cards show a large rank and suit index only, and face-down cards overlap more tightly. Column numbers stay at least 24 px.
-2. Tap targets are at least 44 by 44 CSS px (WCAG 2.2 target size, enhanced). A tapped card's legal destinations are highlighted, and the column numbers become tap targets for the destination.
-3. The talk button is fixed at the bottom of the screen, at least 64 px tall, with Undo, Hint and New game beside it.
-4. Landscape shows the board beside the voice controls. Portrait stacks them.
-5. Zoom levels above 1.5 on a phone scale text and controls but not the board width, so the board never overflows.
-6. A Playwright check at 390 by 844 and 844 by 390 runs axe and checks that no element overflows the viewport.
+1. The ten columns share the full width with no horizontal scroll. A card's width is the smallest of 8.4% of the viewport width, 6.5 rem and 11% of the viewport height, so a phone held sideways shows the whole tableau too.
+2. Below 640 px wide, face-down cards overlap more tightly, and the eight completed-run slots stay on one row.
+3. Each column number is a button the full width of its column and at least 44 px tall, sized between 1.25 rem and 1.875 rem with the screen. Ten columns on a 390 px phone leave each card about 33 px wide, under the 44 px enhanced target size, but above the 24 px WCAG 2.2 AA minimum; the column number is the large target for a destination, and voice is the primary input.
+4. The greeting shown when a game opens scales its text with the screen, so it covers less of a phone's board.
+5. Playwright checks at 390 by 844 and 844 by 390 that the home page and the game page do not scroll sideways, that column 10's number is on screen and at least 44 px tall, and that axe finds no WCAG 2.2 AA violations on the home page.
 
 ## 11. Admin Functions
 
@@ -162,6 +161,7 @@ Each leg is one commit.
 | PZ-6 | Done, not deployed | `llmLatency`, `transcribeLatency`, `pollyLatency` and `moveLatency` histograms on `MetricRollups`; a day written before them gets them empty on its first add. One `llmLatency` sample per model call; `moveLatency` timed by the game controller for moves and undo; `POST /v1/telemetry/latency` answers `{ recorded }`. The browser measures Transcribe from the end of speech (conversational) or the end of capture (turn-based) to the final text, and Polly on cache misses, and reports through `services/latencyReporter.ts`. The rollup writes p50 and p95 of every histogram; the admin metrics route computes them from the histograms for a day without stored percentiles, so today shows too. The admin page's Latency section has a tile and, but for the round trip already charted, a chart for each. The admin rows of `prototype-mocks.md` are removed |
 | PZ-7 | Done | Every `APP` setting already saved and read back; no field needed a fix. `tests/controller/web-api/players/settingsPersistence.test.ts` saves each field on its own through the controller and checks the DynamoDB update names every field; `tests/integration/settings.integration.test.ts` round-trips them all in Test. `voiceId` is saved but has no Settings control; `appHelpSeen` is saved but unused |
 | PZ-8 | Partial, not deployed | Turn-based listening streams to Transcribe while the player speaks (`startTranscribeTurn`), shows the text heard so far in the listening banner, and ends after `listenTimeoutMs` of silence following a final segment. The clip and live paths retry once without the vocabulary when Transcribe refuses it. `backend/src/game-catalog/vocabulary.json` and its test exist. Open: the `TranscribeVocabulary` custom resource and `config.json` `vocabularyName`. CDK's `AwsCustomResource` provider is a CDK-managed Lambda that cdk-nag flags (`AwsSolutions-L1`, `AwsSolutions-IAM4`), and acknowledging those findings needs the owner's yes (CLAUDE.md section 3) |
+| PZ-9 | Done, not deployed | Card size capped by the viewport height; tighter face-down overlap and one row of completed runs below 640 px; full-width column number buttons; a scaling greeting. `tests/smoke/mobile.spec.ts` runs at both phone sizes, and passed locally against the in-memory app; the game check runs in Test's smoke step |
 | PZ-3 | Invite-only Test: stage settings, Cognito and Identity Pool settings, pre sign-up refusal, invitation email, new password sign-in step, web gating, invitation route, panel and script, Test verification on accounts |
 | PZ-4 | Game limits: `Player` attributes, consume and give back, 429, `gameAllowance`, merge, admin routes, panel and script, web messages |
 | PZ-5 | Spider variant tiles: tiles file, catalog, home tiles, tile routes, the in-progress choice |

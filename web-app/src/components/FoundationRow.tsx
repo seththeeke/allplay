@@ -11,7 +11,7 @@ export function FoundationRow({ zones }: FoundationRowProps): React.JSX.Element 
   return (
     <section
       aria-label={`Completed runs: ${String(done)} of ${String(zones.length)}`}
-      className="flex flex-wrap gap-2"
+      className="flex flex-nowrap gap-[0.8vw]"
     >
       {zones.map((zone) => {
         const king = zone.cards?.[0];

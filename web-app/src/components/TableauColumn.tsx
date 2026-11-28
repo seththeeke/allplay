@@ -85,7 +85,7 @@ export function TableauColumn({
         aria-label={numberLabel}
         disabled={interaction === undefined}
         onClick={interaction?.onZonePress}
-        className={`mb-2 min-w-12 rounded-lg text-3xl font-bold text-on-table ${targeted ? TARGET_RING : ""}`}
+        className={`mb-2 min-h-11 w-full rounded-lg text-[clamp(1.25rem,6vw,1.875rem)] font-bold text-on-table ${targeted ? TARGET_RING : ""}`}
       >
         {zone.index}
       </button>

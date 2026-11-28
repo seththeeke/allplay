@@ -140,6 +140,8 @@ body {
 }
 
 .ap-orb-greeting {
+  /* Large on a desktop, still readable and off most of the board on a phone. */
+  font-size: clamp(1.25rem, 6vw, 1.875rem);
   position: fixed;
   z-index: 30;
   left: 50%;
