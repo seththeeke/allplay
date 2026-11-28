@@ -39,6 +39,14 @@ export function sampleMetrics(end: Date, days = 30): DayMetrics[] {
       clientLatencyP95Ms: p50 + wave(index, 1100, 160, 4),
       serverLatencyP50Ms: p50 - 600,
       serverLatencyP95Ms: p50 + 300,
+      llmLatencyP50Ms: wave(index, 420, 40, 6),
+      llmLatencyP95Ms: wave(index, 760, 70, 6),
+      transcribeLatencyP50Ms: wave(index, 640, 60, 5),
+      transcribeLatencyP95Ms: wave(index, 1150, 120, 5),
+      pollyLatencyP50Ms: wave(index, 380, 30, 4),
+      pollyLatencyP95Ms: wave(index, 690, 60, 4),
+      moveLatencyP50Ms: wave(index, 58, 6, 3),
+      moveLatencyP95Ms: wave(index, 74, 8, 3),
     };
   });
 }

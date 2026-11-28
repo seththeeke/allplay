@@ -21,7 +21,7 @@ describe("in-memory metric rollups", () => {
 
 describe("DynamoMetricRollupDao", () => {
   it("creates the day once, then adds inside its maps", async () => {
-    const stub = stubDynamo(conditionalCheckFailed(), {}, {}, {});
+    const stub = stubDynamo(conditionalCheckFailed(), {}, {}, {}, {});
     const dao = createDynamoMetricRollupDao("AllPlay-MetricRollups-Test", stub);
     const at = "2026-11-22T10:00:00.000Z";
     await dao.add(
@@ -34,7 +34,16 @@ describe("DynamoMetricRollupDao", () => {
       "PutCommand",
       "UpdateCommand",
       "UpdateCommand",
+      "UpdateCommand",
     ]);
+    /* The day existed already, so the histograms added since are written empty where missing. */
+    const backfill = stub.sent[1]?.input as {
+      UpdateExpression: string;
+      ExpressionAttributeNames: Record<string, string>;
+    };
+    expect(backfill.UpdateExpression.match(/if_not_exists/g)).toHaveLength(6);
+    expect(Object.values(backfill.ExpressionAttributeNames)).toContain("moveLatencyBuckets");
+    stub.sent.splice(1, 1);
     expect(stub.sent[0]?.input).toMatchObject({
       Item: emptyDay("2026-11-22", at),
       ConditionExpression: "attribute_not_exists(#p)",

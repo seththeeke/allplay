@@ -2,10 +2,29 @@ import { createDynamoMetricRollupDao } from "../../dao/metricRollup/dynamoMetric
 import type { MetricRollupDao } from "../../dao/metricRollup/metricRollupDao";
 import { createDynamoPlayerDao } from "../../dao/player/dynamoPlayerDao";
 import type { PlayerDao } from "../../dao/player/playerDao";
-import type { RollupTotals } from "../../models/metricRollup";
+import {
+  LATENCY_HISTOGRAMS,
+  type MetricRollup,
+  type RollupTotals,
+} from "../../models/metricRollup";
 import { percentile } from "./percentiles";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** p50 and p95 of every histogram of a day (productionalization.md section 7); null where it has none. */
+export function latencyPercentiles(
+  day: MetricRollup | null,
+): Pick<RollupTotals, `${(typeof LATENCY_HISTOGRAMS)[number]}P${"50" | "95"}Ms`> {
+  return Object.fromEntries(
+    LATENCY_HISTOGRAMS.flatMap((name) => {
+      const buckets = day?.[`${name}Buckets`];
+      return [
+        [`${name}P50Ms`, buckets === undefined ? null : percentile(buckets, 0.5)],
+        [`${name}P95Ms`, buckets === undefined ? null : percentile(buckets, 0.95)],
+      ];
+    }),
+  );
+}
 
 export interface RollupJob {
   /** Rolls up the UTC day before `now`; returns the day and what it wrote. */
@@ -38,10 +57,7 @@ export function createRollupJob(deps: {
         totalGuests: active.filter((player) => player.kind === "GUEST").length,
         activePlayers30d: active.filter((player) => player.lastActiveAt >= activeSince).length,
         newPlayers: players.filter((player) => player.createdAt.startsWith(period)).length,
-        clientLatencyP50Ms: day === null ? null : percentile(day.clientLatencyBuckets, 0.5),
-        clientLatencyP95Ms: day === null ? null : percentile(day.clientLatencyBuckets, 0.95),
-        serverLatencyP50Ms: day === null ? null : percentile(day.serverLatencyBuckets, 0.5),
-        serverLatencyP95Ms: day === null ? null : percentile(day.serverLatencyBuckets, 0.95),
+        ...latencyPercentiles(day),
       };
       await deps.rollups.setTotals(period, totals, at.toISOString());
       return { period, totals };

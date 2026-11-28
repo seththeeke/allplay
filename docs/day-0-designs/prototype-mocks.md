@@ -15,8 +15,6 @@ Since WP-1, deployed stages and local `LIVE` mode call the API for games, sessio
 | Google and Apple sign in | `memoryPlayerService.ts` `signInWithProvider` (fake `<provider>.player@example.com` account) | Cognito federation with Google and Apple | AA-3, AA-9 |
 | Account deletion | `memoryPlayerService.ts` `deleteAccount` (resets to guest) | `DELETE /v1/players/me` | AA-7, WP-3 |
 | Guest to account merge | `MEMORY` mode and the local mock sign-in, where signing in keeps the browser's own data; deployed stages and `local-aws-auth` redeem a merge token since AA-6 | Merge token flow (`authn-authz.md` Section 6) | DM-3 (seats and stats), WP-3 |
-| Admin metrics, failures and deployments | `services/memory/memoryAdminService.ts`, `test-data/admin.ts` (deterministic sample data), in `MEMORY` mode only | `/v1/admin/*` over `MetricRollups`, the turn log and CodePipeline, live on deployed stages since AA-8 | WP-4 |
-| Deployment trigger | `memoryAdminService.ts` `startDeployment` (adds a fake in-progress row) | `POST /v1/admin/deployments` starting the pipeline | AA-8, WP-4 |
 
 ## 2. Voice
 

@@ -1,4 +1,9 @@
-import { emptyDay, MetricRollupSchema, type MetricRollup } from "../../models/metricRollup";
+import {
+  emptyBuckets,
+  emptyDay,
+  MetricRollupSchema,
+  type MetricRollup,
+} from "../../models/metricRollup";
 import type { MetricRollupDao } from "./metricRollupDao";
 
 /** MetricRollupDao over a map; items pass the schema and reads return copies. */
@@ -24,10 +29,9 @@ export function createInMemoryMetricRollupDao(): MetricRollupDao {
         for (const [name, value] of Object.entries(increments.counters ?? {}))
           item[name as keyof NonNullable<typeof increments.counters>] += value;
         for (const [name, entries] of Object.entries(increments.maps ?? {})) {
-          const map = item[name as keyof NonNullable<typeof increments.maps>] as Record<
-            string,
-            number
-          >;
+          const field = name as keyof NonNullable<typeof increments.maps>;
+          /* Days written before a histogram existed lack it (productionalization.md section 7). */
+          const map = (item[field] ?? (item[field] = emptyBuckets())) as Record<string, number>;
           for (const [key, value] of Object.entries(entries)) map[key] = (map[key] ?? 0) + value;
         }
         item.updatedAt = at;

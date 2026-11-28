@@ -1,3 +1,9 @@
+import { LatencyReportResponseSchema } from "../models/api";
+import {
+  createLatencyReporter,
+  silentLatencyReporter,
+  type LatencyReporter,
+} from "./latencyReporter";
 import type { AppConfig } from "../config";
 import type { PlayerMe } from "../models/api";
 import {
@@ -53,11 +59,22 @@ import {
 } from "../voice/speechOutput";
 
 /** Voice output from the stage config (action-decision.md section 16): Polly deployed, Kokoro locally. */
-function speechOutputFor(config: AppConfig, cognito: CognitoConfig | null): SpeechOutput {
+function speechOutputFor(
+  config: AppConfig,
+  cognito: CognitoConfig | null,
+  latency: LatencyReporter = silentLatencyReporter,
+): SpeechOutput {
   const browser = createBrowserSpeechOutput();
   if (config.speechOutput === "OFF") return silentSpeechOutput;
   if (config.speechOutput === "POLLY" && cognito !== null)
-    return createPollySpeechOutput(pollySynthesizer(cognito.region, amplifyCredentials), browser);
+    return createPollySpeechOutput(
+      pollySynthesizer(cognito.region, amplifyCredentials),
+      browser,
+      undefined,
+      (ms) => {
+        latency.record("POLLY", ms);
+      },
+    );
   if (config.speechOutput === "LOCAL_SERVER" && config.apiUrl !== undefined)
     return createLocalServerSpeechOutput(config.apiUrl, browser);
   return browser;
@@ -95,6 +112,8 @@ export function createServices(
   if (cognito !== null) configureAmplify(cognito, globalThis.location.origin);
   const callHeaders = localCognito ? localAuthHeaders : undefined;
   let live: Pick<Services, "games" | "sessions" | "decisions" | "stats"> | null = null;
+  /* Voice latencies go to the stage's telemetry route wherever the API is live (productionalization.md section 7.2). */
+  let latency: LatencyReporter = silentLatencyReporter;
   let liveApi: ApiClient | null = null;
   if (config.dataMode === "LIVE") {
     if (config.apiUrl === undefined) throw new Error("dataMode LIVE needs an apiUrl.");
@@ -110,6 +129,9 @@ export function createServices(
           )
         : createAmplifyApiClient();
     liveApi = config.stage === "LOCAL" ? api : null;
+    latency = createLatencyReporter((samples) =>
+      api.post("v1/telemetry/latency", { samples }, LatencyReportResponseSchema),
+    );
     live = {
       games: createLiveGameService(api),
       sessions: createLiveSessionService(api),
@@ -130,7 +152,7 @@ export function createServices(
       ? createMemoryVoiceLabService()
       : createLiveVoiceLabService(config.apiUrl);
   return {
-    speechOutput: speechOutputFor(config, cognito),
+    speechOutput: speechOutputFor(config, cognito, latency),
     speechInput:
       config.speechInput === "TRANSCRIBE" && cognito !== null
         ? createTranscribeSpeechInput(
@@ -138,6 +160,9 @@ export function createServices(
             config.vocabularyName,
             undefined,
             transcribeStreamOpener(cognito.region, amplifyCredentials, config.vocabularyName),
+            (ms) => {
+              latency.record("TRANSCRIBE", ms);
+            },
           )
         : config.speechInput === "LOCAL_SERVER" && config.apiUrl !== undefined
           ? createLocalServerSpeechInput((wav) => voiceLab.transcribe(wav))

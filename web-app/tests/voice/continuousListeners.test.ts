@@ -135,6 +135,30 @@ describe("speech-gated Transcribe listener", () => {
     expect(streams[0]?.send).toHaveBeenCalledTimes(2);
   });
 
+  it("reports the time from the end of speech to the final text", async () => {
+    const fake = fakeCapture();
+    const { streams, open } = fakeStreams();
+    const latencies: number[] = [];
+    let clock = 1000;
+    await transcribeListener(
+      open,
+      fake.start,
+      (ms) => latencies.push(ms),
+      () => clock,
+    )(handlers(), 1200);
+    const audio = fake.on();
+    audio.onSpeechStart(AUDIO);
+    audio.onSpeechEnd(AUDIO);
+    clock = 1640;
+    streams[0]?.text("deal", true);
+    expect(latencies).toEqual([640]);
+    /* Nothing heard is no Transcribe sample. */
+    audio.onSpeechStart(AUDIO);
+    audio.onSpeechEnd(AUDIO);
+    vi.advanceTimersByTime(FINAL_TEXT_WAIT_MS);
+    expect(latencies).toEqual([640]);
+  });
+
   it("waits for the final text after the player stops", async () => {
     const { streams, on, audio } = await setup();
     audio.onSpeechStart(AUDIO);

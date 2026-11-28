@@ -236,4 +236,24 @@ describe("admin page with sparse data", () => {
       await within(panel).findByText("Set pat@example.com to the stage default."),
     ).toBeInTheDocument();
   });
+
+  it("shows today's latency of each step and a chart of each", async () => {
+    await openAdmin();
+    const section = must(
+      screen.getByRole("heading", { level: 2, name: "Latency" }).closest("section"),
+    );
+    for (const title of [
+      "Voice round trip",
+      "Transcribe",
+      "Decision",
+      "Language model",
+      "Polly",
+      "Move",
+    ])
+      expect(within(section).getByText(`${title} today`)).toBeInTheDocument();
+    for (const title of ["Transcribe", "Decision", "Language model", "Polly", "Move"])
+      expect(
+        within(section).getByRole("heading", { level: 3, name: `${title} latency` }),
+      ).toBeInTheDocument();
+  });
 });

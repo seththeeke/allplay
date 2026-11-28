@@ -3,6 +3,8 @@ import {
   DecisionRequestSchema,
   DecisionResponseSchema,
   GreetingResponseSchema,
+  LatencyReportSchema,
+  LatencyReportResponseSchema,
   ResolutionRequestSchema,
   ResolutionResponseSchema,
 } from "../../../models/api";
@@ -13,13 +15,18 @@ import { decisionsRoutes } from "./decisionsRoutes";
 import type { HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
 import type { AndonGate } from "../../../service/andon/andonService";
+import type { MetricsRecorder } from "../../../service/metrics/metricsRecorder";
 
 export interface DecisionsControllerDeps {
   decisions: DecisionService;
   logger: Logger;
   /** The andon cord check (productionalization.md section 4.3); absent where play is never paused. */
   andon?: AndonGate;
+  /** The day's latency histograms; absent where no counters are kept (the local server). */
+  metrics?: Pick<MetricsRecorder, "latencies">;
 }
+
+const HISTOGRAM = { TRANSCRIBE: "transcribeLatency", POLLY: "pollyLatency" } as const;
 
 /** Handler for the decisions bundle (action-decision.md section 4): parse, resolve the caller, then decide or resolve. */
 export function createDecisionsHandler(
@@ -54,6 +61,14 @@ export function createDecisionsHandler(
           resolution: request.data.resolution,
         });
         return [200, response];
+      },
+      "POST /v1/telemetry/latency": async ({ event }) => {
+        const report = LatencyReportSchema.safeParse(jsonBody(event));
+        if (!report.success) throw invalidRequest("Send { samples } of at most 50 latencies.");
+        await deps.metrics?.latencies(
+          report.data.samples.map(({ kind, ms }) => ({ histogram: HISTOGRAM[kind], ms })),
+        );
+        return [200, LatencyReportResponseSchema.parse({ recorded: report.data.samples.length })];
       },
       "POST /v1/conversations/{sessionId}/greeting": async ({ caller, param }) => [
         200,

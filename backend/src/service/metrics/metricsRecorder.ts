@@ -1,7 +1,11 @@
 import { createDynamoMetricRollupDao } from "../../dao/metricRollup/dynamoMetricRollupDao";
 import type { MetricRollupDao } from "../../dao/metricRollup/metricRollupDao";
 import type { Logger } from "../../logger";
-import { latencyBucket, type MetricIncrements } from "../../models/metricRollup";
+import {
+  latencyBucket,
+  type LatencyHistogram,
+  type MetricIncrements,
+} from "../../models/metricRollup";
 import type { Decision } from "../../models/decision";
 import type { TurnLog, TurnResolved } from "../decision/turnLog";
 
@@ -11,6 +15,21 @@ export interface MetricsRecorder {
   gameEnded(gameId: string, status: "WON" | "ABANDONED"): Promise<void>;
   turnDecided(turn: Decision): Promise<void>;
   turnResolved(event: TurnResolved): Promise<void>;
+  /** Adds latency samples to their histograms in one write (productionalization.md section 7). */
+  latencies(samples: readonly { histogram: LatencyHistogram; ms: number }[]): Promise<void>;
+}
+
+/** Bucket counts for a set of samples, by histogram. */
+export function latencyIncrements(
+  samples: readonly { histogram: LatencyHistogram; ms: number }[],
+): MetricIncrements {
+  const maps: Record<string, Record<string, number>> = {};
+  for (const { histogram, ms } of samples) {
+    const map = (maps[`${histogram}Buckets`] ??= {});
+    const bucket = latencyBucket(ms);
+    map[bucket] = (map[bucket] ?? 0) + 1;
+  }
+  return { maps: maps };
 }
 
 const day = (at: Date) => at.toISOString().slice(0, 10);
@@ -62,7 +81,12 @@ export function createMetricsRecorder(
           llmInputTokens: calls.reduce((sum, call) => sum + call.inputTokens, 0),
           llmOutputTokens: calls.reduce((sum, call) => sum + call.outputTokens, 0),
         },
-        maps: { serverLatencyBuckets: { [latencyBucket(turn.serverLatencyMs)]: 1 } },
+        maps: {
+          ...latencyIncrements([
+            { histogram: "serverLatency", ms: turn.serverLatencyMs },
+            ...calls.map((call) => ({ histogram: "llmLatency" as const, ms: call.latencyMs })),
+          ]).maps,
+        },
       };
       return add(
         turn.failureClass === undefined
@@ -70,6 +94,8 @@ export function createMetricsRecorder(
           : merge(base, outcome(turn.outcome, turn.failureClass)),
       );
     },
+    latencies: (samples) =>
+      samples.length === 0 ? Promise.resolve() : add(latencyIncrements(samples)),
     turnResolved: (event) => {
       const counted = outcome(event.outcome, event.failureClass);
       return add(
@@ -107,4 +133,13 @@ export function createMetricRollupDaoFor(
 ): MetricRollupDao | null {
   const table = env["METRIC_ROLLUPS_TABLE"];
   return table === undefined || table === "" ? null : createDynamoMetricRollupDao(table);
+}
+
+/** The day's counters over the table named by METRIC_ROLLUPS_TABLE, or undefined where none is kept. */
+export function createDeployedMetricsRecorder(
+  logger: Logger,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): MetricsRecorder | undefined {
+  const rollups = createMetricRollupDaoFor(env);
+  return rollups === null ? undefined : createMetricsRecorder(rollups, logger);
 }

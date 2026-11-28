@@ -2,6 +2,7 @@ import { AndonPanel } from "../components/AndonPanel";
 import { DeploymentsPanel } from "../components/DeploymentsPanel";
 import { DuplicatesPanel } from "../components/DuplicatesPanel";
 import { InvitePanel } from "../components/InvitePanel";
+import { LatencySection } from "../components/LatencySection";
 import { GameLimitsPanel } from "../components/GameLimitsPanel";
 import { LineChart } from "../components/charts/LineChart";
 import { formatNumber } from "../components/charts/scale";
@@ -107,6 +108,7 @@ export function AdminPage(): React.JSX.Element {
               ]}
             />
           </div>
+          <LatencySection days={days} />
           <section
             aria-labelledby="failures-heading"
             className="rounded-2xl border-4 border-line bg-surface p-4"

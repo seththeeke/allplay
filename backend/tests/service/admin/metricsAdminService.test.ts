@@ -74,4 +74,19 @@ describe("metrics admin service", () => {
     expect(isoOf("2026-11-21T01:00:00.000Z")).toBe("2026-11-21T01:00:00.000Z");
     expect(typeof createDeployedMetricsAdminService({}).metrics).toBe("function");
   });
+
+  it("keeps a finished day's percentiles and computes today's from its histograms", async () => {
+    const rollups = createInMemoryMetricRollupDao();
+    const at = "2026-11-22T10:00:00.000Z";
+    await rollups.add("2026-11-21", { maps: { moveLatencyBuckets: { le250: 2 } } }, at);
+    await rollups.setTotals("2026-11-21", { moveLatencyP50Ms: 99 }, at);
+    await rollups.add("2026-11-22", { maps: { transcribeLatencyBuckets: { le750: 4 } } }, at);
+    const service = createMetricsAdminService({
+      rollups,
+      turns: { day: () => Promise.resolve([]) },
+    });
+    const { days } = await service.metrics("2026-11-21", "2026-11-22");
+    expect(days[0]).toMatchObject({ moveLatencyP50Ms: 99, pollyLatencyP50Ms: null });
+    expect(days[1]).toMatchObject({ transcribeLatencyP50Ms: 625, moveLatencyP95Ms: null });
+  });
 });

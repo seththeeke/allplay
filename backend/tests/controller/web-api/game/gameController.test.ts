@@ -25,6 +25,43 @@ const envelopeOf = (result: { body: string }): SessionEnvelope =>
   SessionEnvelopeSchema.parse(JSON.parse(result.body));
 
 describe("game controller", () => {
+  it("times each move and undo on the server for the move latency histogram", async () => {
+    const sessions = createGameSessionService({
+      ...createInMemoryGameTables(),
+      games: (gameId, version) => repository.compiled(gameId, version),
+      newSeed: () => "00000000000000000000000000000001",
+    });
+    const latencies = vi.fn(() => Promise.resolve());
+    let clock = 1000;
+    const handler = createGameHandler({
+      catalog: repository,
+      sessions,
+      logger: createLogger({ write }),
+      metrics: { latencies },
+      now: () => (clock += 20),
+    });
+    const started = envelopeOf(
+      await handler(apiEvent("POST /v1/sessions", { body: { gameId: "spider-solitaire" } })),
+    );
+    const sessionId = started.session.sessionId;
+    await handler(
+      apiEvent("POST /v1/sessions/{sessionId}/actions", {
+        pathParameters: { sessionId },
+        body: { actionId: "DEAL_ROW", expectedVersion: 0, source: "POINTER" },
+      }),
+    );
+    await handler(
+      apiEvent("POST /v1/sessions/{sessionId}/undo", {
+        pathParameters: { sessionId },
+        body: { expectedVersion: 1, source: "POINTER" },
+      }),
+    );
+    expect(latencies.mock.calls).toEqual([
+      [[{ histogram: "moveLatency", ms: 20 }]],
+      [[{ histogram: "moveLatency", ms: 20 }]],
+    ]);
+  });
+
   it("lists the catalog and finds one game", async () => {
     const handler = setup();
     const list = await handler(apiEvent("GET /v1/games"));

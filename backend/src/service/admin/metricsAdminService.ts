@@ -1,3 +1,4 @@
+import { latencyPercentiles } from "../metrics/rollupJob";
 import { createDynamoMetricRollupDao } from "../../dao/metricRollup/dynamoMetricRollupDao";
 import type { MetricRollupDao } from "../../dao/metricRollup/metricRollupDao";
 import { createLogsInsightsTurnLogReader } from "../../dao/turnLog/logsInsightsTurnLogReader";
@@ -39,11 +40,14 @@ function dayMetrics(item: MetricRollup): DayMetrics {
     llmCalls: item.llmCalls,
     llmInputTokens: item.llmInputTokens,
     llmOutputTokens: item.llmOutputTokens,
-    clientLatencyP50Ms: item.clientLatencyP50Ms ?? null,
-    clientLatencyP95Ms: item.clientLatencyP95Ms ?? null,
-    serverLatencyP50Ms: item.serverLatencyP50Ms ?? null,
-    serverLatencyP95Ms: item.serverLatencyP95Ms ?? null,
-  };
+    /* The rollup writes percentiles for finished days; today's come from its histograms so far. */
+    ...Object.fromEntries(
+      Object.entries(latencyPercentiles(item)).map(([field, computed]) => [
+        field,
+        (item as Record<string, unknown>)[field] ?? computed,
+      ]),
+    ),
+  } as DayMetrics;
 }
 
 /** Logs Insights writes `2026-11-22 23:10:50.944`; the local reader already writes ISO 8601. */

@@ -157,3 +157,20 @@ export const GreetingResponseSchema = z.object({
   kind: z.enum(["GREETING", "WELCOME_BACK"]),
 });
 export type GreetingResponse = z.infer<typeof GreetingResponseSchema>;
+
+/** Browser-measured voice latencies (productionalization.md section 7.2): at most 50 per report. */
+export const LatencyReportSchema = z.object({
+  samples: z
+    .array(
+      z.object({
+        kind: z.enum(["TRANSCRIBE", "POLLY"]),
+        ms: z.number().int().min(0).max(60_000),
+      }),
+    )
+    .min(1)
+    .max(50),
+});
+export type LatencyReport = z.infer<typeof LatencyReportSchema>;
+
+export const LatencyReportResponseSchema = z.object({ recorded: z.number().int().min(1) });
+export type LatencyReportResponse = z.infer<typeof LatencyReportResponseSchema>;

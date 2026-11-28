@@ -36,6 +36,42 @@ async function setup() {
 }
 
 describe("decisions controller", () => {
+  it("records browser latency samples in their histograms, refusing bad reports", async () => {
+    const t = setupDecider({});
+    const latencies = vi.fn(() => Promise.resolve());
+    const handler = createDecisionsHandler({
+      decisions: t.decider,
+      logger: createLogger({ write }),
+      metrics: { latencies },
+    });
+    const report = (body: unknown) => handler(apiEvent("POST /v1/telemetry/latency", { body }));
+    const recorded = await report({
+      samples: [
+        { kind: "TRANSCRIBE", ms: 640 },
+        { kind: "POLLY", ms: 410 },
+      ],
+    });
+    expect(recorded.statusCode).toBe(200);
+    expect(JSON.parse(recorded.body)).toEqual({ recorded: 2 });
+    expect(latencies).toHaveBeenCalledWith([
+      { histogram: "transcribeLatency", ms: 640 },
+      { histogram: "pollyLatency", ms: 410 },
+    ]);
+    expect((await report({ samples: [] })).statusCode).toBe(400);
+    expect((await report({ samples: [{ kind: "POLLY", ms: 70_000 }] })).statusCode).toBe(400);
+    const unmetered = createDecisionsHandler({
+      decisions: t.decider,
+      logger: createLogger({ write }),
+    });
+    expect(
+      (
+        await unmetered(
+          apiEvent("POST /v1/telemetry/latency", { body: { samples: [{ kind: "POLLY", ms: 1 }] } }),
+        )
+      ).statusCode,
+    ).toBe(200);
+  });
+
   it("greets through the game speaker for a player in the session", async () => {
     const dao = createInMemoryConversationMessageDao();
     const conversation = createConversationService({
@@ -121,7 +157,7 @@ describe("decisions controller", () => {
       }),
     );
     expect(JSON.parse(rejected.body)).toEqual({ session: null });
-    expect(decisionsRoutes).toHaveLength(3);
+    expect(decisionsRoutes).toHaveLength(4);
   });
 });
 

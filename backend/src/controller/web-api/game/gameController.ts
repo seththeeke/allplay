@@ -14,6 +14,7 @@ import { jsonBody } from "../shared/httpEvent";
 import { gameRoutes } from "./gameRoutes";
 import { createRouter, type RouteRequest } from "../shared/router";
 import type { AndonGate } from "../../../service/andon/andonService";
+import type { MetricsRecorder } from "../../../service/metrics/metricsRecorder";
 import type { HttpResult } from "../shared/response";
 
 export interface GameControllerDeps {
@@ -22,6 +23,9 @@ export interface GameControllerDeps {
   logger: Logger;
   /** The andon cord check (productionalization.md section 4.3); absent where play is never paused. */
   andon?: AndonGate;
+  /** The day's move latency histogram; absent where no counters are kept. */
+  metrics?: Pick<MetricsRecorder, "latencies">;
+  now?: () => number;
 }
 
 /** Parses the request body with a route's schema; a mismatch is a 400 before any service runs. */
@@ -36,6 +40,14 @@ export function createGameHandler(
   deps: GameControllerDeps,
 ): (event: unknown) => Promise<HttpResult> {
   const { sessions } = deps;
+  const now = deps.now ?? Date.now;
+  /* A move's time on the server, from the request to its answer (productionalization.md section 7). */
+  const timed = async <T>(work: () => Promise<T>): Promise<T> => {
+    const started = now();
+    const result = await work();
+    await deps.metrics?.latencies([{ histogram: "moveLatency", ms: now() - started }]);
+    return result;
+  };
   const catalog = async () =>
     (await deps.catalog.list()).map((entry) => GameCatalogEntrySchema.parse(entry));
   return createRouter(
@@ -65,14 +77,18 @@ export function createGameHandler(
         const input = body(ApplyActionRequestSchema, request);
         return [
           200,
-          await sessions.applyAction(request.caller.playerId, request.param("sessionId"), input),
+          await timed(() =>
+            sessions.applyAction(request.caller.playerId, request.param("sessionId"), input),
+          ),
         ];
       },
       "POST /v1/sessions/{sessionId}/undo": async (request) => {
         const input = body(UndoRequestSchema, request);
         return [
           200,
-          await sessions.undo(request.caller.playerId, request.param("sessionId"), input),
+          await timed(() =>
+            sessions.undo(request.caller.playerId, request.param("sessionId"), input),
+          ),
         ];
       },
       "GET /v1/sessions/{sessionId}/hint": async (request) => [

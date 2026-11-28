@@ -138,16 +138,22 @@ export function createTranscribeSpeechInput(
   vocabularyName?: string,
   record: () => Promise<Recording> = startRecording,
   openStream?: OpenTranscribeStream,
+  /** End of speech to the final text (productionalization.md section 7). */
+  onLatency: (ms: number) => void = () => undefined,
+  clock: () => number = () => performance.now(),
 ): SpeechInput {
   return {
     kind: "TRANSCRIBE",
-    listen: openStream === undefined ? null : transcribeListener(openStream),
+    listen:
+      openStream === undefined ? null : transcribeListener(openStream, undefined, onLatency, clock),
     start: async () => {
       const recording = await record();
       return {
         stop: async (): Promise<Heard> => {
           const wav = await recording.stop();
+          const sent = clock();
           const text = await send(wav.slice(WAV_HEADER_BYTES), vocabularyName);
+          if (text !== "") onLatency(clock() - sent);
           return { text, transcriptSource: "TRANSCRIBE" };
         },
         cancel: () => {
@@ -193,8 +199,18 @@ export function createPollySpeechOutput(
   synthesize: PollySynthesize,
   fallback: SpeechOutput,
   play: PlayAudio = playBlob,
+  /** Synthesis request to audio ready, cache misses only (productionalization.md section 7). */
+  onLatency: (ms: number) => void = () => undefined,
+  clock: () => number = () => performance.now(),
 ): SpeechOutput {
   const cache = new Map<string, Promise<Blob>>();
+  const timed = (ssml: string, voice: string): Promise<Blob> => {
+    const started = clock();
+    return synthesize(ssml, voice).then((blob) => {
+      onLatency(clock() - started);
+      return blob;
+    });
+  };
   let playing: Playback | null = null;
   let finishCurrent: () => void = () => undefined;
   let turn = 0;
@@ -214,7 +230,7 @@ export function createPollySpeechOutput(
       const voice = voiceId;
       const key = `${voice}|${String(rate)}|${text}`;
       const ssml = `<speak><prosody rate="${String(Math.round(rate * 100))}%">${escapeXml(text)}</prosody></speak>`;
-      const audio = cache.get(key) ?? synthesize(ssml, voice);
+      const audio = cache.get(key) ?? timed(ssml, voice);
       cache.set(key, audio);
       void audio
         .then((blob) => {

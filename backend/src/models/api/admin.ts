@@ -38,6 +38,15 @@ export const DayMetricsSchema = z.object({
   clientLatencyP95Ms: z.number().int().min(0).nullable(),
   serverLatencyP50Ms: z.number().int().min(0).nullable(),
   serverLatencyP95Ms: z.number().int().min(0).nullable(),
+  /* Added with PZ-6 (productionalization.md section 7); absent from older clients' fixtures. */
+  llmLatencyP50Ms: z.number().int().min(0).nullable().default(null),
+  llmLatencyP95Ms: z.number().int().min(0).nullable().default(null),
+  transcribeLatencyP50Ms: z.number().int().min(0).nullable().default(null),
+  transcribeLatencyP95Ms: z.number().int().min(0).nullable().default(null),
+  pollyLatencyP50Ms: z.number().int().min(0).nullable().default(null),
+  pollyLatencyP95Ms: z.number().int().min(0).nullable().default(null),
+  moveLatencyP50Ms: z.number().int().min(0).nullable().default(null),
+  moveLatencyP95Ms: z.number().int().min(0).nullable().default(null),
 });
 export type DayMetrics = z.infer<typeof DayMetricsSchema>;
 

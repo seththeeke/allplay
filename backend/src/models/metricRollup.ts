@@ -2,6 +2,21 @@ import { z } from "zod";
 import { LatencyBucketsSchema } from "./api";
 
 const Counts = z.record(z.string(), z.number().int().min(0));
+const Percentile = z.number().int().min(0).nullable().optional();
+
+/**
+ * Every latency histogram (productionalization.md section 7). The first two
+ * date from day 0; the others are absent on days written before PZ-6.
+ */
+export const LATENCY_HISTOGRAMS = [
+  "clientLatency",
+  "serverLatency",
+  "llmLatency",
+  "transcribeLatency",
+  "pollyLatency",
+  "moveLatency",
+] as const;
+export type LatencyHistogram = (typeof LATENCY_HISTOGRAMS)[number];
 
 /** One day's aggregates for /admin (data-model.md section 11). */
 export const MetricRollupSchema = z.object({
@@ -24,10 +39,22 @@ export const MetricRollupSchema = z.object({
   llmOutputTokens: z.number().int().min(0),
   clientLatencyBuckets: LatencyBucketsSchema,
   serverLatencyBuckets: LatencyBucketsSchema,
-  clientLatencyP50Ms: z.number().int().min(0).nullable().optional(),
-  clientLatencyP95Ms: z.number().int().min(0).nullable().optional(),
-  serverLatencyP50Ms: z.number().int().min(0).nullable().optional(),
-  serverLatencyP95Ms: z.number().int().min(0).nullable().optional(),
+  llmLatencyBuckets: LatencyBucketsSchema.optional(),
+  transcribeLatencyBuckets: LatencyBucketsSchema.optional(),
+  pollyLatencyBuckets: LatencyBucketsSchema.optional(),
+  moveLatencyBuckets: LatencyBucketsSchema.optional(),
+  clientLatencyP50Ms: Percentile,
+  clientLatencyP95Ms: Percentile,
+  serverLatencyP50Ms: Percentile,
+  serverLatencyP95Ms: Percentile,
+  llmLatencyP50Ms: Percentile,
+  llmLatencyP95Ms: Percentile,
+  transcribeLatencyP50Ms: Percentile,
+  transcribeLatencyP95Ms: Percentile,
+  pollyLatencyP50Ms: Percentile,
+  pollyLatencyP95Ms: Percentile,
+  moveLatencyP50Ms: Percentile,
+  moveLatencyP95Ms: Percentile,
   entityVersion: z.literal(1),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -64,8 +91,7 @@ export interface MetricIncrements {
       | "gamesWon"
       | "gamesAbandoned"
       | "decisionOutcomes"
-      | "clientLatencyBuckets"
-      | "serverLatencyBuckets",
+      | `${LatencyHistogram}Buckets`,
       Record<string, number>
     >
   >;
@@ -79,17 +105,19 @@ export type RollupTotals = Pick<
   | "totalGuests"
   | "activePlayers30d"
   | "newPlayers"
-  | "clientLatencyP50Ms"
-  | "clientLatencyP95Ms"
-  | "serverLatencyP50Ms"
-  | "serverLatencyP95Ms"
+  | `${LatencyHistogram}P50Ms`
+  | `${LatencyHistogram}P95Ms`
 >;
+
+/** An all-zero histogram. */
+export function emptyBuckets(): MetricRollup["clientLatencyBuckets"] {
+  return Object.fromEntries(
+    [...LATENCY_BOUNDS.map((bound) => `le${String(bound)}`), "overflow"].map((key) => [key, 0]),
+  ) as MetricRollup["clientLatencyBuckets"];
+}
 
 /** An empty day, written once before the first increment. */
 export function emptyDay(period: string, at: string): MetricRollup {
-  const buckets = Object.fromEntries(
-    [...LATENCY_BOUNDS.map((bound) => `le${String(bound)}`), "overflow"].map((key) => [key, 0]),
-  ) as MetricRollup["clientLatencyBuckets"];
   return {
     rollupType: "DAY",
     period,
@@ -103,8 +131,12 @@ export function emptyDay(period: string, at: string): MetricRollup {
     llmCalls: 0,
     llmInputTokens: 0,
     llmOutputTokens: 0,
-    clientLatencyBuckets: buckets,
-    serverLatencyBuckets: { ...buckets },
+    clientLatencyBuckets: emptyBuckets(),
+    serverLatencyBuckets: emptyBuckets(),
+    llmLatencyBuckets: emptyBuckets(),
+    transcribeLatencyBuckets: emptyBuckets(),
+    pollyLatencyBuckets: emptyBuckets(),
+    moveLatencyBuckets: emptyBuckets(),
     entityVersion: 1,
     createdAt: at,
     updatedAt: at,

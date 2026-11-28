@@ -59,6 +59,29 @@ const partial = (text: string) => ({ IsPartial: true, Alternatives: [{ Transcrip
 const final = (text: string) => ({ IsPartial: false, Alternatives: [{ Transcript: text }] });
 
 describe("Transcribe speech input", () => {
+  it("reports the time from the end of capture to the transcript, but not for silence", async () => {
+    const latencies: number[] = [];
+    let clock = 0;
+    const send = vi.fn(() => {
+      clock += 700;
+      return Promise.resolve(latencies.length === 0 ? "deal" : "");
+    });
+    const recording = () =>
+      Promise.resolve({ stop: () => Promise.resolve(new Uint8Array(50)), cancel: vi.fn() });
+    const input = createTranscribeSpeechInput(
+      send,
+      undefined,
+      recording,
+      undefined,
+      (ms) => latencies.push(ms),
+      () => clock,
+    );
+    const start = input.start as NonNullable<typeof input.start>;
+    await (await start()).stop();
+    await (await start()).stop();
+    expect(latencies).toEqual([700]);
+  });
+
   it("records, then sends the clip's samples without the WAV header", async () => {
     const send = vi.fn(() => Promise.resolve("deal"));
     const wav = new Uint8Array(44 + 6).fill(7);
@@ -144,6 +167,32 @@ describe("Polly speech output", () => {
       '<speak><prosody rate="100%">&lt;hi&gt;</prosody></speak>',
       "Ruth",
     );
+  });
+
+  it("reports Polly's time for new audio only, not cached replies", async () => {
+    const latencies: number[] = [];
+    let clock = 0;
+    const synthesize = vi.fn(() => {
+      clock += 380;
+      return Promise.resolve(new Blob(["mp3"]));
+    });
+    const play = vi.fn(() => ({ stop: vi.fn() }));
+    const output = createPollySpeechOutput(
+      synthesize,
+      { speak: vi.fn() },
+      play,
+      (ms) => latencies.push(ms),
+      () => clock,
+    );
+    output.speak("Deal", 1);
+    await vi.waitFor(() => {
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+    output.speak("Deal", 1);
+    await vi.waitFor(() => {
+      expect(play).toHaveBeenCalledTimes(2);
+    });
+    expect(latencies).toEqual([380]);
   });
 
   it("falls back to the browser voice when Polly cannot answer", async () => {

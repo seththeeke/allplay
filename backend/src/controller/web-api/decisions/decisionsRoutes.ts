@@ -16,4 +16,5 @@ export const decisionsRoutes = [
     auth: "IAM",
     minimumTier: "GUEST",
   },
+  { method: "POST", path: "/v1/telemetry/latency", auth: "IAM", minimumTier: "GUEST" },
 ] as const;

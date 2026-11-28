@@ -90,6 +90,9 @@ const toPcm = (frame: Float32Array): Uint8Array => {
 export function transcribeListener(
   open: OpenTranscribeStream,
   capture: StartCapture = startContinuousCapture,
+  /** End of speech to the final text, for the admin latency charts (productionalization.md section 7). */
+  onLatency: (ms: number) => void = () => undefined,
+  clock: () => number = () => performance.now(),
 ): StartListening {
   return async (handlers, silenceMs) => {
     let stream: TranscribeStream | null = null;
@@ -98,6 +101,7 @@ export function transcribeListener(
     let awaitingFinal = false;
     let idle: ReturnType<typeof setTimeout> | null = null;
     let wait: ReturnType<typeof setTimeout> | null = null;
+    let speechEndedAt: number | null = null;
 
     const clear = (timer: ReturnType<typeof setTimeout> | null): null => {
       if (timer !== null) clearTimeout(timer);
@@ -106,6 +110,8 @@ export function transcribeListener(
     const flush = (): void => {
       wait = clear(wait);
       awaitingFinal = false;
+      if (speechEndedAt !== null && finals.length > 0) onLatency(clock() - speechEndedAt);
+      speechEndedAt = null;
       const text = [...finals, partial].join(" ").trim();
       finals = [];
       partial = "";
@@ -163,6 +169,7 @@ export function transcribeListener(
         },
         onSpeechEnd: () => {
           armIdle();
+          speechEndedAt = clock();
           if (finals.length > 0 && partial === "") {
             flush();
             return;

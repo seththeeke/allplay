@@ -6,12 +6,18 @@ import { emptyDay } from "../../../src/models/metricRollup";
 import type { Decision } from "../../../src/models/decision";
 import { createLoggerTurnLog } from "../../../src/service/decision/turnLog";
 import {
+  createDeployedMetricsRecorder,
   createMetricRollupDaoFor,
   createMetricsRecorder,
+  latencyIncrements,
   withTurnMetrics,
 } from "../../../src/service/metrics/metricsRecorder";
 import { percentile } from "../../../src/service/metrics/percentiles";
-import { createDeployedRollupJob, createRollupJob } from "../../../src/service/metrics/rollupJob";
+import {
+  createDeployedRollupJob,
+  createRollupJob,
+  latencyPercentiles,
+} from "../../../src/service/metrics/rollupJob";
 import { guest, account } from "../../dao/player/playerDaoContract";
 
 const NOW = new Date("2026-11-22T10:00:00.000Z");
@@ -88,7 +94,43 @@ describe("metrics recorder", () => {
       decisionOutcomes: { UNRECOGNIZED: 1, CHOSE_OPTION: 1, EXPIRED: 1 },
       serverLatencyBuckets: { le1000: 2 },
       clientLatencyBuckets: { le2000: 1 },
+      /* One sample per model call (productionalization.md section 7). */
+      llmLatencyBuckets: { le250: 3 },
     });
+  });
+
+  it("adds latency samples by histogram in one write, and skips an empty set", async () => {
+    const dao = createInMemoryMetricRollupDao();
+    const recorder = createMetricsRecorder(dao, createLogger({ write: vi.fn() }), () => NOW);
+    await recorder.latencies([]);
+    expect(await dao.get("2026-11-22")).toBeNull();
+    await recorder.latencies([
+      { histogram: "transcribeLatency", ms: 600 },
+      { histogram: "transcribeLatency", ms: 700 },
+      { histogram: "pollyLatency", ms: 9000 },
+      { histogram: "moveLatency", ms: 40 },
+    ]);
+    expect(await dao.get("2026-11-22")).toMatchObject({
+      transcribeLatencyBuckets: { le750: 2 },
+      pollyLatencyBuckets: { overflow: 1 },
+      moveLatencyBuckets: { le250: 1 },
+    });
+    expect(latencyIncrements([{ histogram: "moveLatency", ms: 251 }])).toEqual({
+      maps: { moveLatencyBuckets: { le500: 1 } },
+    });
+    expect(createDeployedMetricsRecorder(createLogger({ write: vi.fn() }), {})).toBeUndefined();
+    expect(
+      createDeployedMetricsRecorder(createLogger({ write: vi.fn() }), {
+        METRIC_ROLLUPS_TABLE: "t",
+      }),
+    ).toHaveProperty("latencies");
+  });
+
+  it("adds a new histogram to a day written before it existed", async () => {
+    const dao = createInMemoryMetricRollupDao();
+    await dao.add("2026-11-22", { counters: { decisions: 1 } }, NOW.toISOString());
+    const stored = await dao.get("2026-11-22");
+    expect(stored?.moveLatencyBuckets).toBeDefined();
   });
 
   it("logs a failed counter write instead of failing the request", async () => {
@@ -124,7 +166,12 @@ describe("daily rollup job", () => {
     const rollups = createInMemoryMetricRollupDao();
     await rollups.add(
       "2026-11-21",
-      { maps: { clientLatencyBuckets: { le1000: 2, le2000: 2 } } },
+      {
+        maps: {
+          clientLatencyBuckets: { le1000: 2, le2000: 2 },
+          pollyLatencyBuckets: { le500: 4 },
+        },
+      },
       NOW.toISOString(),
     );
     const job = createRollupJob({
@@ -141,7 +188,16 @@ describe("daily rollup job", () => {
       newPlayers: 1,
       clientLatencyP50Ms: 1000,
       serverLatencyP50Ms: null,
+      pollyLatencyP50Ms: 375,
+      moveLatencyP95Ms: null,
     });
+    expect(latencyPercentiles(null)).toMatchObject({
+      llmLatencyP50Ms: null,
+      moveLatencyP95Ms: null,
+    });
+    const older = emptyDay("2026-11-01", NOW.toISOString());
+    delete older.moveLatencyBuckets;
+    expect(latencyPercentiles(older).moveLatencyP50Ms).toBeNull();
     expect(totals.activePlayers30d).toBe(2);
     expect(await rollups.get("2026-11-21")).toMatchObject({ totalPlayers: 3 });
     const quiet = createRollupJob({ players, rollups: createInMemoryMetricRollupDao() });

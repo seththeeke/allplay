@@ -1,5 +1,10 @@
 import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { emptyDay, MetricRollupSchema } from "../../models/metricRollup";
+import {
+  emptyBuckets,
+  emptyDay,
+  LATENCY_HISTOGRAMS,
+  MetricRollupSchema,
+} from "../../models/metricRollup";
 import {
   conditionFailed,
   documentClient,
@@ -32,6 +37,20 @@ export function createDynamoMetricRollupDao(
       );
     } catch (error) {
       if (!conditionFailed(error)) throw error;
+      /* A day written before a histogram existed gets it empty, since ADD needs the map. */
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { rollupType: "DAY", period },
+          ...updateExpression(
+            {},
+            [],
+            Object.fromEntries(
+              LATENCY_HISTOGRAMS.map((name) => [`${name}Buckets`, emptyBuckets()]),
+            ),
+          ),
+        }),
+      );
     }
     created.add(period);
   };
