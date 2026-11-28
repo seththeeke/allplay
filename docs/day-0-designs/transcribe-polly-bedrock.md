@@ -89,7 +89,7 @@ File: `backend/src/service/decision/llm/bedrockConverse.ts`, exporting `createBe
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ALLPLAY_BEDROCK_MODEL` | `us.amazon.nova-micro-v1:0` | Model or inference profile id (`action-decision.md` Section 8) |
+| `ALLPLAY_BEDROCK_MODEL` | `us.amazon.nova-2-lite-v1:0` | Model or inference profile id (`action-decision.md` Section 8) |
 | `ALLPLAY_AWS_REGION` | `us-east-1` | Region of all three clients |
 
 A model change is a configuration change only. Claude Haiku 5.5 on Bedrock is `ALLPLAY_BEDROCK_MODEL` set to its inference profile id, with no code change.

@@ -25,7 +25,8 @@ export interface BedrockOptions {
   onThrottled?: () => void;
 }
 
-export const DEFAULT_BEDROCK_MODEL = "us.amazon.nova-micro-v1:0";
+/** Nova 2 Lite with reasoning off, its default (productionalization.md section 8). */
+export const DEFAULT_BEDROCK_MODEL = "us.amazon.nova-2-lite-v1:0";
 export const DEFAULT_AWS_REGION = "us-east-1";
 
 /** The SDK client with the default credential chain: the developer's profile locally, the Lambda role deployed. */

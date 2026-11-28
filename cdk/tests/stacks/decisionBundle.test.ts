@@ -26,7 +26,7 @@ describe("decision bundle", () => {
           PREFERENCES_TABLE: Match.anyValue(),
           RATE_LIMITS_TABLE: Match.anyValue(),
           CONVERSATION_MESSAGES_TABLE: Match.anyValue(),
-          DECIDER_MODEL_ID: "us.amazon.nova-micro-v1:0",
+          DECIDER_MODEL_ID: "us.amazon.nova-2-lite-v1:0",
           DECIDER_FIXED_RESPONSES: "ENABLED",
         }),
       },
@@ -71,9 +71,9 @@ describe("decision bundle", () => {
       )
       .map((statement) => JSON.stringify(statement));
     const bedrock = statements.find((statement) => statement.includes("bedrock:InvokeModel")) ?? "";
-    expect(bedrock).toContain(":inference-profile/us.amazon.nova-micro-v1:0");
+    expect(bedrock).toContain(":inference-profile/us.amazon.nova-2-lite-v1:0");
     for (const region of ["us-east-1", "us-east-2", "us-west-2"])
-      expect(bedrock).toContain(`:bedrock:${region}::foundation-model/amazon.nova-micro-v1:0`);
+      expect(bedrock).toContain(`:bedrock:${region}::foundation-model/amazon.nova-2-lite-v1:0`);
     expect(bedrock).not.toContain("*");
     const all = statements.join();
     expect(all).toContain("RateLimits");

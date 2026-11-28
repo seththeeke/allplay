@@ -22,8 +22,8 @@ import { IdentityAccess } from "../constructs/IdentityAccess";
 import { WebHosting } from "../constructs/WebHosting";
 import type { AllPlayStatefulStack } from "./AllPlayStatefulStack";
 
-/** The decider's model (action-decision.md section 8): a US cross-region inference profile. */
-export const DECIDER_MODEL_ID = "us.amazon.nova-micro-v1:0";
+/** The decider's model (action-decision.md section 8, productionalization.md section 8): a US cross-region inference profile. */
+export const DECIDER_MODEL_ID = "us.amazon.nova-2-lite-v1:0";
 /** The regions that profile routes to; Bedrock checks the grant in each. */
 const DECIDER_MODEL_REGIONS = ["us-east-1", "us-east-2", "us-west-2"];
 
