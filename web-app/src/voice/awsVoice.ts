@@ -1,4 +1,8 @@
-import { transcribeListener, type OpenTranscribeStream } from "./continuousListeners";
+import {
+  startTranscribeTurn,
+  transcribeListener,
+  type OpenTranscribeStream,
+} from "./continuousListeners";
 import type { Heard, SpeechInput } from "./speechInput";
 import { startRecording, type Recording } from "./audioCapture";
 import type { Playback, PlayAudio, SpeechOutput } from "./speechOutput";
@@ -22,7 +26,32 @@ const WAV_HEADER_BYTES = 44;
 export type TranscribeSend = (pcm: Uint8Array, vocabularyName?: string) => Promise<string>;
 
 /** Streams a clip to Amazon Transcribe in 100 ms events and joins the final segments. */
+/**
+ * True when Transcribe refused the request's custom vocabulary, for example
+ * while it is still being built; the client then tries once without it
+ * (productionalization.md section 9).
+ */
+export function vocabularyRefused(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.name === "BadRequestException" &&
+    /vocabular/i.test(error.message)
+  );
+}
+
 export function transcribeSender(region: string, credentials: CredentialSource): TranscribeSend {
+  const sendOnce = clipSender(region, credentials);
+  return async (pcm, vocabularyName) => {
+    try {
+      return await sendOnce(pcm, vocabularyName);
+    } catch (error) {
+      if (vocabularyName === undefined || !vocabularyRefused(error)) throw error;
+      return sendOnce(pcm, undefined);
+    }
+  };
+}
+
+function clipSender(region: string, credentials: CredentialSource): TranscribeSend {
   return async (pcm, vocabularyName) => {
     const { TranscribeStreamingClient, StartStreamTranscriptionCommand } =
       await import("@aws-sdk/client-transcribe-streaming");
@@ -72,7 +101,12 @@ export function transcribeStreamOpener(
   vocabularyName?: string,
 ): OpenTranscribeStream {
   return (onText, onError, onClosed) => {
-    const queue: Uint8Array[] = [];
+    let queue: Uint8Array[] = [];
+    /*
+     * Every chunk sent until the first text, so a stream refused for its
+     * vocabulary can start again without it; text means it was accepted.
+     */
+    let sent: Uint8Array[] | null = [];
     let closed = false;
     let wake: (() => void) | null = null;
     const notify = (): void => {
@@ -90,7 +124,7 @@ export function transcribeStreamOpener(
           });
       }
     }
-    void (async () => {
+    const run = async (vocabulary: string | undefined): Promise<void> => {
       const { TranscribeStreamingClient, StartStreamTranscriptionCommand } =
         await import("@aws-sdk/client-transcribe-streaming");
       const client = new TranscribeStreamingClient({ region, credentials });
@@ -101,22 +135,32 @@ export function transcribeStreamOpener(
           MediaSampleRateHertz: 16000,
           EnablePartialResultsStabilization: true,
           PartialResultsStability: "high",
-          ...(vocabularyName === undefined ? {} : { VocabularyName: vocabularyName }),
+          ...(vocabulary === undefined ? {} : { VocabularyName: vocabulary }),
           AudioStream: audio(),
         }),
       );
       for await (const event of response.TranscriptResultStream ?? []) {
         for (const result of event.TranscriptEvent?.Transcript?.Results ?? []) {
           const text = result.Alternatives?.[0]?.Transcript;
-          if (text !== undefined) onText(text, result.IsPartial !== true);
+          if (text === undefined) continue;
+          sent = null;
+          onText(text, result.IsPartial !== true);
         }
       }
       onClosed();
-    })().catch(onError);
+    };
+    void run(vocabularyName)
+      .catch((error: unknown) => {
+        if (vocabularyName === undefined || sent === null || !vocabularyRefused(error)) throw error;
+        queue = [...sent];
+        return run(undefined);
+      })
+      .catch(onError);
     return {
       send: (pcm) => {
         if (closed) return;
         queue.push(pcm);
+        sent?.push(pcm);
         notify();
       },
       close: () => {
@@ -146,7 +190,10 @@ export function createTranscribeSpeechInput(
     kind: "TRANSCRIBE",
     listen:
       openStream === undefined ? null : transcribeListener(openStream, undefined, onLatency, clock),
-    start: async () => {
+    start: async (events) => {
+      /* With a live stream, turn-based listening streams too (productionalization.md section 9). */
+      if (openStream !== undefined && events !== undefined)
+        return startTranscribeTurn(openStream, events, undefined, onLatency, clock);
       const recording = await record();
       return {
         stop: async (): Promise<Heard> => {

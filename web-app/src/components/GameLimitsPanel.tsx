@@ -28,7 +28,9 @@ export function GameLimitsPanel({ onFind, onSet }: GameLimitsPanelProps): React.
   const [players, setPlayers] = useState<AdminPlayer[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const failed = (failure: unknown): void => {
-    setNotice(failure instanceof Error ? failure.message : "That did not work.");
+    setNotice(
+      failure instanceof Error && failure.message !== "" ? failure.message : "That did not work.",
+    );
   };
   return (
     <section

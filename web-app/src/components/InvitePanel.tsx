@@ -36,7 +36,11 @@ export function InvitePanel({ onInvite }: InvitePanelProps): React.JSX.Element {
               setBusy(false);
             },
             (failure: unknown) => {
-              setNotice(failure instanceof Error ? failure.message : "The invitation failed.");
+              setNotice(
+                failure instanceof Error && failure.message !== ""
+                  ? failure.message
+                  : "The invitation failed.",
+              );
               setBusy(false);
             },
           );

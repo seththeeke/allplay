@@ -3,11 +3,18 @@ import { describe, expect, it, vi } from "vitest";
 const transcribe = vi.hoisted(() => ({
   sent: [] as Record<string, unknown>[],
   results: [] as unknown[],
+  /* The next request naming a vocabulary is refused, as while the vocabulary is being built. */
+  refuse: null as Error | null,
 }));
 vi.mock("@aws-sdk/client-transcribe-streaming", () => ({
   TranscribeStreamingClient: class {
     send(command: { input: Record<string, unknown> }) {
       transcribe.sent.push(command.input);
+      const refused = transcribe.refuse;
+      if (refused !== null && command.input["VocabularyName"] !== undefined) {
+        transcribe.refuse = null;
+        return Promise.reject(refused);
+      }
       return Promise.resolve({
         TranscriptResultStream: {
           [Symbol.asyncIterator]: () => {
@@ -52,13 +59,92 @@ import {
   pollySynthesizer,
   transcribeSender,
   transcribeStreamOpener,
+  vocabularyRefused,
 } from "../../src/voice/awsVoice";
+
+function badRequest(message: string): Error {
+  const error = new Error(message);
+  error.name = "BadRequestException";
+  return error;
+}
 
 const credentials = () => Promise.resolve({ accessKeyId: "a", secretAccessKey: "s" });
 const partial = (text: string) => ({ IsPartial: true, Alternatives: [{ Transcript: text }] });
 const final = (text: string) => ({ IsPartial: false, Alternatives: [{ Transcript: text }] });
 
+describe("custom vocabulary refusals", () => {
+  it("knows a refused vocabulary from other failures", () => {
+    expect(vocabularyRefused(badRequest("The requested vocabulary isn't ready yet."))).toBe(true);
+    expect(vocabularyRefused(badRequest("Bad sample rate."))).toBe(false);
+    expect(vocabularyRefused(new Error("vocabulary"))).toBe(false);
+    expect(vocabularyRefused("vocabulary")).toBe(false);
+  });
+
+  it("sends a clip again without the vocabulary when Transcribe refuses it", async () => {
+    transcribe.sent = [];
+    transcribe.results = [{ TranscriptEvent: { Transcript: { Results: [final("deal")] } } }];
+    transcribe.refuse = badRequest("The vocabulary is not ready.");
+    expect(await transcribeSender("us-east-1", credentials)(new Uint8Array(4), "vocab")).toBe(
+      "deal",
+    );
+    expect(transcribe.sent.map((input) => input["VocabularyName"])).toEqual(["vocab", undefined]);
+    transcribe.refuse = badRequest("Bad sample rate.");
+    await expect(
+      transcribeSender("us-east-1", credentials)(new Uint8Array(4), "vocab"),
+    ).rejects.toThrow("Bad sample rate.");
+    transcribe.refuse = badRequest("The vocabulary is not ready.");
+    await expect(transcribeSender("us-east-1", credentials)(new Uint8Array(4))).resolves.toBe(
+      "deal",
+    );
+    transcribe.refuse = null;
+  });
+
+  it("opens a live stream again without the vocabulary, replaying the audio sent", async () => {
+    transcribe.sent = [];
+    transcribe.results = [{ TranscriptEvent: { Transcript: { Results: [final("deal")] } } }];
+    transcribe.refuse = badRequest("The vocabulary is not ready.");
+    const onText = vi.fn();
+    const onClosed = vi.fn();
+    const stream = transcribeStreamOpener("us-east-1", credentials, "vocab")(
+      onText,
+      vi.fn(),
+      onClosed,
+    );
+    stream.send(new Uint8Array([9]));
+    await vi.waitFor(() => {
+      expect(onClosed).toHaveBeenCalled();
+    });
+    expect(transcribe.sent.map((input) => input["VocabularyName"])).toEqual(["vocab", undefined]);
+    expect(onText).toHaveBeenCalledWith("deal", true);
+    const replayed = transcribe.sent[1] as {
+      AudioStream: AsyncIterable<{ AudioEvent: { AudioChunk: Uint8Array } }>;
+    };
+    stream.close();
+    const chunks: Uint8Array[] = [];
+    for await (const event of replayed.AudioStream) chunks.push(event.AudioEvent.AudioChunk);
+    expect(chunks).toEqual([new Uint8Array([9])]);
+  });
+
+  it("reports other stream failures", async () => {
+    transcribe.refuse = badRequest("Bad sample rate.");
+    const onError = vi.fn();
+    transcribeStreamOpener("us-east-1", credentials, "vocab")(vi.fn(), onError, vi.fn());
+    await vi.waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+    });
+    transcribe.refuse = null;
+  });
+});
+
 describe("Transcribe speech input", () => {
+  it("streams a turn live when a stream opener is given and the caller asks for events", async () => {
+    const opened = vi.fn(() => ({ send: vi.fn(), close: vi.fn() }));
+    const input = createTranscribeSpeechInput(vi.fn(), undefined, vi.fn(), opened);
+    const start = input.start as NonNullable<typeof input.start>;
+    await expect(start({ silenceMs: 1200 })).rejects.toThrow();
+    expect(opened).toHaveBeenCalledTimes(1);
+  });
+
   it("reports the time from the end of capture to the transcript, but not for silence", async () => {
     const latencies: number[] = [];
     let clock = 0;

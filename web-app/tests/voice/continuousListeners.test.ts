@@ -1,9 +1,11 @@
+import { must } from "../must";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CaptureHandlers } from "../../src/voice/continuousCapture";
 import {
   FINAL_TEXT_WAIT_MS,
   localServerListener,
   STREAM_IDLE_MS,
+  startTranscribeTurn,
   transcribeListener,
   type ListenHandlers,
   type OpenTranscribeStream,
@@ -265,5 +267,94 @@ describe("speech-gated Transcribe listener", () => {
     expect(streams[0]?.close).toHaveBeenCalledTimes(1);
     expect(fake.capture.stop).toHaveBeenCalled();
     expect(on.onHeard).not.toHaveBeenCalled();
+  });
+});
+
+describe("turn-based live Transcribe", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function turn(clock = () => 0, latencies: number[] = []) {
+    const fake = fakeCapture();
+    const { streams, open } = fakeStreams();
+    const events = { silenceMs: 800, onPartial: vi.fn(), onSpeechEnd: vi.fn() };
+    const capture = await startTranscribeTurn(
+      open,
+      events,
+      fake.start,
+      (ms) => latencies.push(ms),
+      clock,
+    );
+    return { fake, stream: must(streams[0]), events, capture, audio: fake.on() };
+  }
+
+  it("streams every frame, reports partial text, and ends on a pause only after a final segment", async () => {
+    const { fake, stream, events, audio } = await turn();
+    expect(fake.start).toHaveBeenCalledWith(expect.anything(), 800);
+    audio.onFrame(AUDIO[0] as Float32Array);
+    expect(stream.send).toHaveBeenCalledTimes(1);
+    audio.onSpeechStart(AUDIO);
+    audio.onDiscard();
+    stream.text("three", false);
+    expect(events.onPartial).toHaveBeenLastCalledWith("three");
+    audio.onSpeechEnd(AUDIO);
+    expect(events.onSpeechEnd).not.toHaveBeenCalled();
+    stream.text("three to seven", true);
+    stream.text("please", false);
+    expect(events.onPartial).toHaveBeenLastCalledWith("three to seven please");
+    audio.onSpeechEnd(AUDIO);
+    expect(events.onSpeechEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops the microphone, waits for the last final text, and reports the latency", async () => {
+    let now = 100;
+    const latencies: number[] = [];
+    const { fake, stream, capture } = await turn(() => now, latencies);
+    stream.text("deal", false);
+    const heard = capture.stop();
+    expect(fake.capture.stop).toHaveBeenCalled();
+    expect(stream.close).toHaveBeenCalled();
+    now = 450;
+    stream.text("deal", true);
+    stream.closed();
+    expect(await heard).toEqual({ text: "deal", transcriptSource: "TRANSCRIBE" });
+    expect(latencies).toEqual([350]);
+  });
+
+  it("gives up waiting after the final text timeout and keeps the partial text", async () => {
+    const { stream, capture } = await turn();
+    stream.text("undo", false);
+    const heard = capture.stop();
+    vi.advanceTimersByTime(FINAL_TEXT_WAIT_MS);
+    expect(await heard).toEqual({ text: "undo", transcriptSource: "TRANSCRIBE" });
+  });
+
+  it("fails a turn whose stream failed before hearing anything, and cancels without waiting", async () => {
+    const first = await turn();
+    first.stream.fail(new Error("socket closed"));
+    await expect(first.capture.stop()).rejects.toThrow("socket closed");
+    const second = await turn();
+    second.stream.fail("odd");
+    await expect(second.capture.stop()).rejects.toThrow("Transcribe failed.");
+    const third = await turn();
+    third.stream.text("deal", true);
+    third.stream.fail(new Error("late"));
+    expect((await third.capture.stop()).text).toBe("deal");
+    const fourth = await turn();
+    fourth.capture.cancel();
+    expect(fourth.fake.capture.stop).toHaveBeenCalled();
+    expect(fourth.stream.close).toHaveBeenCalled();
+  });
+
+  it("closes the stream when the microphone cannot open", async () => {
+    const { streams, open } = fakeStreams();
+    await expect(
+      startTranscribeTurn(open, { silenceMs: 800 }, () => Promise.reject(new Error("denied"))),
+    ).rejects.toThrow("denied");
+    expect(streams[0]?.close).toHaveBeenCalled();
   });
 });

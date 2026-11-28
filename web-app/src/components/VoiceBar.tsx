@@ -38,6 +38,7 @@ export function VoiceBar({ actions }: { actions?: ReactNode }): React.JSX.Elemen
             onCancel={voice.cancel}
             recording={voice.recording}
             onStop={voice.stopRecording}
+            heard={voice.heardSoFar}
           />
         ) : null}
         <VoicePrompt />

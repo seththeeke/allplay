@@ -1,9 +1,10 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServices } from "../../src/services/createServices";
 import type { Services } from "../../src/services/types";
 import type { Heard, SpeechInput } from "../../src/voice/speechInput";
+import type { TurnEvents } from "../../src/voice/continuousListeners";
 import { MAX_CAPTURE_MS } from "../../src/voice/VoiceProvider";
 import { LOCAL_CONFIG, renderApp, turnBasedStore } from "../renderApp";
 
@@ -32,6 +33,37 @@ async function open(services: Services) {
 describe("voice turns from the microphone", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("shows what it hears while the player speaks, and ends listening on a pause", async () => {
+    let events: TurnEvents | undefined;
+    const speechInput: SpeechInput = {
+      kind: "TRANSCRIBE",
+      start: (given) => {
+        events = given;
+        return Promise.resolve({
+          stop: () => Promise.resolve({ text: "deal", transcriptSource: "TRANSCRIBE" }),
+          cancel: vi.fn(),
+        });
+      },
+    };
+    const services: Services = {
+      ...createServices(LOCAL_CONFIG, turnBasedStore(), () => 7),
+      speechInput,
+    };
+    await open(services);
+    fireEvent.keyDown(document.body, { key: " " });
+    await screen.findByRole("button", { name: "Stop (Space)" });
+    expect(events?.silenceMs).toBe(1200);
+    act(() => {
+      events?.onPartial?.("deal a");
+    });
+    expect(screen.getByTestId("heard-so-far")).toHaveTextContent("Heard: deal a");
+    act(() => {
+      events?.onSpeechEnd?.();
+    });
+    expect(await within(voiceBar()).findByText("Deal a new row of cards")).toBeInTheDocument();
+    expect(screen.queryByTestId("heard-so-far")).not.toBeInTheDocument();
   });
 
   it("records on Space, stops on the focused Stop button, and sends what was heard", async () => {

@@ -71,6 +71,7 @@ export function VoiceProvider({
   const capture = useRef<SpeechCapture | null>(null);
   const captureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [recording, setRecording] = useState(false);
+  const [heardSoFar, setHeardSoFar] = useState("");
 
   const speakLine = (spoken: string, onEnd?: () => void): void => {
     speechTurn.current += 1;
@@ -164,6 +165,7 @@ export function VoiceProvider({
     if (captureTimer.current !== null) clearTimeout(captureTimer.current);
     captureTimer.current = null;
     setRecording(false);
+    setHeardSoFar("");
     return current;
   };
 
@@ -186,7 +188,12 @@ export function VoiceProvider({
   const startCapture = (): void => {
     if (speechInput.start === null) return;
     void speechInput
-      .start()
+      .start({
+        silenceMs: preferences.listenTimeoutMs,
+        onPartial: setHeardSoFar,
+        /* A pause after speech ends listening, as Space does (action-decision.md section 3). */
+        onSpeechEnd: stopRecording,
+      })
       .then((started) => {
         capture.current = started;
         setRecording(true);
@@ -236,6 +243,7 @@ export function VoiceProvider({
     proposedActionId: phase === "PROPOSAL" ? (decision?.proposal?.actionId ?? null) : null,
     choices: phase === "CHOICES" ? (decision?.choices ?? []) : [],
     recording,
+    heardSoFar,
     canRecord: speechInput.start !== null,
     speaking,
     startListening: () => {

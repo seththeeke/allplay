@@ -7,6 +7,8 @@ export interface ListeningPanelProps {
   /** The microphone is capturing (local-development.md section 5). */
   recording?: boolean;
   onStop?: () => void;
+  /** Partial text as the player speaks (productionalization.md section 9). */
+  heard?: string;
 }
 
 /**
@@ -19,6 +21,7 @@ export function ListeningPanel({
   onCancel,
   recording = false,
   onStop,
+  heard = "",
 }: ListeningPanelProps): React.JSX.Element {
   const [text, setText] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -51,6 +54,11 @@ export function ListeningPanel({
             </span>
             <span className="font-semibold">Speak now, then press Space.</span>
           </p>
+          {heard === "" ? null : (
+            <p className="w-full text-2xl" data-testid="heard-so-far">
+              Heard: <span className="font-semibold">{heard}</span>
+            </p>
+          )}
           <Button ref={stop} type="button" onClick={onStop}>
             Stop (Space)
           </Button>

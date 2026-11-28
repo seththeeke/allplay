@@ -1,6 +1,6 @@
 import type { TranscriptionResponse, TranscriptSource } from "../models/api";
 import { startRecording, type Recording } from "./audioCapture";
-import { localServerListener, type StartListening } from "./continuousListeners";
+import { localServerListener, type StartListening, type TurnEvents } from "./continuousListeners";
 
 export interface Heard {
   text: string;
@@ -21,7 +21,8 @@ export interface SpeechCapture {
  */
 export interface SpeechInput {
   readonly kind: "LOCAL_SERVER" | "TRANSCRIBE" | "TYPED";
-  readonly start: (() => Promise<SpeechCapture>) | null;
+  /** Starts a turn-based capture; `events` streams partial text where the input can. */
+  readonly start: ((events?: TurnEvents) => Promise<SpeechCapture>) | null;
   /** Continuous listening for conversational voice (conversational-ai.md section 3). */
   readonly listen?: StartListening | null;
 }

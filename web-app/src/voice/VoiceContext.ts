@@ -21,6 +21,8 @@ export interface VoiceState {
   choices: Choice[];
   /** The microphone is capturing. */
   recording: boolean;
+  /** What the microphone has heard so far, partial text included (productionalization.md section 9). */
+  heardSoFar: string;
   /** Speech input can capture audio, not only typed commands. */
   canRecord: boolean;
   /** The game speaker is talking (conversational-ai.md section 8). */

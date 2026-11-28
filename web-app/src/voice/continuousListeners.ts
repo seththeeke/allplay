@@ -196,3 +196,99 @@ export function transcribeListener(
     };
   };
 }
+
+/** What a turn-based capture reports while the player speaks (action-decision.md section 3). */
+export interface TurnEvents {
+  /** The silence after a final segment that ends listening, from `listenTimeoutMs`. */
+  silenceMs: number;
+  /** Everything heard so far, partial text included, for the listening banner. */
+  onPartial?: (text: string) => void;
+  /** The player paused after speaking; the caller stops the capture. */
+  onSpeechEnd?: () => void;
+}
+
+/** One turn-based capture in progress: stop returns what was heard, cancel discards it. */
+export interface TurnCapture {
+  stop(): Promise<Heard>;
+  cancel(): void;
+}
+
+/**
+ * Turn-based Transcribe that streams while the player speaks
+ * (productionalization.md section 9): the stream opens at once, partial text
+ * is reported as it arrives, and a pause of `silenceMs` after a final
+ * segment ends listening. Stopping closes the stream and waits up to
+ * FINAL_TEXT_WAIT_MS for the last final text.
+ */
+export async function startTranscribeTurn(
+  open: OpenTranscribeStream,
+  events: TurnEvents,
+  capture: StartCapture = startContinuousCapture,
+  onLatency: (ms: number) => void = () => undefined,
+  clock: () => number = () => performance.now(),
+): Promise<TurnCapture> {
+  const finals: string[] = [];
+  let partial = "";
+  let failure: unknown = null;
+  let done: (() => void) | null = null;
+  let closed = false;
+  const heard = (): string => [...finals, partial].join(" ").trim();
+  const stream = open(
+    (text, isFinal) => {
+      if (isFinal) {
+        finals.push(text);
+        partial = "";
+      } else partial = text;
+      events.onPartial?.(heard());
+    },
+    (error) => {
+      failure = error;
+      closed = true;
+      done?.();
+    },
+    () => {
+      closed = true;
+      done?.();
+    },
+  );
+  /* Without a microphone the stream closes again at once. */
+  const microphone = await capture(
+    {
+      onSpeechStart: () => undefined,
+      onFrame: (frame) => {
+        stream.send(toPcm(frame));
+      },
+      onDiscard: () => undefined,
+      onSpeechEnd: () => {
+        if (finals.length > 0) events.onSpeechEnd?.();
+      },
+    },
+    events.silenceMs,
+  ).catch((error: unknown) => {
+    stream.close();
+    throw error;
+  });
+  return {
+    stop: async () => {
+      const stopped = clock();
+      microphone.stop();
+      stream.close();
+      if (!closed)
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, FINAL_TEXT_WAIT_MS);
+          done = () => {
+            clearTimeout(timer);
+            resolve();
+          };
+        });
+      if (failure !== null && heard() === "")
+        throw failure instanceof Error ? failure : new Error("Transcribe failed.");
+      if (heard() !== "") onLatency(clock() - stopped);
+      return { text: heard(), transcriptSource: "TRANSCRIBE" };
+    },
+    cancel: () => {
+      microphone.stop();
+      stream.close();
+    },
+  };
+}
