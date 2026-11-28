@@ -132,17 +132,17 @@ File: `backend/src/service/speech/polly.ts`, exporting `createPolly(options, cli
 
 ### 6.2 Behavior
 
-1. It calls `SynthesizeSpeech` through `@aws-sdk/client-polly` with `Engine: neural`, `OutputFormat: pcm`, `SampleRate: "16000"` and `TextType: ssml`.
+1. It calls `SynthesizeSpeech` through `@aws-sdk/client-polly` with `Engine: generative`, `OutputFormat: pcm`, `SampleRate: "16000"` and `TextType: ssml`.
 2. The text is escaped for XML and wrapped as `<speak><prosody rate="NN%">text</prosody></speak>`, where `NN` is `rate` times 100, rounded. This is the player's `speechRate`, as `action-decision.md` Section 13 states for the deployed client.
 3. Polly returns raw 16-bit PCM. The implementation prepends a 44-byte WAV header, using the WAV writer that already produces `silentWav`, generalized to take samples. The result is WAV, so `POST /local/speech/synthesize`, its `audio/wav` content type and the web player are unchanged.
 4. Errors, timeouts (5,000 ms) and missing credentials throw `SpeechOutputUnavailableError`. The local server answers 503, and the web `SpeechOutput` falls back to the browser voice, as it already does for Kokoro.
-5. `status()` reports available when credentials resolve, with the detail "Amazon Polly neural, voice <voiceId>". The Kokoro warm-up at startup applies only to Kokoro; Polly needs none.
+5. `status()` reports available when credentials resolve, with the detail "Amazon Polly generative, voice <voiceId>". The Kokoro warm-up at startup applies only to Kokoro; Polly needs none.
 
 ### 6.3 Configuration
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ALLPLAY_POLLY_VOICE` | `Joanna` | Polly neural voice, the default of the `voiceId` preference (`data-model.md` Section 5) |
+| `ALLPLAY_POLLY_VOICE` | `Ruth` | Polly generative voice, the default of the `voiceId` preference (`data-model.md` Section 5) |
 
 ## 7. Credentials, Startup and Cost
 
@@ -163,7 +163,7 @@ File: `backend/src/service/speech/polly.ts`, exporting `createPolly(options, cli
 
 ### 7.3 Cost
 
-Per voice turn with Nova Micro: under $0.0002 for Bedrock (`action-decision.md` Section 10). Transcribe streaming bills a 15 second minimum, about $0.006 per spoken command; typed commands skip Transcribe. Polly neural bills by characters, about $0.002 for a 120-character reply. A full voice playthrough of the one-suit game costs under one dollar. The existing AWS Budgets alarm covers this spend.
+Per voice turn with Nova Micro: under $0.0002 for Bedrock (`action-decision.md` Section 10). Transcribe streaming bills a 15 second minimum, about $0.006 per spoken command; typed commands skip Transcribe. Polly generative bills by characters, about $0.004 for a 120-character reply. A full voice playthrough of the one-suit game costs under one dollar. The existing AWS Budgets alarm covers this spend.
 
 ## 8. Acceptance
 

@@ -55,7 +55,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   zoomLevel: 1.25,
   theme: "DEFAULT",
   voiceOutputEnabled: false,
-  voiceId: "Joanna",
+  voiceId: "Ruth",
   speechRate: 1,
   autoConfirm: false,
   reducedMotion: "SYSTEM",

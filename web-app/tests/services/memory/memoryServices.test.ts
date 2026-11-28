@@ -11,7 +11,7 @@ describe("memory preferences service", () => {
     const service = createMemoryPreferencesService(createMemoryStore(null));
     expect((await service.get()).app).toEqual(DEFAULT_APP_PREFERENCES);
     const saved = await service.patchApp({ theme: "DARK", zoomLevel: 2 });
-    expect(saved.app).toMatchObject({ theme: "DARK", zoomLevel: 2, voiceId: "Joanna" });
+    expect(saved.app).toMatchObject({ theme: "DARK", zoomLevel: 2, voiceId: "Ruth" });
     expect((await service.get()).app.theme).toBe("DARK");
   });
 

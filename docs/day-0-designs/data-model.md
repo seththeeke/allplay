@@ -144,7 +144,7 @@ Preferences are saved automatically as the player changes them (there is no sett
 | `zoomLevel` | Number | `1.25` | Range 1.0 to 3.0 in steps of 0.25 |
 | `theme` | String | `DEFAULT` | `DEFAULT`, `HIGH_CONTRAST`, `BLACK_AND_WHITE`, `FOUR_COLOR`, `DARK` |
 | `voiceOutputEnabled` | Boolean | `false` | Polly speech for prompts, errors and hints |
-| `voiceId` | String | `Joanna` | Polly neural voice |
+| `voiceId` | String | `Ruth` | Polly generative voice |
 | `speechRate` | Number | `1.0` | Range 0.75 to 1.5 |
 | `autoConfirm` | Boolean | `false` | Apply a uniquely matched voice action without confirmation |
 | `reducedMotion` | String | `SYSTEM` | `SYSTEM`, `ON`, `OFF` |

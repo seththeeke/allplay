@@ -113,7 +113,7 @@ function speechOutput(
   if (settings.speechOut === "polly")
     return createPolly({
       region: env["ALLPLAY_AWS_REGION"] ?? DEFAULT_AWS_REGION,
-      voiceId: env["ALLPLAY_POLLY_VOICE"] ?? "Joanna",
+      voiceId: env["ALLPLAY_POLLY_VOICE"] ?? "Ruth",
     });
   return createKokoro({
     python: `${LOCAL_DIR}kokoro/venv/bin/python`,

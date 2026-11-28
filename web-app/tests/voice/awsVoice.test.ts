@@ -142,7 +142,7 @@ describe("Polly speech output", () => {
     });
     expect(synthesize).toHaveBeenLastCalledWith(
       '<speak><prosody rate="100%">&lt;hi&gt;</prosody></speak>',
-      "Joanna",
+      "Ruth",
     );
   });
 
@@ -159,12 +159,12 @@ describe("Polly speech output", () => {
     });
   });
 
-  it("asks Polly for neural MP3 audio", async () => {
+  it("asks Polly for generative MP3 audio", async () => {
     const synthesize = pollySynthesizer("us-east-1", credentials);
     const blob = await synthesize("<speak>Hi</speak>", "Joanna");
     expect(blob.type).toBe("audio/mpeg");
     expect(polly.sent.at(-1)).toEqual({
-      Engine: "neural",
+      Engine: "generative",
       OutputFormat: "mp3",
       TextType: "ssml",
       Text: "<speak>Hi</speak>",

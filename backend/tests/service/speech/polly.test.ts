@@ -28,7 +28,7 @@ function api(audio: Uint8Array | null | Error, credentials = true) {
 }
 
 describe("Polly", () => {
-  it("speaks escaped SSML at the player's rate with the neural voice, as WAV", async () => {
+  it("speaks escaped SSML at the player's rate with the generative voice, as WAV", async () => {
     const pcm = new Uint8Array([1, 0, 2, 0]);
     const { stub, send } = api(pcm);
     const polly = createPolly({ region: "us-east-1", voiceId: "Joanna" }, stub);
@@ -36,7 +36,7 @@ describe("Polly", () => {
     expect(pcmFromWav(wav)).toEqual({ samples: pcm, sampleRate: 16000 });
     const command = send.mock.calls[0]?.[0] as SynthesizeSpeechCommand;
     expect(command.input).toEqual({
-      Engine: "neural",
+      Engine: "generative",
       OutputFormat: "pcm",
       SampleRate: "16000",
       TextType: "ssml",
@@ -72,7 +72,7 @@ describe("Polly", () => {
     ).rejects.toThrow("took too long");
     expect(await createPolly({ region: "r", voiceId: "Joanna" }, api(null).stub).status()).toEqual({
       available: true,
-      detail: "Amazon Polly neural, voice Joanna.",
+      detail: "Amazon Polly generative, voice Joanna.",
     });
     expect(
       (await createPolly({ region: "r", voiceId: "Joanna" }, api(null, false).stub).status())

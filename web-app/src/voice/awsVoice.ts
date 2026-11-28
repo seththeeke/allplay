@@ -167,7 +167,7 @@ export function pollySynthesizer(region: string, credentials: CredentialSource):
     const client = new PollyClient({ region, credentials });
     const out = await client.send(
       new SynthesizeSpeechCommand({
-        Engine: "neural",
+        Engine: "generative",
         OutputFormat: "mp3",
         TextType: "ssml",
         Text: ssml,
@@ -206,7 +206,7 @@ export function createPollySpeechOutput(
   };
   return {
     stop: interrupt,
-    speak: (text, rate, voiceId = "Joanna", onEnd) => {
+    speak: (text, rate, voiceId = "Ruth", onEnd) => {
       interrupt();
       const mine = turn;
       const finished = once(onEnd);

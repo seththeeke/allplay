@@ -19,7 +19,7 @@ export interface PollyApi {
 
 export interface PollyOptions {
   region: string;
-  /** A Polly neural voice, the `voiceId` preference's default `Joanna` (data-model.md section 5). */
+  /** A Polly generative voice, the `voiceId` preference's default `Ruth` (data-model.md section 5). */
   voiceId: string;
   timeoutMs?: number;
 }
@@ -47,7 +47,7 @@ export function ssmlFor(text: string, rate: number): string {
 
 /**
  * Amazon Polly on the local server (transcribe-polly-bedrock.md section 6):
- * neural voice, 16 kHz PCM wrapped as WAV, so the synthesize route and the
+ * generative voice, 16 kHz PCM wrapped as WAV, so the synthesize route and the
  * web player are unchanged.
  */
 export function createPolly(
@@ -59,7 +59,7 @@ export function createPolly(
     status: async () => {
       try {
         await api.credentials();
-        return { available: true, detail: `Amazon Polly neural, voice ${options.voiceId}.` };
+        return { available: true, detail: `Amazon Polly generative, voice ${options.voiceId}.` };
       } catch {
         return {
           available: false,
@@ -75,7 +75,7 @@ export function createPolly(
       try {
         const response = await api.send(
           new SynthesizeSpeechCommand({
-            Engine: "neural",
+            Engine: "generative",
             OutputFormat: "pcm",
             SampleRate: "16000",
             TextType: "ssml",
