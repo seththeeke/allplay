@@ -1,4 +1,5 @@
 import { passwordProblem, type PlayerMe } from "../../models/api";
+import { NewPasswordRequiredError } from "../errors";
 import type { PlayerService } from "../types";
 import type { MemoryStore } from "./memoryStore";
 
@@ -18,10 +19,12 @@ const isCode = (code: string): boolean => /^\d{6}$/.test(code.trim());
 
 /**
  * Prototype accounts: any email signs in (one starting with "admin" signs in
- * as ADMIN), any six-digit code is accepted, and passwords are only checked
- * against the policy so the screens show realistic messages.
+ * as ADMIN, and one starting with "invited" must first choose a password, as
+ * an invited player does), any six-digit code is accepted, and passwords are
+ * only checked against the policy so the screens show realistic messages.
  */
-export function createMemoryPlayerService(store: MemoryStore): PlayerService {
+export function createMemoryPlayerService(store: MemoryStore, inviteOnly = false): PlayerService {
+  let invited: string | null = null;
   const save = (player: PlayerMe): Promise<PlayerMe> => {
     store.write(KEY, player);
     return Promise.resolve(player);
@@ -38,8 +41,19 @@ export function createMemoryPlayerService(store: MemoryStore): PlayerService {
   };
   return {
     providers: ["GOOGLE", "APPLE"],
+    inviteOnly,
     me: () => Promise.resolve(store.read<PlayerMe>(KEY, GUEST)),
-    signIn: (email) => account(email),
+    signIn: (email) => {
+      if (!email.trim().toLowerCase().startsWith("invited")) return account(email);
+      invited = email;
+      return Promise.reject(new NewPasswordRequiredError());
+    },
+    completeNewPassword: (newPassword) => {
+      const problem = passwordProblem(newPassword);
+      if (problem !== null) return fail(problem);
+      if (invited === null) return fail("Sign in with your temporary password first.");
+      return account(invited);
+    },
     signInWithProvider: (provider) => account(`${provider.toLowerCase()}.player@example.com`),
     signUp: (_email, password) => {
       const problem = passwordProblem(password);

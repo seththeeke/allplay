@@ -3,6 +3,7 @@ import { del, get, patch, post, put } from "aws-amplify/api";
 import {
   autoSignIn,
   confirmResetPassword,
+  confirmSignIn,
   fetchAuthSession,
   confirmSignUp,
   resetPassword,
@@ -22,7 +23,7 @@ import {
 } from "../../models/api";
 import type { AdminService, PlayerService, PreferencesService, SignInProvider } from "../types";
 import type { z } from "zod";
-import { ApiRequestError } from "../errors";
+import { ApiRequestError, NewPasswordRequiredError } from "../errors";
 import { pauseSignal, type PauseSignal } from "../pauseSignal";
 import type { ApiClient } from "./apiClient";
 import { createLiveAdminService } from "./liveAdminService";
@@ -38,6 +39,8 @@ export interface CognitoConfig {
   identityPoolId: string;
   oauthDomain: string;
   socialProviders: SignInProvider[];
+  /** No guest credentials and no sign-up (productionalization.md section 3). */
+  inviteOnly: boolean;
 }
 
 /** The Cognito settings of a stage config, or null when it has none (memory and local modes). */
@@ -60,6 +63,7 @@ export function cognitoConfigOf(config: AppConfig): CognitoConfig | null {
     identityPoolId,
     oauthDomain,
     socialProviders: config.socialProviders ?? [],
+    inviteOnly: config.accessMode === "INVITE_ONLY",
   };
 }
 
@@ -80,7 +84,7 @@ export function configureAmplify(config: CognitoConfig, origin: string): void {
         userPoolId: config.userPoolId,
         userPoolClientId: config.userPoolClientId,
         identityPoolId: config.identityPoolId,
-        allowGuestAccess: true,
+        allowGuestAccess: !config.inviteOnly,
         signUpVerificationMethod: "code",
         loginWith: {
           email: true,
@@ -101,6 +105,8 @@ export function configureAmplify(config: CognitoConfig, origin: string): void {
 /** Stable tokens from the sign-up triggers (authn-authz.md section 3.2), turned into plain words. */
 export function accountMessage(failure: unknown): Error {
   const text = failure instanceof Error ? failure.message : String(failure);
+  if (text.includes("ALLPLAY_INVITE_ONLY"))
+    return new Error("This stage is invite only. Ask the owner for an invitation.");
   if (text.includes("ALLPLAY_USE_SOCIAL_SIGN_IN"))
     return new Error("This email signs in with Google or Apple. Use one of those buttons instead.");
   if (/UserNotConfirmed/i.test(text) || /not confirmed/i.test(text))
@@ -134,17 +140,29 @@ async function json(call: {
   return (await call.response).body.json();
 }
 
+/** The visitor of an invite-only stage before signing in; never sent to the API. */
+export const SIGNED_OUT: PlayerMe = {
+  playerId: "SIGNED_OUT",
+  kind: "GUEST",
+  tier: "GUEST",
+  displayName: null,
+  email: null,
+};
+
 /** Player and account flows over Cognito with Amplify (authn-authz.md section 7.1). */
 export function createAmplifyPlayerService(
   config: CognitoConfig,
   headers: CallHeaders = none,
 ): PlayerService {
-  const me = async (): Promise<PlayerMe> =>
-    PlayerMeSchema.parse(
+  const me = async (): Promise<PlayerMe> => {
+    /* With no guests, a signed-out visitor has no credentials to call the API with. */
+    if (config.inviteOnly && (await fetchAuthSession()).tokens === undefined) return SIGNED_OUT;
+    return PlayerMeSchema.parse(
       await json(
         get({ apiName: API, path: "/v1/players/me", options: { headers: await headers() } }),
       ),
     );
+  };
   const guarded = async <T>(work: () => Promise<T>): Promise<T> => {
     try {
       return await work();
@@ -154,12 +172,20 @@ export function createAmplifyPlayerService(
   };
   return {
     providers: config.socialProviders,
+    inviteOnly: config.inviteOnly,
     me,
     signIn: (email, password) =>
       guarded(async () => {
         const result = await signIn({ username: email, password: password ?? "" });
         if (result.nextStep.signInStep === "CONFIRM_SIGN_UP")
           throw new Error("Confirm your email with the code we sent before signing in.");
+        if (result.nextStep.signInStep === "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED")
+          throw new NewPasswordRequiredError();
+        return me();
+      }),
+    completeNewPassword: (newPassword) =>
+      guarded(async () => {
+        await confirmSignIn({ challengeResponse: newPassword });
         return me();
       }),
     signInWithProvider: async (provider) => {

@@ -29,8 +29,8 @@ const COPY: Record<EmailKind, { subject: string; heading: string; body: string }
     body: "Enter this code to confirm your email address.",
   },
   ADMIN_CREATE_USER: {
-    subject: "Your All Play account",
-    heading: "An All Play account was made for you",
+    subject: "You are invited to play All Play",
+    heading: "You are invited to play All Play",
     body: "Sign in with this email and the temporary password below, then choose your own password.",
   },
 };

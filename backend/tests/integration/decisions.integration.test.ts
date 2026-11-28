@@ -9,12 +9,8 @@ import {
   type DecisionResponse,
 } from "../../src/models/api";
 import { apiUrl } from "./apiUrl";
-import {
-  guestCredentials,
-  identityPoolId,
-  signedFetch,
-  type GuestCredentials,
-} from "./guestCredentials";
+import { identityPoolId, signedFetch, type GuestCredentials } from "./guestCredentials";
+import { playCredentials } from "./callers";
 import { cleanUp, describeWrites, localTarget } from "./stage";
 
 /*
@@ -23,7 +19,7 @@ import { cleanUp, describeWrites, localTarget } from "./stage";
  * these turns are repeatable and call no model. Test only, since turns move
  * the guest's game; the guest's items are deleted after the file.
  */
-describeWrites("decisions as a guest", () => {
+describeWrites("decisions as a player", () => {
   let guest: GuestCredentials | undefined;
   cleanUp(async () => {
     /* The local server keeps nothing between runs; only a stage has tables to clean. */
@@ -34,7 +30,7 @@ describeWrites("decisions as a guest", () => {
       seats: env["SEAT_ASSIGNMENTS_TABLE"] ?? "",
       stats: env["PLAYER_STATS_TABLE"] ?? "",
     };
-    const playerId = `GUEST#${guest.identityId}`;
+    const playerId = guest.playerId;
     const seats = createDynamoSeatAssignmentDao(names.seats);
     const stats = createDynamoPlayerStatsDao(names.stats);
     const sessions = createDynamoGameSessionDao(names);
@@ -46,7 +42,7 @@ describeWrites("decisions as a guest", () => {
   });
 
   it("proposes, confirms, offers choices, answers by voice, and refuses nonsense", async () => {
-    const me = await guestCredentials(identityPoolId() ?? "");
+    const me = await playCredentials(identityPoolId() ?? "");
     guest = me;
     const call = async (path: string, body: unknown) => {
       const response = await signedFetch(new URL(path, apiUrl()), me, { method: "POST", body });

@@ -29,6 +29,10 @@ function fakeDirectory(users: PoolUser[] = []) {
       calls.push(`delete ${username}`);
       return Promise.resolve();
     },
+    createUser: (_pool, email) => {
+      calls.push(`create ${email}`);
+      return Promise.resolve(`user-${email}`);
+    },
     globalSignOut: (_pool, username) => {
       calls.push(`signout ${username}`);
       return Promise.resolve();
@@ -71,6 +75,19 @@ describe("identity service", () => {
     ]);
     expect(await identities.mergeUsers("p", "main", "gone")).toEqual([]);
     await expect(identities.mergeUsers("p", "gone", "dup")).rejects.toThrow("no user in the pool");
+  });
+
+  it("invites a new email into PLAYER and refuses one that already has a user", async () => {
+    const fresh = fakeDirectory();
+    expect(await createIdentityService(fresh.directory).invite("pool", " Pat@Example.com ")).toBe(
+      true,
+    );
+    expect(fresh.calls).toEqual(["create pat@example.com", "group user-pat@example.com PLAYER"]);
+    const taken = fakeDirectory([poolUser("u-1", true)]);
+    expect(await createIdentityService(taken.directory).invite("pool", "pat@example.com")).toBe(
+      false,
+    );
+    expect(taken.calls).toEqual([]);
   });
 
   it("prefers a verified user that lacks the incoming provider", async () => {

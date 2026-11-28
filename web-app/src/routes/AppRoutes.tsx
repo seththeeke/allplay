@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { AppShell } from "../components/AppShell";
 import { AccountPage } from "../pages/AccountPage";
 import { AdminPage } from "../pages/AdminPage";
@@ -14,39 +14,49 @@ import { StatsPage } from "../pages/StatsPage";
 import { VoiceLabPage } from "../pages/VoiceLabPage";
 import { GameRoute } from "./GameRoute";
 import { RequireTier } from "./RequireTier";
+import { InviteGate } from "./InviteGate";
+import { usePlayer } from "../hooks/usePlayer";
+
+/** Sign-up, or sign-in in an invite-only stage, where nobody signs up (productionalization.md section 3). */
+function SignUpRoute(): React.JSX.Element {
+  const { service } = usePlayer();
+  return service.inviteOnly ? <Navigate to="/sign-in" replace /> : <SignUpPage />;
+}
 
 /** Route table. Unmatched paths resolve as game links (for example /spider) or not found. */
 export function AppRoutes(): React.JSX.Element {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<HomePage />} />
-        <Route path="stats" element={<StatsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="help" element={<HelpPage />} />
-        <Route path="health" element={<HealthPage />} />
-        <Route path="privacy" element={<PrivacyPage />} />
-        <Route path="voice-lab" element={<VoiceLabPage />} />
-        <Route path="sign-in" element={<SignInPage />} />
-        <Route path="sign-up" element={<SignUpPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route
-          path="account"
-          element={
-            <RequireTier tier="PLAYER">
-              <AccountPage />
-            </RequireTier>
-          }
-        />
-        <Route
-          path="admin"
-          element={
-            <RequireTier tier="ADMIN">
-              <AdminPage />
-            </RequireTier>
-          }
-        />
-        <Route path="*" element={<GameRoute />} />
+        <Route element={<InviteGate />}>
+          <Route index element={<HomePage />} />
+          <Route path="stats" element={<StatsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="help" element={<HelpPage />} />
+          <Route path="health" element={<HealthPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="voice-lab" element={<VoiceLabPage />} />
+          <Route path="sign-in" element={<SignInPage />} />
+          <Route path="sign-up" element={<SignUpRoute />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="account"
+            element={
+              <RequireTier tier="PLAYER">
+                <AccountPage />
+              </RequireTier>
+            }
+          />
+          <Route
+            path="admin"
+            element={
+              <RequireTier tier="ADMIN">
+                <AdminPage />
+              </RequireTier>
+            }
+          />
+          <Route path="*" element={<GameRoute />} />
+        </Route>
       </Route>
     </Routes>
   );

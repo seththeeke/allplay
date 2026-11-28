@@ -21,6 +21,8 @@ export interface UseAdmin {
   mergeAccounts: (primaryPlayerId: string, duplicatePlayerId: string) => Promise<void>;
   andon: AndonState | undefined;
   setAndon: (pulled: boolean) => Promise<void>;
+  /** Invites a player; resolves to the email invited. */
+  invite: (email: string) => Promise<string>;
 }
 
 /** Admin data for the last 30 days (authn-authz.md section 5). */
@@ -77,5 +79,6 @@ export function useAdmin(today: Date = new Date()): UseAdmin {
     setAndon: async (pulled) => {
       await changeAndon.mutateAsync(pulled);
     },
+    invite: async (email) => (await admin.invite(email)).email,
   };
 }

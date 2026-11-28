@@ -27,6 +27,12 @@ export interface IdentityService {
     providerUserId: string,
   ): Promise<void>;
   addToGroup(userPoolId: string, username: string, group: string): Promise<void>;
+  /**
+   * Invites a player (productionalization.md section 3): a user with a verified
+   * email in `PLAYER`, emailed a temporary password. False when a user with
+   * that email already exists.
+   */
+  invite(userPoolId: string, email: string): Promise<boolean>;
   /** Deletes the user with this `sub`, if it still exists (account deletion, authn-authz.md section 8). */
   deleteUserBySub(userPoolId: string, sub: string): Promise<void>;
   /** Revokes the refresh tokens of the user with this `sub` (sign-out, authn-authz.md section 12). */
@@ -57,6 +63,13 @@ export function createIdentityService(
     link: (userPoolId, destinationUsername, providerName, providerUserId) =>
       directory.linkProvider(userPoolId, destinationUsername, providerName, providerUserId),
     addToGroup: (userPoolId, username, group) => directory.addToGroup(userPoolId, username, group),
+    invite: async (userPoolId, email) => {
+      const address = email.trim().toLowerCase();
+      if ((await directory.usersByEmail(userPoolId, address)).length > 0) return false;
+      const username = await directory.createUser(userPoolId, address);
+      await directory.addToGroup(userPoolId, username, "PLAYER");
+      return true;
+    },
     signOutBySub: async (userPoolId, sub) => {
       const username = await directory.usernameBySub(userPoolId, sub);
       if (username !== null) await directory.globalSignOut(userPoolId, username);

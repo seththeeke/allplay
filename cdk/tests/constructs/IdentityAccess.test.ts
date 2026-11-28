@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { AllPlayStage } from "../../lib/stage";
 import { WEB_FIXTURE, testApp } from "../testApp";
 
-function synth() {
-  const stage = new AllPlayStage(testApp(), "Test", {
-    stageName: "Test",
+function synth(stageName: "Test" | "Prod" = "Test") {
+  const stage = new AllPlayStage(testApp(), stageName, {
+    stageName,
     webAssetPath: WEB_FIXTURE,
     env: { region: "us-east-1" },
   });
@@ -13,11 +13,15 @@ function synth() {
 }
 
 describe("Identity Pool", () => {
-  it("allows guests, disables the classic flow, trusts both clients, and is retained", () => {
+  it("allows guests in Prod only, disables the classic flow, trusts both clients, and is retained", () => {
+    synth("Prod").app.hasResourceProperties("AWS::Cognito::IdentityPool", {
+      IdentityPoolName: "AllPlay_Identities_Prod",
+      AllowUnauthenticatedIdentities: true,
+    });
     const { app } = synth();
     app.hasResourceProperties("AWS::Cognito::IdentityPool", {
       IdentityPoolName: "AllPlay_Identities_Test",
-      AllowUnauthenticatedIdentities: true,
+      AllowUnauthenticatedIdentities: false,
       AllowClassicFlow: false,
       CognitoIdentityProviders: [
         Match.objectLike({ ServerSideTokenCheck: true }),

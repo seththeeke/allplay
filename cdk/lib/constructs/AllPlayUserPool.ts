@@ -14,7 +14,7 @@ import {
   type UserPoolDomain,
 } from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
-import { isProd, resourceName, type StageName } from "../config";
+import { isProd, resourceName, STAGE_SETTINGS, type StageName } from "../config";
 import { AllPlayFunction } from "./AllPlayFunction";
 
 /** User Pool groups and their precedence (authn-authz.md section 3); lower wins. */
@@ -73,6 +73,8 @@ export class AllPlayUserPool extends Construct {
         environment: { PLAYERS_TABLE: props.players.tableName },
       });
     this.preSignUp = trigger("PreSignUp", "CognitoPreSignUp", "preSignUp");
+    /* An invite-only stage refuses every sign-up an admin did not make (productionalization.md section 3). */
+    this.preSignUp.function.addEnvironment("ACCESS_MODE", STAGE_SETTINGS[props.stage].accessMode);
     this.postConfirmation = trigger(
       "PostConfirmation",
       "CognitoPostConfirmation",
@@ -88,7 +90,7 @@ export class AllPlayUserPool extends Construct {
       featurePlan: FeaturePlan.ESSENTIALS,
       signInAliases: { email: true },
       signInCaseSensitive: false,
-      selfSignUpEnabled: true,
+      selfSignUpEnabled: STAGE_SETTINGS[props.stage].accessMode === "OPEN",
       autoVerify: { email: true },
       userVerification: { emailStyle: VerificationEmailStyle.CODE },
       standardAttributes: { email: { required: true, mutable: true } },

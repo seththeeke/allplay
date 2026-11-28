@@ -1,5 +1,6 @@
 import {
   AdminAddUserToGroupCommand,
+  AdminCreateUserCommand,
   AdminDeleteUserCommand,
   AdminGetUserCommand,
   AdminUserGlobalSignOutCommand,
@@ -37,6 +38,8 @@ export interface UserPoolDirectory {
   usernameBySub(userPoolId: string, sub: string): Promise<string | null>;
   /** Deletes a user and every identity linked to it (`AdminDeleteUser`). */
   deleteUser(userPoolId: string, username: string): Promise<void>;
+  /** Creates a confirmed user with a verified email; Cognito emails a temporary password. Returns the username. */
+  createUser(userPoolId: string, email: string): Promise<string>;
   /** Revokes every refresh token of a user (`AdminUserGlobalSignOut`). */
   globalSignOut(userPoolId: string, username: string): Promise<void>;
   /** The `sub` of a user by username, or null when there is no such user (`AdminGetUser`). */
@@ -155,6 +158,20 @@ export function createUserPoolDirectory(
     },
     deleteUser: async (userPoolId, username) => {
       await client.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: username }));
+    },
+    createUser: async (userPoolId, email) => {
+      const out = (await client.send(
+        new AdminCreateUserCommand({
+          UserPoolId: userPoolId,
+          Username: email,
+          UserAttributes: [
+            { Name: "email", Value: email },
+            { Name: "email_verified", Value: "true" },
+          ],
+          DesiredDeliveryMediums: ["EMAIL"],
+        }),
+      )) as { User?: { Username?: string } };
+      return out.User?.Username ?? email;
     },
     addToGroup: async (userPoolId, username, group) => {
       await client.send(

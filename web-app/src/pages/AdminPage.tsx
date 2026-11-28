@@ -1,6 +1,7 @@
 import { AndonPanel } from "../components/AndonPanel";
 import { DeploymentsPanel } from "../components/DeploymentsPanel";
 import { DuplicatesPanel } from "../components/DuplicatesPanel";
+import { InvitePanel } from "../components/InvitePanel";
 import { LineChart } from "../components/charts/LineChart";
 import { formatNumber } from "../components/charts/scale";
 import { StackedBarChart } from "../components/charts/StackedBarChart";
@@ -12,8 +13,8 @@ const ROUND_TRIP_TARGET_MS = 2000;
 
 /** Product metrics and deployments (0-day-0-project-idea.md, Admin Functions and Key Metrics). */
 export function AdminPage(): React.JSX.Element {
-  const { days, failures, deployments, deploy, duplicates, mergeAccounts, andon, setAndon } =
-    useAdmin();
+  const admin = useAdmin();
+  const { days, failures, deployments, deploy, duplicates, mergeAccounts, andon, setAndon } = admin;
   const periods = days.map((day) => day.period);
   const today = days[days.length - 1];
   const failureRate =
@@ -130,6 +131,7 @@ export function AdminPage(): React.JSX.Element {
         </>
       )}
       <DeploymentsPanel deployments={deployments} onDeploy={deploy} />
+      <InvitePanel onInvite={admin.invite} />
       <DuplicatesPanel duplicates={duplicates} onMerge={mergeAccounts} />
     </main>
   );

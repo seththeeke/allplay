@@ -40,6 +40,7 @@ describe("AllPlayAppStack", () => {
       region: "us-east-1",
       speechInput: "TRANSCRIBE",
       speechOutput: "POLLY",
+      accessMode: "INVITE_ONLY",
     });
     const deployments = JSON.stringify(template.findResources("Custom::CDKBucketDeployment"));
     expect(deployments).toMatch(

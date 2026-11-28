@@ -17,6 +17,24 @@ function synth(stageName: "Test" | "Prod") {
 }
 
 describe("User Pool", () => {
+  it("lets Prod's players sign up and Test's pre sign-up trigger refuse anyone not invited", () => {
+    const prod = synth("Prod");
+    prod.stateful.hasResourceProperties("AWS::Cognito::UserPool", {
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
+    });
+    for (const [stage, mode] of [
+      ["Test", "INVITE_ONLY"],
+      ["Prod", "OPEN"],
+    ] as const)
+      (stage === "Test" ? synth("Test") : prod).stateful.hasResourceProperties(
+        "AWS::Lambda::Function",
+        {
+          FunctionName: `AllPlay-CognitoPreSignUp-${stage}`,
+          Environment: { Variables: Match.objectLike({ ACCESS_MODE: mode }) },
+        },
+      );
+  });
+
   it("signs in by email with the spec's password policy, emailed codes and email-only recovery", () => {
     const { stateful } = synth("Test");
     stateful.hasResourceProperties("AWS::Cognito::UserPool", {
@@ -25,7 +43,8 @@ describe("User Pool", () => {
       UsernameAttributes: ["email"],
       AutoVerifiedAttributes: ["email"],
       UsernameConfiguration: { CaseSensitive: false },
-      AdminCreateUserConfig: { AllowAdminCreateUserOnly: false },
+      /* Test is invite only (productionalization.md section 3). */
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: true },
       Policies: {
         PasswordPolicy: Match.objectLike({
           MinimumLength: 8,

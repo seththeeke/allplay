@@ -96,6 +96,8 @@ export function withGuestMerge(
       await player.signUp(email, password);
     },
     confirmSignUp: async (email, code) => settled(await player.confirmSignUp(email, code)),
+    completeNewPassword: async (newPassword) =>
+      settled(await player.completeNewPassword(newPassword)),
     startLink: async () => {
       if ((await player.me()).kind === "GUEST") throw new Error("Sign in before linking.");
       storage.setItem(MERGE_TOKEN_KEY, JSON.stringify({ ...(await api.issue()), keep: "SOURCE" }));

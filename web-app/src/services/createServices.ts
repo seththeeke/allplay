@@ -151,12 +151,14 @@ export function createServices(
     preferences,
     player:
       cognito === null
-        ? createMemoryPlayerService(store)
-        : withGuestMerge(
-            createAmplifyPlayerService(cognito, callHeaders),
-            createAmplifyMergeApi(callHeaders),
-            globalThis.sessionStorage,
-          ),
+        ? createMemoryPlayerService(store, config.accessMode === "INVITE_ONLY")
+        : cognito.inviteOnly
+          ? createAmplifyPlayerService(cognito, callHeaders)
+          : withGuestMerge(
+              createAmplifyPlayerService(cognito, callHeaders),
+              createAmplifyMergeApi(callHeaders),
+              globalThis.sessionStorage,
+            ),
     decisions: createMemoryDecisionService(sessions, preferences),
     stats: { list: () => Promise.resolve(readStats(store)) },
     ...live,

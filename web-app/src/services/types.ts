@@ -2,6 +2,7 @@ import type {
   AbandonRequest,
   AdminDecisionsResponse,
   AndonState,
+  InvitationResponse,
   DuplicateAccountsResponse,
   MergeResponse,
   DeploymentsResponse,
@@ -48,11 +49,15 @@ export type SignInProvider = "GOOGLE" | "APPLE";
 export interface PlayerService {
   /** The federated providers offered on the sign-in screens. */
   providers: SignInProvider[];
+  /** True in an invite-only stage: no guests, no sign-up (productionalization.md section 3). */
+  inviteOnly: boolean;
   me(): Promise<PlayerMe>;
   signIn(email: string, password?: string): Promise<PlayerMe>;
   signInWithProvider(provider: SignInProvider): Promise<PlayerMe>;
   signUp(email: string, password: string): Promise<void>;
   confirmSignUp(email: string, code: string): Promise<PlayerMe>;
+  /** Finishes a sign-in that rejected with NewPasswordRequiredError. */
+  completeNewPassword(newPassword: string): Promise<PlayerMe>;
   requestPasswordReset(email: string): Promise<void>;
   confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
   signOut(): Promise<PlayerMe>;
@@ -105,6 +110,8 @@ export interface AdminService {
   /** The stage's andon cord (productionalization.md section 4.4). */
   andon(): Promise<AndonState>;
   setAndon(pulled: boolean): Promise<AndonState>;
+  /** Invites a player by email (productionalization.md section 3); rejects with ALREADY_INVITED. */
+  invite(email: string): Promise<InvitationResponse>;
 }
 
 /** Result of one call to `GET /v1/health`: the HTTP status, the parsed body when it matched the contract, and the round trip time. */

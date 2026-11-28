@@ -29,6 +29,7 @@ function setup(start: PlayerMe = GUEST) {
   let current = start;
   const inner: PlayerService = {
     providers: [],
+    inviteOnly: false,
     me: vi.fn(() => Promise.resolve(current)),
     signIn: vi.fn(() => {
       current = ACCOUNT;
@@ -37,6 +38,10 @@ function setup(start: PlayerMe = GUEST) {
     signInWithProvider: vi.fn(() => Promise.resolve(ACCOUNT)),
     signUp: vi.fn(() => Promise.resolve()),
     confirmSignUp: vi.fn(() => {
+      current = ACCOUNT;
+      return Promise.resolve(current);
+    }),
+    completeNewPassword: vi.fn(() => {
       current = ACCOUNT;
       return Promise.resolve(current);
     }),

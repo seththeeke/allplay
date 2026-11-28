@@ -8,6 +8,7 @@ import { createDecisionsHandler } from "../controller/web-api/decisions/decision
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
 import { createPlayersHandler } from "../controller/web-api/players/playersController";
+import { createInMemoryInvitationService } from "../service/admin/invitationService";
 import { createInMemorySystemFlagDao } from "../dao/systemFlag/inMemorySystemFlagDao";
 import { createInMemoryRolePolicyStore } from "../dao/rolePolicy/inMemoryRolePolicyStore";
 import {
@@ -295,6 +296,7 @@ export async function createLocalProviders(
             roleNames: identityRoleNames("Local"),
             ...(overrides.now ? { now: overrides.now } : {}),
           }),
+          invitations: createInMemoryInvitationService(),
           logger: logger.child({ bundle: "admin" }),
         }),
         players: createPlayersHandler({

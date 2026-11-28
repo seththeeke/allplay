@@ -115,3 +115,13 @@ export type AndonState = z.infer<typeof AndonStateSchema>;
 
 export const SetAndonRequestSchema = z.object({ pulled: z.boolean() });
 export type SetAndonRequest = z.infer<typeof SetAndonRequestSchema>;
+
+/** An admin invitation (productionalization.md section 3, item 4). */
+export const InvitationRequestSchema = z.object({ email: z.email().max(254) });
+export type InvitationRequest = z.infer<typeof InvitationRequestSchema>;
+
+export const InvitationResponseSchema = z.object({
+  email: z.string().min(1),
+  status: z.literal("INVITED"),
+});
+export type InvitationResponse = z.infer<typeof InvitationResponseSchema>;

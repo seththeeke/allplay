@@ -200,4 +200,20 @@ describe("admin page with sparse data", () => {
     await user.click(within(panel).getByRole("button", { name: "Yes, restart play" }));
     expect(await within(panel).findByText("Play is running.")).toBeInTheDocument();
   });
+
+  it("invites a player once and reports a repeat invitation", async () => {
+    const user = userEvent.setup();
+    await openAdmin();
+    const panel = must(screen.getByRole("heading", { name: "Invite a player" }).closest("section"));
+    await user.type(within(panel).getByLabelText("Email"), "Pat@Example.com");
+    await user.click(within(panel).getByRole("button", { name: "Send invitation" }));
+    expect(
+      await within(panel).findByText("Invited pat@example.com. Send them this site's link."),
+    ).toBeInTheDocument();
+    await user.type(within(panel).getByLabelText("Email"), "pat@example.com");
+    await user.click(within(panel).getByRole("button", { name: "Send invitation" }));
+    expect(
+      await within(panel).findByText("That email already has an account."),
+    ).toBeInTheDocument();
+  });
 });

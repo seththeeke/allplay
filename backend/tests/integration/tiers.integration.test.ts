@@ -1,3 +1,4 @@
+import { inviteOnly } from "./callers";
 import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { beforeAll, describe, expect, it } from "vitest";
 import { documentClient } from "../../src/dao/dynamo";
@@ -108,34 +109,40 @@ describe.runIf(writesAllowed() && settings !== undefined)("tiers with real accou
     AdminDecisionsResponseSchema.parse(await failures.json());
   });
 
-  it("merges a guest's preferences into the account that signs in", async () => {
-    const guest = await guestCredentials(config.identityPoolId);
-    items.push([process.env["PLAYERS_TABLE"] ?? "", { playerId: `GUEST#${guest.identityId}` }]);
-    items.push([
-      process.env["PREFERENCES_TABLE"] ?? "",
-      { playerId: `GUEST#${guest.identityId}`, scope: "APP" },
-    ]);
-    const patched = await signedFetch(url("v1/players/me/preferences/APP"), guest, {
-      method: "PATCH",
-      body: { zoomLevel: 2.75 },
-    });
-    expect(patched.status).toBe(200);
-    const issued = await signedFetch(url("v1/players/me/merge-tokens"), guest, { method: "POST" });
-    const { token } = MergeTokenResponseSchema.parse(await issued.json());
-    expect(
-      (await signedFetch(url("v1/players/me/merge"), guest, { method: "POST", body: { token } }))
-        .status,
-    ).toBe(403);
-    const merged = await signedFetch(url("v1/players/me/merge"), player, {
-      method: "POST",
-      body: { token },
-    });
-    expect(merged.status).toBe(200);
-    expect(MergeResponseSchema.parse(await merged.json())).toEqual({
-      primaryPlayerId: `ACCT#${playerAccount.sub}`,
-      mergedPlayerId: `GUEST#${guest.identityId}`,
-    });
-    const preferences = await signedFetch(url("v1/players/me/preferences"), player);
-    expect(PreferencesResponseSchema.parse(await preferences.json()).app.zoomLevel).toBe(2.75);
-  });
+  /* An invite-only stage has no guests to merge; the merge itself is unit tested. */
+  it.skipIf(inviteOnly())(
+    "merges a guest's preferences into the account that signs in",
+    async () => {
+      const guest = await guestCredentials(config.identityPoolId);
+      items.push([process.env["PLAYERS_TABLE"] ?? "", { playerId: guest.playerId }]);
+      items.push([
+        process.env["PREFERENCES_TABLE"] ?? "",
+        { playerId: guest.playerId, scope: "APP" },
+      ]);
+      const patched = await signedFetch(url("v1/players/me/preferences/APP"), guest, {
+        method: "PATCH",
+        body: { zoomLevel: 2.75 },
+      });
+      expect(patched.status).toBe(200);
+      const issued = await signedFetch(url("v1/players/me/merge-tokens"), guest, {
+        method: "POST",
+      });
+      const { token } = MergeTokenResponseSchema.parse(await issued.json());
+      expect(
+        (await signedFetch(url("v1/players/me/merge"), guest, { method: "POST", body: { token } }))
+          .status,
+      ).toBe(403);
+      const merged = await signedFetch(url("v1/players/me/merge"), player, {
+        method: "POST",
+        body: { token },
+      });
+      expect(merged.status).toBe(200);
+      expect(MergeResponseSchema.parse(await merged.json())).toEqual({
+        primaryPlayerId: `ACCT#${playerAccount.sub}`,
+        mergedPlayerId: guest.playerId,
+      });
+      const preferences = await signedFetch(url("v1/players/me/preferences"), player);
+      expect(PreferencesResponseSchema.parse(await preferences.json()).app.zoomLevel).toBe(2.75);
+    },
+  );
 });

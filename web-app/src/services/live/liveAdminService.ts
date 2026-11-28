@@ -1,6 +1,7 @@
 import {
   AdminDecisionsResponseSchema,
   AndonStateSchema,
+  InvitationResponseSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
@@ -31,5 +32,6 @@ export function createLiveAdminService(api: ApiClient): AdminService {
       ),
     andon: () => api.get("v1/admin/andon", AndonStateSchema),
     setAndon: (pulled) => api.put("v1/admin/andon", { pulled }, AndonStateSchema),
+    invite: (email) => api.post("v1/admin/invitations", { email }, InvitationResponseSchema),
   };
 }

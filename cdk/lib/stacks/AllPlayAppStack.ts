@@ -13,7 +13,7 @@ import {
   appleNotificationsRoute,
   playersRoutes,
 } from "../../../backend/src/controller/web-api/players/playersRoutes";
-import { PROJECT_NAME, resourceName, type StageName } from "../config";
+import { PROJECT_NAME, resourceName, STAGE_SETTINGS, type StageName } from "../config";
 import { AllPlayAlarm } from "../constructs/AllPlayAlarm";
 import { AllPlayApi } from "../constructs/AllPlayApi";
 import { AllPlayFunction } from "../constructs/AllPlayFunction";
@@ -245,6 +245,9 @@ export class AllPlayAppStack extends Stack {
           "cognito-idp:AdminGetUser",
           "cognito-idp:AdminDeleteUser",
           "cognito-idp:AdminLinkProviderForUser",
+          /* Invitations (productionalization.md section 3). */
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminAddUserToGroup",
         ],
         resources: [users.userPool.userPoolArn],
       }),
@@ -486,6 +489,7 @@ export class AllPlayAppStack extends Stack {
       /* Voice through the Identity Pool credentials: Transcribe in, Polly out (action-decision.md section 3.1). */
       speechInput: "TRANSCRIBE",
       speechOutput: "POLLY",
+      accessMode: STAGE_SETTINGS[props.stage].accessMode,
     };
     this.web.publish(this.webConfig);
     this.apiUrl = new CfnOutput(this, "ApiUrl", { value: this.api.url });

@@ -19,7 +19,7 @@ import {
 } from "aws-cdk-lib/pipelines";
 import type { Construct } from "constructs";
 import { acknowledgeGenerated } from "../nag";
-import { PROJECT_NAME, resourceName, STAGE_NAMES, type StageName } from "../config";
+import { PROJECT_NAME, resourceName, STAGE_NAMES, STAGE_SETTINGS, type StageName } from "../config";
 import { AllPlayStage } from "../stage";
 
 export interface AllPlayPipelineStackProps extends StackProps {
@@ -81,7 +81,18 @@ export const SMOKE_COMMANDS = [
   "dnf install -y -q nss atk at-spi2-atk cups-libs libdrm libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm pango alsa-lib",
   "npm ci --prefix web-app",
   "(cd web-app && npx playwright install chromium)",
-  '(cd web-app && SMOKE_BASE_URL="$WEB_URL" npm run test:smoke)',
+  /*
+   * An invite-only stage has no guests, so the browser signs in with a
+   * run-scoped account, deleted afterwards whether or not the tests pass
+   * (productionalization.md section 3).
+   */
+  [
+    'if [ "$ACCESS_MODE" = "INVITE_ONLY" ]; then (cd backend && npx tsx tests/integration/smokeAccount.ts create > ../smoke-account.env); fi',
+    "set -a; if [ -f smoke-account.env ]; then . ./smoke-account.env; fi; set +a",
+    '(cd web-app && SMOKE_BASE_URL="$WEB_URL" npm run test:smoke); status=$?',
+    "if [ -f smoke-account.env ]; then (cd backend && npx tsx tests/integration/smokeAccount.ts delete); fi",
+    "exit $status",
+  ].join("; "),
 ];
 
 /* Findings on the CDK Pipelines construct, which generates its own roles, projects and artifact bucket. */
@@ -340,6 +351,7 @@ export class AllPlayPipelineStack extends Stack {
               ? { INTEGRATION_ACCOUNTS_ROLE: resourceName("IntegrationAccounts", stageName) }
               : {}),
             INTEGRATION_SCOPE: stageName === "Test" ? "stage" : "readonly",
+            ACCESS_MODE: STAGE_SETTINGS[stageName].accessMode,
             ...(stageName === "Test" ? { SMOKE_WRITES: "stage" } : {}),
           },
           rolePolicyStatements: stage.verifyGrants.map((grant) => grant(this)),

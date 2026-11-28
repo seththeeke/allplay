@@ -9,6 +9,8 @@ import { SignatureV4 } from "@smithy/signature-v4";
 
 export interface GuestCredentials {
   identityId: string;
+  /** The player the API resolves these credentials to: `GUEST#<identityId>` or `ACCT#<sub>`. */
+  playerId: string;
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken: string;
@@ -26,19 +28,23 @@ export const identityPoolId = (): string | undefined => {
 /** A new guest's temporary credentials from the stage's Identity Pool (authn-authz.md section 4). */
 export async function guestCredentials(poolId: string): Promise<GuestCredentials> {
   /* The local server takes its caller from a header (authn-authz.md section 11); each test gets a fresh guest. */
-  if (local())
+  if (local()) {
+    const identityId = `itest-local-${randomBytes(6).toString("hex")}`;
     return {
-      identityId: `itest-local-${randomBytes(6).toString("hex")}`,
+      identityId,
+      playerId: `GUEST#${identityId}`,
       accessKeyId: "",
       secretAccessKey: "",
       sessionToken: "",
     };
+  }
   const region = poolId.split(":")[0] ?? "us-east-1";
   const cognito = new CognitoIdentityClient({ region });
   const { IdentityId } = await cognito.send(new GetIdCommand({ IdentityPoolId: poolId }));
   const { Credentials } = await cognito.send(new GetCredentialsForIdentityCommand({ IdentityId }));
   return {
     identityId: IdentityId ?? "",
+    playerId: `GUEST#${IdentityId ?? ""}`,
     accessKeyId: Credentials?.AccessKeyId ?? "",
     secretAccessKey: Credentials?.SecretKey ?? "",
     sessionToken: Credentials?.SessionToken ?? "",

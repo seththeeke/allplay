@@ -52,6 +52,11 @@ test("builds the local-aws-auth override and server variables from the Test conf
   });
   assert.equal(setup.webOverride.localAuth, "COGNITO_TEST");
   assert.equal(setup.webOverride.stage, undefined);
+  assert.equal(setup.webOverride.accessMode, undefined);
+  assert.equal(
+    cognitoTestSetup({ ...Object.fromEntries(["region", "userPoolId", "userPoolClientId", "identityPoolId", "oauthDomain"].map((f) => [f, "x"])), accessMode: "INVITE_ONLY" }).webOverride.accessMode,
+    "INVITE_ONLY",
+  );
   assert.deepEqual(setup.env, {
     ALLPLAY_AUTH_REGION: "us-east-1",
     ALLPLAY_AUTH_USER_POOL_ID: "us-east-1_pool",

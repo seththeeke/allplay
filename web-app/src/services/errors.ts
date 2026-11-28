@@ -11,3 +11,12 @@ export class ApiRequestError extends Error {
     super(body.message);
   }
 }
+
+/** A first sign-in with a temporary password: the player chooses their own (productionalization.md section 3). */
+export class NewPasswordRequiredError extends Error {
+  override readonly name = "NewPasswordRequiredError";
+
+  constructor() {
+    super("Choose your own password to finish signing in.");
+  }
+}

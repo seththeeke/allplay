@@ -115,7 +115,12 @@ export function cognitoTestSetup(testConfig) {
   const missing = fields.filter((field) => typeof testConfig[field] !== "string");
   if (missing.length > 0) throw new Error(`The Test stage config has no ${missing.join(", ")}; deploy AA-1 and AA-4 first.`);
   return {
-    webOverride: { localAuth: "COGNITO_TEST", ...Object.fromEntries(fields.map((field) => [field, testConfig[field]])) },
+    webOverride: {
+      localAuth: "COGNITO_TEST",
+      ...Object.fromEntries(fields.map((field) => [field, testConfig[field]])),
+      /* Test is invite only, so the local app asks for no guest credentials (productionalization.md section 3). */
+      ...(testConfig.accessMode === undefined ? {} : { accessMode: testConfig.accessMode }),
+    },
     env: {
       ALLPLAY_AUTH_REGION: testConfig.region,
       ALLPLAY_AUTH_USER_POOL_ID: testConfig.userPoolId,

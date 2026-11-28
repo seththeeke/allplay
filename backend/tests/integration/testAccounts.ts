@@ -148,8 +148,13 @@ export async function accountCredentials(
   const { Credentials } = await cognito.send(
     new GetCredentialsForIdentityCommand({ IdentityId, Logins: logins }),
   );
+  /* The ID token's subject is the account's sub, so the caller is ACCT#<sub> (authn-authz.md section 4). */
+  const payload = JSON.parse(
+    Buffer.from(idToken.split(".")[1] ?? "", "base64url").toString("utf8"),
+  ) as { sub?: string };
   return {
     identityId: IdentityId ?? "",
+    playerId: `ACCT#${payload.sub ?? ""}`,
     accessKeyId: Credentials?.AccessKeyId ?? "",
     secretAccessKey: Credentials?.SecretKey ?? "",
     sessionToken: Credentials?.SessionToken ?? "",

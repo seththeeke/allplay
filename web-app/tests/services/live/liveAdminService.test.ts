@@ -70,4 +70,23 @@ describe("live admin service", () => {
       expect.objectContaining({ method: "PUT", body: '{"pulled":true}' }),
     ]);
   });
+
+  it("sends an invitation", async () => {
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({ email: "pat@example.com", status: "INVITED" }),
+      }),
+    );
+    const admin = createLiveAdminService(createApiClient("http://localhost:4000", fetchImpl));
+    expect(await admin.invite("pat@example.com")).toEqual({
+      email: "pat@example.com",
+      status: "INVITED",
+    });
+    expect(fetchImpl.mock.calls[0]).toEqual([
+      "http://localhost:4000/v1/admin/invitations",
+      expect.objectContaining({ method: "POST", body: '{"email":"pat@example.com"}' }),
+    ]);
+  });
 });

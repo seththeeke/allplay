@@ -3,6 +3,7 @@ import type { PlayerMe, Tier } from "../models/api";
 import type { PlayerService } from "../services/types";
 
 export type { PlayerService, SignInProvider } from "../services/types";
+export { NewPasswordRequiredError } from "../services/errors";
 import { useServices } from "./useServices";
 
 const PLAYER_KEY = ["player"] as const;

@@ -23,6 +23,9 @@ describe("admin bundle", () => {
       "POST /v1/admin/deployments",
       "GET /v1/admin/players/duplicates",
       "POST /v1/admin/players/merge",
+      "GET /v1/admin/andon",
+      "PUT /v1/admin/andon",
+      "POST /v1/admin/invitations",
     ])
       app.hasResourceProperties("AWS::ApiGatewayV2::Route", {
         RouteKey: routeKey,
@@ -111,5 +114,15 @@ describe("admin bundle", () => {
     expect(statements.find((statement) => statement.includes("MetricRollups"))).toContain(
       '"Action":"dynamodb:Query"',
     );
+  });
+
+  it("lets the admin Lambda invite players into its stage's pool", () => {
+    const admin = JSON.stringify(
+      Object.entries(app.findResources("AWS::IAM::Policy")).filter(([id]) =>
+        id.startsWith("AdminApi"),
+      ),
+    );
+    expect(admin).toContain("cognito-idp:AdminCreateUser");
+    expect(admin).toContain("cognito-idp:AdminAddUserToGroup");
   });
 });

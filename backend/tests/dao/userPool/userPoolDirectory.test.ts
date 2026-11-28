@@ -97,6 +97,25 @@ describe("UserPoolDirectory", () => {
     expect(typeof createUserPoolDirectory().addToGroup).toBe("function");
   });
 
+  it("creates an invited user with a verified email and an emailed temporary password", async () => {
+    const { client, sent } = stub({ User: { Username: "u-1" } }, {});
+    const directory = createUserPoolDirectory(client);
+    expect(await directory.createUser("pool", "pat@example.com")).toBe("u-1");
+    expect(await directory.createUser("pool", "sam@example.com")).toBe("sam@example.com");
+    expect(sent[0]).toEqual({
+      name: "AdminCreateUserCommand",
+      input: {
+        UserPoolId: "pool",
+        Username: "pat@example.com",
+        UserAttributes: [
+          { Name: "email", Value: "pat@example.com" },
+          { Name: "email_verified", Value: "true" },
+        ],
+        DesiredDeliveryMediums: ["EMAIL"],
+      },
+    });
+  });
+
   it("finds a username by sub and deletes users", async () => {
     const { client, sent } = stub({ Users: [{ Username: "Google_1" }] }, {}, {});
     const directory = createUserPoolDirectory(client);

@@ -10,7 +10,12 @@ import {
 export interface PreSignUpDeps {
   identities: IdentityService;
   logger: Logger;
+  /** `INVITE_ONLY` stages take only users an admin created (productionalization.md section 3). */
+  accessMode?: "OPEN" | "INVITE_ONLY";
 }
+
+/** Refuses a sign-up in an invite-only stage; clients show "All Play Test is invite only." */
+export const INVITE_ONLY = "ALLPLAY_INVITE_ONLY";
 
 /**
  * Pre sign-up trigger (authn-authz.md section 3.2). A Google or Apple sign-up
@@ -24,6 +29,11 @@ export function createPreSignUpHandler(deps: PreSignUpDeps): (event: unknown) =>
   return async (raw) => {
     const event = TriggerEventSchema.parse(raw);
     const email = event.request.userAttributes["email"]?.trim() ?? "";
+    const inviteOnly = deps.accessMode === "INVITE_ONLY";
+    if (inviteOnly && event.triggerSource === "PreSignUp_SignUp") {
+      deps.logger.info("Sign-up refused: this stage is invite only");
+      throw new Error(INVITE_ONLY);
+    }
     if (event.triggerSource === "PreSignUp_SignUp") {
       if (email !== "" && (await deps.identities.emailInUse(event.userPoolId, email))) {
         deps.logger.info("Password sign-up refused: email already has a user");
@@ -35,14 +45,20 @@ export function createPreSignUpHandler(deps: PreSignUpDeps): (event: unknown) =>
     const verified = event.request.userAttributes["email_verified"] === "true";
     const response = { ...event.response, autoConfirmUser: true, autoVerifyEmail: verified };
     const incoming = federatedIdentity(event);
-    if (!verified || email === "" || incoming === null) return { ...event, response };
+    /* In an invite-only stage a federated sign-in must reach an invited user, or it is refused. */
+    const refuse = (): unknown => {
+      if (!inviteOnly) return { ...event, response };
+      deps.logger.info("Federated sign-up refused: this stage is invite only");
+      throw new Error(INVITE_ONLY);
+    };
+    if (!verified || email === "" || incoming === null) return refuse();
     const destination = await deps.identities.linkTarget(
       event.userPoolId,
       email,
       event.userName,
       incoming.providerName,
     );
-    if (destination === null) return { ...event, response };
+    if (destination === null) return refuse();
     try {
       await deps.identities.link(
         event.userPoolId,
@@ -56,7 +72,7 @@ export function createPreSignUpHandler(deps: PreSignUpDeps): (event: unknown) =>
         provider: incoming.providerName,
         error,
       });
-      return { ...event, response };
+      return refuse();
     }
     deps.logger.info("Linked a federated identity to an existing user", {
       provider: incoming.providerName,

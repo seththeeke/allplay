@@ -4,7 +4,7 @@ import type { IUserPool, IUserPoolClient } from "aws-cdk-lib/aws-cognito";
 import { CfnIdentityPool, CfnIdentityPoolRoleAttachment } from "aws-cdk-lib/aws-cognito";
 import { FederatedPrincipal, PolicyStatement, Role } from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
-import { resourceName, type StageName } from "../config";
+import { resourceName, STAGE_SETTINGS, type StageName } from "../config";
 import { acknowledgeGenerated } from "../nag";
 
 export type Tier = "GUEST" | "PLAYER" | "PLAYER_PLUS" | "ADMIN";
@@ -54,7 +54,8 @@ export class IdentityAccess extends Construct {
     const stack = Stack.of(this);
     this.identityPool = new CfnIdentityPool(this, "Pool", {
       identityPoolName: `AllPlay_Identities_${props.stage}`,
-      allowUnauthenticatedIdentities: true,
+      /* An invite-only stage has no guests (productionalization.md section 3). */
+      allowUnauthenticatedIdentities: STAGE_SETTINGS[props.stage].accessMode === "OPEN",
       allowClassicFlow: false,
       cognitoIdentityProviders: props.clients.map((client) => ({
         providerName: props.userPool.userPoolProviderName,

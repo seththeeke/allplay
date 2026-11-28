@@ -24,3 +24,16 @@ export function stackName(kind: "Stateful" | "App", stage: StageName): string {
 export function isProd(stage: StageName): boolean {
   return stage === "Prod";
 }
+
+/** Who may play a stage (productionalization.md section 3). */
+export type AccessMode = "OPEN" | "INVITE_ONLY";
+
+/** Every difference between Test and Prod (productionalization.md section 2). */
+export interface StageSettings {
+  accessMode: AccessMode;
+}
+
+export const STAGE_SETTINGS: Readonly<Record<StageName, StageSettings>> = {
+  Test: { accessMode: "INVITE_ONLY" },
+  Prod: { accessMode: "OPEN" },
+};

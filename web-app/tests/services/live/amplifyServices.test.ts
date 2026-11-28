@@ -10,6 +10,7 @@ const auth = vi.hoisted(() => ({
   confirmResetPassword: vi.fn(),
   signOut: vi.fn(),
   fetchAuthSession: vi.fn(),
+  confirmSignIn: vi.fn(),
 }));
 const api = vi.hoisted(() => ({
   get: vi.fn(),
@@ -36,9 +37,10 @@ import {
   localAuthHeaders,
   PENDING_PROVIDER_KEY,
   retryLinkedSignIn,
+  SIGNED_OUT,
 } from "../../../src/services/live/amplifyServices";
 import { DEFAULT_APP_PREFERENCES, GamesResponseSchema } from "../../../src/models/api";
-import { ApiRequestError } from "../../../src/services/errors";
+import { ApiRequestError, NewPasswordRequiredError } from "../../../src/services/errors";
 import { createPauseSignal } from "../../../src/services/pauseSignal";
 
 const CONFIG = {
@@ -95,6 +97,42 @@ describe("Amplify configuration", () => {
 
 describe("Amplify player service", () => {
   const service = () => createAmplifyPlayerService(cognitoConfigOf(CONFIG) ?? ({} as never));
+
+  it("in an invite-only stage, asks for no guest access and answers signed out without tokens", async () => {
+    const inviteOnly = cognitoConfigOf({ ...CONFIG, accessMode: "INVITE_ONLY" });
+    expect(inviteOnly?.inviteOnly).toBe(true);
+    configureAmplify(inviteOnly ?? ({} as never), "https://web.example.com");
+    expect(configure).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        Auth: { Cognito: expect.objectContaining({ allowGuestAccess: false }) as unknown },
+      }),
+    );
+    const player = createAmplifyPlayerService(inviteOnly ?? ({} as never));
+    expect(player.inviteOnly).toBe(true);
+    auth.fetchAuthSession.mockResolvedValueOnce({});
+    expect(await player.me()).toEqual(SIGNED_OUT);
+    expect(api.get).not.toHaveBeenCalled();
+    auth.fetchAuthSession.mockResolvedValueOnce({ tokens: { idToken: "t" } });
+    expect(await player.me()).toEqual(ME);
+  });
+
+  it("asks an invited player for a new password, then finishes the sign-in", async () => {
+    auth.signIn.mockResolvedValue({
+      nextStep: { signInStep: "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED" },
+    });
+    await expect(service().signIn("pat@example.com", "Temp1234")).rejects.toBeInstanceOf(
+      NewPasswordRequiredError,
+    );
+    auth.confirmSignIn.mockResolvedValue({ nextStep: { signInStep: "DONE" } });
+    expect(await service().completeNewPassword("Mine12345")).toEqual(ME);
+    expect(auth.confirmSignIn).toHaveBeenCalledWith({ challengeResponse: "Mine12345" });
+  });
+
+  it("explains the invite-only refusal", () => {
+    expect(
+      accountMessage(new Error("PreSignUp failed with error ALLPLAY_INVITE_ONLY.")).message,
+    ).toBe("This stage is invite only. Ask the owner for an invitation.");
+  });
 
   it("signs in with email, then reads the player from the signed API", async () => {
     auth.signIn.mockResolvedValue({ nextStep: { signInStep: "DONE" } });

@@ -3,6 +3,8 @@ import type { Logger } from "../../../logger";
 import {
   AdminDecisionsResponseSchema,
   AndonStateSchema,
+  InvitationRequestSchema,
+  InvitationResponseSchema,
   SetAndonRequestSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
@@ -12,10 +14,11 @@ import {
   StartDeploymentResponseSchema,
 } from "../../../models/api";
 import type { AndonService } from "../../../service/andon/andonService";
+import type { InvitationService } from "../../../service/admin/invitationService";
 import type { AccountAdminService } from "../../../service/admin/accountAdminService";
 import type { DeploymentService } from "../../../service/admin/deploymentService";
 import type { MetricsAdminService } from "../../../service/admin/metricsAdminService";
-import { invalidRequest } from "../../../service/gameSession/errors";
+import { GameSessionError, invalidRequest } from "../../../service/gameSession/errors";
 import { jsonBody } from "../shared/httpEvent";
 import { jsonResponse, type HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
@@ -26,6 +29,7 @@ export interface AdminControllerDeps {
   accounts: AccountAdminService;
   metrics: MetricsAdminService;
   andon: AndonService;
+  invitations: InvitationService;
   logger: Logger;
 }
 
@@ -91,6 +95,15 @@ export function createAdminHandler(
         });
         deps.logger.info("ANDON_CHANGED", { pulled: state.pulled, admin: caller.playerId });
         return [200, AndonStateSchema.parse(state)];
+      },
+      "POST /v1/admin/invitations": async ({ caller, event }) => {
+        const request = InvitationRequestSchema.safeParse(jsonBody(event));
+        if (!request.success) throw invalidRequest("Send { email } with a valid email address.");
+        const email = request.data.email.trim().toLowerCase();
+        if ((await deps.invitations.invite(email)) === "ALREADY_INVITED")
+          throw new GameSessionError(409, "ALREADY_INVITED", "That email already has an account.");
+        deps.logger.info("PLAYER_INVITED", { admin: caller.playerId });
+        return [201, InvitationResponseSchema.parse({ email, status: "INVITED" })];
       },
     },
     deps.logger,

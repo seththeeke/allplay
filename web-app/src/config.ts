@@ -23,6 +23,8 @@ export const AppConfigSchema = z.object({
   speechOutput: z.enum(["POLLY", "LOCAL_SERVER", "BROWSER", "OFF"]).optional(),
   /** The stage's Transcribe custom vocabulary, once the stage has one (cdk-stacks.md section 6). */
   vocabularyName: z.string().min(1).optional(),
+  /** `INVITE_ONLY` stages have no guests and no sign-up (productionalization.md section 3); absent means `OPEN`. */
+  accessMode: z.enum(["OPEN", "INVITE_ONLY"]).optional(),
 });
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;

@@ -13,6 +13,7 @@ const identities = createIdentityService();
 
 export const preSignUp = createPreSignUpHandler({
   identities,
+  accessMode: process.env["ACCESS_MODE"] === "INVITE_ONLY" ? "INVITE_ONLY" : "OPEN",
   logger: logger.child({ trigger: "pre-sign-up" }),
 });
 export const postConfirmation = createPostConfirmationHandler({

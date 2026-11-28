@@ -16,6 +16,7 @@ import { apiEvent } from "../apiEvent";
 import { createInMemorySystemFlagDao } from "../../../../src/dao/systemFlag/inMemorySystemFlagDao";
 import { createInMemoryRolePolicyStore } from "../../../../src/dao/rolePolicy/inMemoryRolePolicyStore";
 import { createAndonService, identityRoleNames } from "../../../../src/service/andon/andonService";
+import { createInMemoryInvitationService } from "../../../../src/service/admin/invitationService";
 
 const AT = new Date("2026-11-21T10:00:00.000Z");
 
@@ -58,7 +59,20 @@ describe("admin controller", () => {
       roleNames: identityRoleNames("Test"),
       now: () => AT,
     }),
+    invitations: createInMemoryInvitationService(),
     logger: createLogger({ write: vi.fn() }),
+  });
+
+  it("invites a player once, refusing a second invitation and a bad email", async () => {
+    const invite = (body: unknown) =>
+      handler({ ...asCaller("POST /v1/admin/invitations", "admin"), body: JSON.stringify(body) });
+    const first = await invite({ email: "Pat@Example.com" });
+    expect(first.statusCode).toBe(201);
+    expect(JSON.parse(first.body)).toEqual({ email: "pat@example.com", status: "INVITED" });
+    const again = await invite({ email: "pat@example.com" });
+    expect(again.statusCode).toBe(409);
+    expect(JSON.parse(again.body)).toMatchObject({ code: "ALREADY_INVITED" });
+    expect((await invite({ email: "not an email" })).statusCode).toBe(400);
   });
 
   it("shows the andon cord and lets an admin pull and release it", async () => {

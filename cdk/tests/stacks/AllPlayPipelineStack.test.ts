@@ -79,6 +79,10 @@ describe("AllPlayPipelineStack", () => {
     const projects = JSON.stringify(template.findResources("AWS::CodeBuild::Project"));
     expect(projects).toContain("SMOKE_WRITES");
     expect(projects.match(/"SMOKE_WRITES"/g)).toHaveLength(1);
+    /* An invite-only stage's browser signs in with a run-scoped account, always deleted. */
+    const account = SMOKE_COMMANDS.find((command) => command.includes("smokeAccount.ts create"));
+    expect(account).toContain('if [ "$ACCESS_MODE" = "INVITE_ONLY" ]');
+    expect(account).toMatch(/test:smoke\); status=\$\?; .*smokeAccount\.ts delete.*exit \$status/);
   });
 
   it("verifies each stage with integration tests and web checks", () => {
@@ -99,6 +103,10 @@ describe("AllPlayPipelineStack", () => {
           EnvironmentVariables: Match.arrayWith([
             Match.objectLike({ Name: "EXPECTED_STAGE", Value: stage }),
             Match.objectLike({ Name: "INTEGRATION_SCOPE", Value: scope }),
+            Match.objectLike({
+              Name: "ACCESS_MODE",
+              Value: stage === "Test" ? "INVITE_ONLY" : "OPEN",
+            }),
           ]),
         }),
       });

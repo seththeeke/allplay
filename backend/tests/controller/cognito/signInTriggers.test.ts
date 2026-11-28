@@ -4,7 +4,7 @@ import {
   createPostConfirmationHandler,
   signInOf,
 } from "../../../src/controller/cognito/postConfirmation";
-import { createPreSignUpHandler } from "../../../src/controller/cognito/preSignUp";
+import { createPreSignUpHandler, INVITE_ONLY } from "../../../src/controller/cognito/preSignUp";
 import {
   ACCOUNT_LINKED,
   federatedIdentity,
@@ -49,6 +49,7 @@ function identities(
     signOutBySub: () => Promise.resolve(),
     playerIdForApple: () => Promise.resolve(null),
     mergeUsers: () => Promise.resolve([]),
+    invite: () => Promise.resolve(true),
     ...overrides,
   };
 }
@@ -67,6 +68,37 @@ const event = (
 });
 
 describe("pre sign-up trigger", () => {
+  it("in an invite-only stage, takes only admin-created users and linkable federated sign-ins", async () => {
+    const { logger } = logs();
+    const closed = (overrides: Partial<IdentityService> = {}) =>
+      createPreSignUpHandler({
+        identities: identities(overrides),
+        logger,
+        accessMode: "INVITE_ONLY",
+      });
+    await expect(
+      closed()(event("PreSignUp_SignUp", "u1", { email: "pat@example.com" })),
+    ).rejects.toThrow(INVITE_ONLY);
+    expect(
+      await closed()(event("PreSignUp_AdminCreateUser", "u1", { email: "pat@example.com" })),
+    ).toMatchObject({ userName: "u1" });
+    const google = event("PreSignUp_ExternalProvider", "Google_123", {
+      email: "pat@example.com",
+      email_verified: "true",
+    });
+    await expect(closed()(google)).rejects.toThrow(INVITE_ONLY);
+    await expect(
+      closed()({ ...google, request: { userAttributes: { email: "pat@example.com" } } }),
+    ).rejects.toThrow(INVITE_ONLY);
+    const invited = closed({ linkTarget: () => Promise.resolve("invited-user") });
+    await expect(invited(google)).rejects.toThrow(ACCOUNT_LINKED);
+    const broken = closed({
+      linkTarget: () => Promise.resolve("invited-user"),
+      link: () => Promise.reject(new Error("throttled")),
+    });
+    await expect(broken(google)).rejects.toThrow(INVITE_ONLY);
+  });
+
   it("refuses a password sign-up for an email that already has a user", async () => {
     const { logger } = logs();
     const taken = createPreSignUpHandler({

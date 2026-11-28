@@ -8,20 +8,16 @@ import {
   StatsResponseSchema,
 } from "../../src/models/api";
 import { apiUrl } from "./apiUrl";
-import {
-  guestCredentials,
-  identityPoolId,
-  signedFetch,
-  type GuestCredentials,
-} from "./guestCredentials";
+import { identityPoolId, signedFetch, type GuestCredentials } from "./guestCredentials";
+import { playCredentials } from "./callers";
 import { cleanUp, describeWrites, localTarget } from "./stage";
 
 const url = (path: string) => new URL(path, apiUrl());
 
 /* The catalog reads no table, so both stages check it (game-engine.md section 11). */
-describe.runIf(identityPoolId() !== undefined)("game catalog as a guest", () => {
+describe.runIf(identityPoolId() !== undefined)("game catalog as a player", () => {
   it("lists Spider Solitaire with its options", async () => {
-    const guest = await guestCredentials(identityPoolId() ?? "");
+    const guest = await playCredentials(identityPoolId() ?? "");
     const response = await signedFetch(url("v1/games"), guest);
     expect(response.status).toBe(200);
     const { games } = (await response.json()) as { games: unknown[] };
@@ -37,7 +33,7 @@ describe.runIf(identityPoolId() !== undefined)("game catalog as a guest", () => 
  * then the loss in the guest's stats. Test only, since it writes; the
  * guest's items are deleted after the file.
  */
-describeWrites("game sessions as a guest", () => {
+describeWrites("game sessions as a player", () => {
   let guest: GuestCredentials | undefined;
   cleanUp(async () => {
     /* The local server keeps nothing between runs; only a stage has tables to clean. */
@@ -48,7 +44,7 @@ describeWrites("game sessions as a guest", () => {
       seats: env["SEAT_ASSIGNMENTS_TABLE"] ?? "",
       stats: env["PLAYER_STATS_TABLE"] ?? "",
     };
-    const playerId = `GUEST#${guest.identityId}`;
+    const playerId = guest.playerId;
     const seats = createDynamoSeatAssignmentDao(names.seats);
     const stats = createDynamoPlayerStatsDao(names.stats);
     const sessions = createDynamoGameSessionDao(names);
@@ -60,7 +56,7 @@ describeWrites("game sessions as a guest", () => {
   });
 
   it("plays, resumes, undoes, abandons, and counts the loss", async () => {
-    const me = await guestCredentials(identityPoolId() ?? "");
+    const me = await playCredentials(identityPoolId() ?? "");
     guest = me;
     const call = async (path: string, method = "GET", body?: unknown) => {
       const response = await signedFetch(url(path), me, {
@@ -143,7 +139,7 @@ describeWrites("game sessions as a guest", () => {
    * verification step, the time includes the network, so the limits are wider.
    */
   it("answers moves on a warm Lambda within the performance budget", async () => {
-    const me = guest ?? (await guestCredentials(identityPoolId() ?? ""));
+    const me = guest ?? (await playCredentials(identityPoolId() ?? ""));
     guest = me;
     const post = async (path: string, body: unknown) =>
       SessionEnvelopeSchema.parse(

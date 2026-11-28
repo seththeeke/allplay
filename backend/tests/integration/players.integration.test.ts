@@ -6,6 +6,7 @@ import {
 } from "../../src/models/api";
 import { apiUrl } from "./apiUrl";
 import { guestCredentials, identityPoolId, signedFetch } from "./guestCredentials";
+import { inviteOnly } from "./callers";
 import { localTarget, writesAllowed } from "./stage";
 
 /*
@@ -14,13 +15,13 @@ import { localTarget, writesAllowed } from "./stage";
  * player Lambda and its tables. Runs in both stages; a guest visit is
  * ordinary use, and the guest's data expires after 90 days.
  */
-describe.runIf(identityPoolId() !== undefined)("player routes as a guest", () => {
+describe.runIf(identityPoolId() !== undefined && !inviteOnly())("player routes as a guest", () => {
   it("answers who the guest is and their default preferences", async () => {
     const guest = await guestCredentials(identityPoolId() ?? "");
     const me = await signedFetch(new URL("v1/players/me", apiUrl()), guest);
     expect(me.status).toBe(200);
     expect(PlayerMeSchema.parse(await me.json())).toEqual({
-      playerId: `GUEST#${guest.identityId}`,
+      playerId: guest.playerId,
       kind: "GUEST",
       tier: "GUEST",
       displayName: null,

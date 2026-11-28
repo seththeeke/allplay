@@ -14,6 +14,7 @@ export const ApiErrorCodeSchema = z.enum([
   "GAME_OVER",
   "RATE_LIMITED",
   "ANDON_CORD_PULLED",
+  "ALREADY_INVITED",
   "INTERNAL_ERROR",
 ]);
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
