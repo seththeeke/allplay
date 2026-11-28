@@ -20,13 +20,16 @@ describe.runIf(identityPoolId() !== undefined && !inviteOnly())("player routes a
     const guest = await guestCredentials(identityPoolId() ?? "");
     const me = await signedFetch(new URL("v1/players/me", apiUrl()), guest);
     expect(me.status).toBe(200);
-    expect(PlayerMeSchema.parse(await me.json())).toEqual({
+    const body = PlayerMeSchema.parse(await me.json());
+    expect(body).toMatchObject({
       playerId: guest.playerId,
       kind: "GUEST",
       tier: "GUEST",
       displayName: null,
       email: null,
     });
+    /* The stage's game limit applies to guests too (productionalization.md section 5). */
+    expect(body.gameAllowance?.used).toBe(0);
     const preferences = await signedFetch(new URL("v1/players/me/preferences", apiUrl()), guest);
     expect(PreferencesResponseSchema.parse(await preferences.json()).app.zoomLevel).toBe(1.25);
   });
