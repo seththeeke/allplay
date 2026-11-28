@@ -13,6 +13,7 @@ export const ApiErrorCodeSchema = z.enum([
   "ILLEGAL_ACTION",
   "GAME_OVER",
   "RATE_LIMITED",
+  "ANDON_CORD_PULLED",
   "INTERNAL_ERROR",
 ]);
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;

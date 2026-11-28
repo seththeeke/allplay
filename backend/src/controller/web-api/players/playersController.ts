@@ -18,6 +18,7 @@ import { HttpEventSchema, jsonBody } from "../shared/httpEvent";
 import { errorResponse, jsonResponse } from "../shared/response";
 import type { HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
+import type { AndonGate } from "../../../service/andon/andonService";
 import { appleNotificationsRoute, playersRoutes } from "./playersRoutes";
 
 export interface PlayersControllerDeps {
@@ -26,7 +27,16 @@ export interface PlayersControllerDeps {
   apple?: AppleService;
   merge: MergeService;
   logger: Logger;
+  /** The andon cord check (productionalization.md section 4.3); absent where play is never paused. */
+  andon?: AndonGate;
 }
+
+/** Routes that cost nothing and must keep working while play is paused (productionalization.md section 4.3). */
+const ANDON_EXEMPT: ReadonlySet<string> = new Set([
+  "GET /v1/players/me",
+  "DELETE /v1/players/me",
+  "POST /v1/players/me/sign-out",
+]);
 
 const DeleteBodySchema = z.object({ appleAuthorizationCode: z.string().min(1).optional() });
 const NotificationSchema = z.object({ payload: z.string().min(1) });
@@ -103,6 +113,7 @@ export function createPlayersHandler(
     playersRoutes,
     undefined,
     (caller) => deps.players.recordActivity(caller),
+    deps.andon === undefined ? undefined : { gate: deps.andon, exempt: ANDON_EXEMPT },
   );
   const appleKey = `${appleNotificationsRoute.method} ${appleNotificationsRoute.path}`;
   return async (raw) => {

@@ -180,4 +180,24 @@ describe("admin page with sparse data", () => {
     await user.click(within(panel).getByRole("button", { name: "Yes, merge into the oldest" }));
     expect(await within(panel).findByText("Could not merge ACCT#2.")).toBeInTheDocument();
   });
+
+  it("pauses and restarts play with the andon cord after a confirmation", async () => {
+    const user = userEvent.setup();
+    await openAdmin();
+    const panel = must(screen.getByRole("heading", { name: "Andon cord" }).closest("section"));
+    expect(await within(panel).findByText("Play is running.")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Pause play" }));
+    await user.click(within(panel).getByRole("button", { name: "Cancel" }));
+    await user.click(within(panel).getByRole("button", { name: "Pause play" }));
+    await user.click(within(panel).getByRole("button", { name: "Yes, pause play" }));
+    expect(
+      await within(panel).findByText(
+        "Play is paused in this stage, by an admin: Pulled by an admin.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText(/Last changed/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Restart play" }));
+    await user.click(within(panel).getByRole("button", { name: "Yes, restart play" }));
+    expect(await within(panel).findByText("Play is running.")).toBeInTheDocument();
+  });
 });

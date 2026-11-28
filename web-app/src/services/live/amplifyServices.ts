@@ -1,5 +1,5 @@
 import { Amplify } from "aws-amplify";
-import { del, get, patch, post } from "aws-amplify/api";
+import { del, get, patch, post, put } from "aws-amplify/api";
 import {
   autoSignIn,
   confirmResetPassword,
@@ -13,22 +13,19 @@ import {
 } from "aws-amplify/auth";
 import type { AppConfig } from "../../config";
 import {
-  AdminDecisionsResponseSchema,
   ApiErrorSchema,
-  DeploymentsResponseSchema,
-  MetricsResponseSchema,
-  DuplicateAccountsResponseSchema,
   MergeResponseSchema,
   MergeTokenResponseSchema,
   PlayerMeSchema,
   PreferencesResponseSchema,
-  StartDeploymentResponseSchema,
   type PlayerMe,
 } from "../../models/api";
 import type { AdminService, PlayerService, PreferencesService, SignInProvider } from "../types";
 import type { z } from "zod";
 import { ApiRequestError } from "../errors";
+import { pauseSignal, type PauseSignal } from "../pauseSignal";
 import type { ApiClient } from "./apiClient";
+import { createLiveAdminService } from "./liveAdminService";
 import type { AwsCredentials } from "../../voice/awsVoice";
 import type { MergeApi } from "./guestMerge";
 
@@ -275,68 +272,7 @@ export function createAmplifyMergeApi(headers: CallHeaders = none): MergeApi {
 
 /** The admin API over the signed API (authn-authz.md section 5). */
 export function createAmplifyAdminService(headers: CallHeaders = none): AdminService {
-  return {
-    metrics: async (from, to) =>
-      MetricsResponseSchema.parse(
-        await json(
-          get({
-            apiName: API,
-            path: "/v1/admin/metrics",
-            options: { headers: await headers(), queryParams: { from, to } },
-          }),
-        ),
-      ),
-    failures: async (day) =>
-      AdminDecisionsResponseSchema.parse(
-        await json(
-          get({
-            apiName: API,
-            path: "/v1/admin/decisions",
-            options: { headers: await headers(), queryParams: { day } },
-          }),
-        ),
-      ),
-    deployments: async () =>
-      DeploymentsResponseSchema.parse(
-        await json(
-          get({
-            apiName: API,
-            path: "/v1/admin/deployments",
-            options: { headers: await headers() },
-          }),
-        ),
-      ),
-    startDeployment: async () =>
-      StartDeploymentResponseSchema.parse(
-        await json(
-          post({
-            apiName: API,
-            path: "/v1/admin/deployments",
-            options: { headers: await headers() },
-          }),
-        ),
-      ),
-    duplicates: async () =>
-      DuplicateAccountsResponseSchema.parse(
-        await json(
-          get({
-            apiName: API,
-            path: "/v1/admin/players/duplicates",
-            options: { headers: await headers() },
-          }),
-        ),
-      ),
-    mergeAccounts: async (primaryPlayerId, duplicatePlayerId) =>
-      MergeResponseSchema.parse(
-        await json(
-          post({
-            apiName: API,
-            path: "/v1/admin/players/merge",
-            options: { headers: await headers(), body: { primaryPlayerId, duplicatePlayerId } },
-          }),
-        ),
-      ),
-  };
+  return createLiveAdminService(createAmplifyApiClient(headers));
 }
 
 /**
@@ -371,7 +307,10 @@ interface AmplifyFailure {
  * ApiRequestError as with the fetch client, so a version conflict still
  * carries the current envelope.
  */
-export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
+export function createAmplifyApiClient(
+  headers: CallHeaders = none,
+  paused: PauseSignal = pauseSignal,
+): ApiClient {
   const split = (path: string) => {
     const [route = "", query = ""] = path.split("?");
     const queryParams = Object.fromEntries(new URLSearchParams(query));
@@ -382,7 +321,9 @@ export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
     operation: { response: Promise<{ body: { json: () => Promise<unknown> } }> },
   ): Promise<z.output<T>> => {
     try {
-      return schema.parse(await json(operation));
+      const body = await json(operation);
+      paused.set(false);
+      return schema.parse(body);
     } catch (failure) {
       const response = (failure as AmplifyFailure).response;
       if (response?.statusCode === undefined) throw failure;
@@ -393,6 +334,7 @@ export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
         body = null;
       }
       const error = ApiErrorSchema.safeParse(body);
+      paused.set(error.success && error.data.code === "ANDON_CORD_PULLED");
       throw new ApiRequestError(
         response.statusCode,
         error.success
@@ -432,6 +374,15 @@ export function createAmplifyApiClient(headers: CallHeaders = none): ApiClient {
       call(
         schema,
         patch({
+          apiName: API,
+          path: split(path).path,
+          options: { headers: await headers(), body: body as never },
+        }),
+      ),
+    put: async (path, body, schema) =>
+      call(
+        schema,
+        put({
           apiName: API,
           path: split(path).path,
           options: { headers: await headers(), body: body as never },

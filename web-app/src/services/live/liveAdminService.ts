@@ -1,5 +1,6 @@
 import {
   AdminDecisionsResponseSchema,
+  AndonStateSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
@@ -28,5 +29,7 @@ export function createLiveAdminService(api: ApiClient): AdminService {
         { primaryPlayerId, duplicatePlayerId },
         MergeResponseSchema,
       ),
+    andon: () => api.get("v1/admin/andon", AndonStateSchema),
+    setAndon: (pulled) => api.put("v1/admin/andon", { pulled }, AndonStateSchema),
   };
 }

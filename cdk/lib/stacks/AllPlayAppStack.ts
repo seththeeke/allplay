@@ -408,6 +408,28 @@ export class AllPlayAppStack extends Stack {
     this.api.throttleRoutes({ "POST /v1/decisions": { rateLimit: 50, burstLimit: 100 } });
     this.addAlarms(props.stage, { decisionApi, gameApi });
     /*
+     * The andon cord (productionalization.md section 4): every play bundle
+     * reads the flag; the admin bundle also changes it and the deny policy
+     * on this stage's four Identity Pool roles.
+     */
+    const { systemFlags } = props.stateful;
+    for (const fn of [playerApi, gameApi, decisionApi, adminApi]) {
+      fn.function.addEnvironment("SYSTEM_FLAGS_TABLE", systemFlags.table.tableName);
+      fn.function.addToRolePolicy(
+        new PolicyStatement({
+          actions:
+            fn === adminApi ? ["dynamodb:GetItem", "dynamodb:UpdateItem"] : ["dynamodb:GetItem"],
+          resources: [systemFlags.table.tableArn],
+        }),
+      );
+    }
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["iam:PutRolePolicy", "iam:DeleteRolePolicy"],
+        resources: Object.values(this.identity.roles).map((role) => role.roleArn),
+      }),
+    );
+    /*
      * Admin metrics read the rollups; failure browsing runs a Logs Insights
      * query on the turn log (action-decision.md section 9.1).
      */

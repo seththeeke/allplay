@@ -13,12 +13,15 @@ import type { GameSessionService } from "../../../service/gameSession/gameSessio
 import { jsonBody } from "../shared/httpEvent";
 import { gameRoutes } from "./gameRoutes";
 import { createRouter, type RouteRequest } from "../shared/router";
+import type { AndonGate } from "../../../service/andon/andonService";
 import type { HttpResult } from "../shared/response";
 
 export interface GameControllerDeps {
   catalog: { list(): Promise<GameCatalogEntry[]> };
   sessions: GameSessionService;
   logger: Logger;
+  /** The andon cord check (productionalization.md section 4.3); absent where play is never paused. */
+  andon?: AndonGate;
 }
 
 /** Parses the request body with a route's schema; a mismatch is a 400 before any service runs. */
@@ -86,5 +89,8 @@ export function createGameHandler(
     },
     deps.logger,
     gameRoutes,
+    undefined,
+    undefined,
+    deps.andon === undefined ? undefined : { gate: deps.andon },
   );
 }

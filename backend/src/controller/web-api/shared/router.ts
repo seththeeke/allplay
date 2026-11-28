@@ -1,4 +1,5 @@
 import type { Logger } from "../../../logger";
+import type { AndonGate } from "../../../service/andon/andonService";
 import { GameSessionError } from "../../../service/gameSession/errors";
 import { HttpEventSchema, type HttpEvent } from "./httpEvent";
 import type { Tier } from "../../../models/api";
@@ -12,6 +13,15 @@ export interface RouteRequest {
   param: (name: string) => string;
   query: (name: string) => string | undefined;
 }
+
+/** The andon cord check (productionalization.md section 4.3) and the route keys it never stops. */
+export interface AndonCheck {
+  gate: AndonGate;
+  exempt?: ReadonlySet<string>;
+}
+
+/** The reply to every stopped route while the cord is pulled. */
+export const ANDON_MESSAGE = "All Play is paused right now. Please try again later.";
 
 /** A controller returns a status and body; a thrown GameSessionError becomes its error response. */
 export type Controller = (request: RouteRequest) => Promise<[number, unknown]>;
@@ -28,6 +38,7 @@ export function createRouter(
   identityPoolId: string | undefined = process.env["IDENTITY_POOL_ID"],
   /** Runs for every resolved caller before its controller; a failure is logged and the request goes on. */
   onCaller?: (caller: Caller) => Promise<void>,
+  andon?: AndonCheck,
 ): (event: unknown) => Promise<HttpResult> {
   const minimum = new Map(
     routes.map((route) => [`${route.method} ${route.path}`, route.minimumTier ?? "GUEST"]),
@@ -48,6 +59,12 @@ export function createRouter(
         "FORBIDDEN",
         caller.tier === "GUEST" ? "Sign in to do that." : "You do not have access to that.",
       );
+    if (
+      andon !== undefined &&
+      andon.exempt?.has(event.routeKey as string) !== true &&
+      (await andon.gate.isPulled())
+    )
+      return errorResponse(500, "ANDON_CORD_PULLED", ANDON_MESSAGE);
     if (onCaller !== undefined) {
       try {
         await onCaller(caller);

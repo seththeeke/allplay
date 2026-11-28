@@ -103,3 +103,15 @@ export const MergeAccountsRequestSchema = z.object({
   duplicatePlayerId: z.string().regex(/^ACCT#.+$/),
 });
 export type MergeAccountsRequest = z.infer<typeof MergeAccountsRequestSchema>;
+
+/** The stage's andon cord (productionalization.md section 4.4). */
+export const AndonStateSchema = z.object({
+  pulled: z.boolean(),
+  reason: z.string().min(1).nullable(),
+  pulledBy: z.enum(["BUDGET", "ADMIN"]).nullable(),
+  changedAt: IsoTimestampSchema.nullable(),
+});
+export type AndonState = z.infer<typeof AndonStateSchema>;
+
+export const SetAndonRequestSchema = z.object({ pulled: z.boolean() });
+export type SetAndonRequest = z.infer<typeof SetAndonRequestSchema>;

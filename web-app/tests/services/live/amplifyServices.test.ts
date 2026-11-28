@@ -11,7 +11,13 @@ const auth = vi.hoisted(() => ({
   signOut: vi.fn(),
   fetchAuthSession: vi.fn(),
 }));
-const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), del: vi.fn(), post: vi.fn() }));
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  patch: vi.fn(),
+  del: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+}));
 const configure = vi.hoisted(() => vi.fn());
 vi.mock("aws-amplify/auth", () => auth);
 vi.mock("aws-amplify/api", () => api);
@@ -33,6 +39,7 @@ import {
 } from "../../../src/services/live/amplifyServices";
 import { DEFAULT_APP_PREFERENCES, GamesResponseSchema } from "../../../src/models/api";
 import { ApiRequestError } from "../../../src/services/errors";
+import { createPauseSignal } from "../../../src/services/pauseSignal";
 
 const CONFIG = {
   stage: "TEST" as const,
@@ -267,7 +274,17 @@ describe("Amplify admin service", () => {
     expect(api.post).toHaveBeenLastCalledWith({
       apiName: "AllPlay",
       path: "/v1/admin/deployments",
-      options: { headers: {} },
+      options: { headers: {}, body: {} },
+    });
+    const andon = { pulled: false, reason: null, pulledBy: null, changedAt: null };
+    api.get.mockReturnValue(reply(andon));
+    expect(await admin.andon()).toEqual(andon);
+    api.put.mockReturnValue(reply(andon));
+    expect(await admin.setAndon(false)).toEqual(andon);
+    expect(api.put).toHaveBeenLastCalledWith({
+      apiName: "AllPlay",
+      path: "/v1/admin/andon",
+      options: { headers: {}, body: { pulled: false } },
     });
     api.get.mockReturnValue(reply({ days: [] }));
     expect(await admin.metrics("2026-11-01", "2026-11-21")).toEqual({ days: [] });
@@ -388,6 +405,21 @@ describe("Amplify API client", () => {
     });
     api.get.mockReturnValueOnce(failed(undefined));
     await expect(client.get("v1/games", GamesResponseSchema)).rejects.toThrow("failed");
+  });
+
+  it("raises the pause signal on ANDON_CORD_PULLED and lowers it on the next success", async () => {
+    const paused = createPauseSignal();
+    const client = createAmplifyApiClient(undefined, paused);
+    api.get.mockReturnValueOnce(
+      failed(500, JSON.stringify({ code: "ANDON_CORD_PULLED", message: "Paused." })),
+    );
+    await expect(client.get("v1/games", GamesResponseSchema)).rejects.toMatchObject({
+      body: { code: "ANDON_CORD_PULLED" },
+    });
+    expect(paused.paused()).toBe(true);
+    api.get.mockReturnValueOnce(reply({ games: [] }));
+    await client.get("v1/games", GamesResponseSchema);
+    expect(paused.paused()).toBe(false);
   });
 });
 

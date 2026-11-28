@@ -5,7 +5,7 @@ import { ApplicationLogLevel, Architecture, LoggingFormat, Runtime } from "aws-c
 import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
-import { isProd, resourceName, type StageName } from "../config";
+import { isProd, PROJECT_NAME, resourceName, type StageName } from "../config";
 import { BACKEND_DIR } from "../paths";
 
 export interface AllPlayFunctionProps {
@@ -23,6 +23,12 @@ export interface AllPlayFunctionProps {
   logRetention?: RetentionDays;
   /** Files relative to `backend/src`, copied beside the bundle under their own names. */
   bundledFiles?: readonly string[];
+  /**
+   * One Lambda for the account rather than one per stage, such as
+   * `AllPlay-AndonCord`: no stage suffix and no STAGE variable. `stage` still
+   * picks the log level.
+   */
+  accountWide?: boolean;
 }
 
 /** Shell commands that copy each file from `backend/src` beside the bundle. */
@@ -44,7 +50,10 @@ export class AllPlayFunction extends Construct {
 
   constructor(scope: Construct, id: string, props: AllPlayFunctionProps) {
     super(scope, id);
-    const functionName = resourceName(props.name, props.stage);
+    const functionName =
+      props.accountWide === true
+        ? `${PROJECT_NAME}-${props.name}`
+        : resourceName(props.name, props.stage);
     const prod = isProd(props.stage);
     this.logGroup = new LogGroup(this, "Logs", {
       logGroupName: `/aws/lambda/${functionName}`,
@@ -77,7 +86,7 @@ export class AllPlayFunction extends Construct {
       loggingFormat: LoggingFormat.JSON,
       applicationLogLevelV2: prod ? ApplicationLogLevel.INFO : ApplicationLogLevel.DEBUG,
       environment: {
-        STAGE: props.stage,
+        ...(props.accountWide === true ? {} : { STAGE: props.stage }),
         LOG_LEVEL: prod ? "INFO" : "DEBUG",
         NODE_OPTIONS: "--enable-source-maps",
         ...props.environment,

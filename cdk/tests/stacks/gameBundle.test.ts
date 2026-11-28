@@ -41,8 +41,11 @@ describe("game bundle", () => {
             .PolicyDocument.Statement,
       )
       .map((statement) => JSON.stringify(statement));
-    /* Three table statements and the counters, plus the log grant every AllPlayFunction carries. */
-    expect(statements).toHaveLength(5);
+    /* Three table statements, the counters and the andon flag, plus the log grant every AllPlayFunction carries. */
+    expect(statements).toHaveLength(6);
+    expect(statements.find((statement) => statement.includes("SystemFlags"))).toContain(
+      '"Action":"dynamodb:GetItem"',
+    );
     const on = (text: string) => statements.find((statement) => statement.includes(text));
     expect(on("GameSessions")).toContain('"Action":["dynamodb:GetItem","dynamodb:PutItem"]');
     expect(on("GameSessions")).toContain("PlayerStats");

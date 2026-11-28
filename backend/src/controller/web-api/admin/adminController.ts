@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { Logger } from "../../../logger";
 import {
   AdminDecisionsResponseSchema,
+  AndonStateSchema,
+  SetAndonRequestSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
@@ -9,6 +11,7 @@ import {
   MergeResponseSchema,
   StartDeploymentResponseSchema,
 } from "../../../models/api";
+import type { AndonService } from "../../../service/andon/andonService";
 import type { AccountAdminService } from "../../../service/admin/accountAdminService";
 import type { DeploymentService } from "../../../service/admin/deploymentService";
 import type { MetricsAdminService } from "../../../service/admin/metricsAdminService";
@@ -22,6 +25,7 @@ export interface AdminControllerDeps {
   deployments: DeploymentService;
   accounts: AccountAdminService;
   metrics: MetricsAdminService;
+  andon: AndonService;
   logger: Logger;
 }
 
@@ -75,6 +79,19 @@ export function createAdminHandler(
           await deps.metrics.failures(query("day") ?? "", query("class") ?? undefined),
         ),
       ],
+      "GET /v1/admin/andon": async () => [200, AndonStateSchema.parse(await deps.andon.state())],
+      "PUT /v1/admin/andon": async ({ caller, event }) => {
+        const request = SetAndonRequestSchema.safeParse(jsonBody(event));
+        if (!request.success) throw invalidRequest("Send { pulled }.");
+        const state = await deps.andon.set({
+          pulled: request.data.pulled,
+          reason: request.data.pulled ? "Pulled by an admin" : "Released by an admin",
+          pulledBy: "ADMIN",
+          changedBy: caller.playerId,
+        });
+        deps.logger.info("ANDON_CHANGED", { pulled: state.pulled, admin: caller.playerId });
+        return [200, AndonStateSchema.parse(state)];
+      },
     },
     deps.logger,
     adminRoutes,

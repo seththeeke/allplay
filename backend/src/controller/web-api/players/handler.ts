@@ -6,10 +6,13 @@ import {
   createDeployedPlayerService,
   createDeployedPlayerDao,
 } from "../../../service/player/playerService";
+import { createDeployedAndonGate } from "../../../service/andon/andonService";
 import { createPlayersHandler } from "./playersController";
 
 /** Entry point of the `AllPlay-PlayerApi-<Stage>` Lambda. */
 const players = createDeployedPlayerService();
+const playersLogger = logger.child({ bundle: "players" });
+const andon = createDeployedAndonGate(playersLogger);
 export const handler = createPlayersHandler({
   players,
   apple: createDeployedAppleService({
@@ -19,5 +22,6 @@ export const handler = createPlayersHandler({
     logger: logger.child({ bundle: "players", provider: "apple" }),
   }),
   merge: createDeployedMergeService(),
-  logger: logger.child({ bundle: "players" }),
+  logger: playersLogger,
+  ...(andon === undefined ? {} : { andon }),
 });

@@ -37,6 +37,8 @@ export class AllPlayStatefulStack extends Stack {
   readonly metricRollups: AllPlayTable;
   /** The game speaker conversation of each session (conversational-ai.md section 6). */
   readonly conversationMessages: AllPlayTable;
+  /** Stage-wide switches such as the andon cord (data-model.md section 14). */
+  readonly systemFlags: AllPlayTable;
   /** Accounts and groups (authn-authz.md section 3). */
   readonly users: AllPlayUserPool;
   readonly playersTableName: CfnOutput;
@@ -48,6 +50,7 @@ export class AllPlayStatefulStack extends Stack {
   readonly rateLimitsTableName: CfnOutput;
   readonly metricRollupsTableName: CfnOutput;
   readonly conversationMessagesTableName: CfnOutput;
+  readonly systemFlagsTableName: CfnOutput;
   readonly userPoolId: CfnOutput;
 
   constructor(scope: Construct, id: string, props: AllPlayStatefulStackProps) {
@@ -128,6 +131,11 @@ export class AllPlayStatefulStack extends Stack {
       sortKey: { name: "messageId" },
       timeToLiveAttribute: "ttl",
     });
+    this.systemFlags = new AllPlayTable(this, "SystemFlags", {
+      stage: props.stage,
+      entity: "SystemFlags",
+      partitionKey: { name: "flagId" },
+    });
     const domainSuffix = this.node.tryGetContext("allplay:authDomainSuffix") as string | undefined;
     if (domainSuffix === undefined) throw new Error("Set allplay:authDomainSuffix in cdk.json.");
     this.users = new AllPlayUserPool(this, "Users", {
@@ -162,6 +170,9 @@ export class AllPlayStatefulStack extends Stack {
     });
     this.conversationMessagesTableName = new CfnOutput(this, "ConversationMessagesTableName", {
       value: this.conversationMessages.table.tableName,
+    });
+    this.systemFlagsTableName = new CfnOutput(this, "SystemFlagsTableName", {
+      value: this.systemFlags.table.tableName,
     });
     this.userPoolId = new CfnOutput(this, "UserPoolId", { value: this.users.userPool.userPoolId });
     if (props.stage === "Test") {

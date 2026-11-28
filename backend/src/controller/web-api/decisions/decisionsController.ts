@@ -12,10 +12,13 @@ import { jsonBody } from "../shared/httpEvent";
 import { decisionsRoutes } from "./decisionsRoutes";
 import type { HttpResult } from "../shared/response";
 import { createRouter } from "../shared/router";
+import type { AndonGate } from "../../../service/andon/andonService";
 
 export interface DecisionsControllerDeps {
   decisions: DecisionService;
   logger: Logger;
+  /** The andon cord check (productionalization.md section 4.3); absent where play is never paused. */
+  andon?: AndonGate;
 }
 
 /** Handler for the decisions bundle (action-decision.md section 4): parse, resolve the caller, then decide or resolve. */
@@ -61,5 +64,8 @@ export function createDecisionsHandler(
     },
     deps.logger,
     decisionsRoutes,
+    undefined,
+    undefined,
+    deps.andon === undefined ? undefined : { gate: deps.andon },
   );
 }

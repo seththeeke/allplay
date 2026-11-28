@@ -10,4 +10,6 @@ export const adminRoutes = [
   { method: "POST", path: "/v1/admin/players/merge", auth: "IAM", minimumTier: "ADMIN" },
   { method: "GET", path: "/v1/admin/metrics", auth: "IAM", minimumTier: "ADMIN" },
   { method: "GET", path: "/v1/admin/decisions", auth: "IAM", minimumTier: "ADMIN" },
+  { method: "GET", path: "/v1/admin/andon", auth: "IAM", minimumTier: "ADMIN" },
+  { method: "PUT", path: "/v1/admin/andon", auth: "IAM", minimumTier: "ADMIN" },
 ] as const;

@@ -13,6 +13,9 @@ import type { LoggedTurnEvent } from "../../../../src/dao/turnLog/turnLogReader"
 import { createMetricsAdminService } from "../../../../src/service/admin/metricsAdminService";
 import { account } from "../../../dao/player/playerDaoContract";
 import { apiEvent } from "../apiEvent";
+import { createInMemorySystemFlagDao } from "../../../../src/dao/systemFlag/inMemorySystemFlagDao";
+import { createInMemoryRolePolicyStore } from "../../../../src/dao/rolePolicy/inMemoryRolePolicyStore";
+import { createAndonService, identityRoleNames } from "../../../../src/service/andon/andonService";
 
 const AT = new Date("2026-11-21T10:00:00.000Z");
 
@@ -49,7 +52,40 @@ describe("admin controller", () => {
       rollups,
       turns: { day: () => Promise.resolve(turnEvents) },
     }),
+    andon: createAndonService({
+      flags: createInMemorySystemFlagDao(),
+      policies: createInMemoryRolePolicyStore(),
+      roleNames: identityRoleNames("Test"),
+      now: () => AT,
+    }),
     logger: createLogger({ write: vi.fn() }),
+  });
+
+  it("shows the andon cord and lets an admin pull and release it", async () => {
+    const shown = await handler(asCaller("GET /v1/admin/andon", "admin"));
+    expect(JSON.parse(shown.body)).toEqual({
+      pulled: false,
+      reason: null,
+      pulledBy: null,
+      changedAt: null,
+    });
+    const pull = (body: unknown) =>
+      handler({
+        ...asCaller("PUT /v1/admin/andon", "admin"),
+        body: typeof body === "string" ? body : JSON.stringify(body),
+      });
+    expect(JSON.parse((await pull({ pulled: true })).body)).toEqual({
+      pulled: true,
+      reason: "Pulled by an admin",
+      pulledBy: "ADMIN",
+      changedAt: AT.toISOString(),
+    });
+    expect(JSON.parse((await pull({ pulled: false })).body)).toMatchObject({
+      pulled: false,
+      reason: "Released by an admin",
+    });
+    expect((await pull({ pulled: "yes" })).statusCode).toBe(400);
+    expect((await handler(asCaller("PUT /v1/admin/andon", "player"))).statusCode).toBe(403);
   });
 
   it("lets an admin start a deployment and then lists it", async () => {

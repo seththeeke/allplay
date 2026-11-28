@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { ApiErrorSchema } from "../../models/api";
 import { ApiRequestError } from "../errors";
+import { pauseSignal, type PauseSignal } from "../pauseSignal";
 
 export type FetchLike = (
   input: string,
@@ -11,6 +12,7 @@ export interface ApiClient {
   get<T extends z.ZodType>(path: string, schema: T): Promise<z.output<T>>;
   post<T extends z.ZodType>(path: string, body: unknown, schema: T): Promise<z.output<T>>;
   patch<T extends z.ZodType>(path: string, body: unknown, schema: T): Promise<z.output<T>>;
+  put<T extends z.ZodType>(path: string, body: unknown, schema: T): Promise<z.output<T>>;
 }
 
 /**
@@ -22,6 +24,7 @@ export function createApiClient(
   apiUrl: string,
   fetchImpl: FetchLike = (input, init) => fetch(input, init),
   headers: () => Record<string, string> | Promise<Record<string, string>> = () => ({}),
+  paused: PauseSignal = pauseSignal,
 ): ApiClient {
   const base = apiUrl.endsWith("/") ? apiUrl : `${apiUrl}/`;
   const call = async <T extends z.ZodType>(
@@ -36,6 +39,7 @@ export function createApiClient(
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const error = ApiErrorSchema.safeParse(body);
+      paused.set(error.success && error.data.code === "ANDON_CORD_PULLED");
       throw new ApiRequestError(
         response.status,
         error.success
@@ -46,21 +50,21 @@ export function createApiClient(
             },
       );
     }
+    paused.set(false);
     return schema.parse(body);
   };
+  const send =
+    (method: string) =>
+    <T extends z.ZodType>(path: string, body: unknown, schema: T) =>
+      call(path, schema, {
+        method,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
   return {
     get: (path, schema) => call(path, schema),
-    post: (path, body, schema) =>
-      call(path, schema, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-    patch: (path, body, schema) =>
-      call(path, schema, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
+    post: send("POST"),
+    patch: send("PATCH"),
+    put: send("PUT"),
   };
 }

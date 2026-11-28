@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AdminDecision,
+  AndonState,
   DayMetrics,
   Deployment,
   DuplicateAccountsResponse,
@@ -18,6 +19,8 @@ export interface UseAdmin {
   deploy: () => Promise<void>;
   duplicates: DuplicateAccountsResponse["duplicates"];
   mergeAccounts: (primaryPlayerId: string, duplicatePlayerId: string) => Promise<void>;
+  andon: AndonState | undefined;
+  setAndon: (pulled: boolean) => Promise<void>;
 }
 
 /** Admin data for the last 30 days (authn-authz.md section 5). */
@@ -48,6 +51,13 @@ export function useAdmin(today: Date = new Date()): UseAdmin {
     mutationFn: ([primary, duplicate]: [string, string]) => admin.mergeAccounts(primary, duplicate),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "duplicates"] }),
   });
+  const andon = useQuery({ queryKey: ["admin", "andon"], queryFn: () => admin.andon() });
+  const changeAndon = useMutation({
+    mutationFn: (pulled: boolean) => admin.setAndon(pulled),
+    onSuccess: (state) => {
+      queryClient.setQueryData(["admin", "andon"], state);
+    },
+  });
   const deploy = useMutation({
     mutationFn: () => admin.startDeployment(),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "deployments"] }),
@@ -62,6 +72,10 @@ export function useAdmin(today: Date = new Date()): UseAdmin {
     duplicates: duplicates.data?.duplicates ?? [],
     mergeAccounts: async (primary, duplicate) => {
       await merge.mutateAsync([primary, duplicate]);
+    },
+    andon: andon.data,
+    setAndon: async (pulled) => {
+      await changeAndon.mutateAsync(pulled);
     },
   };
 }

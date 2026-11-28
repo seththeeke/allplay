@@ -51,7 +51,7 @@ Budgets data lags actual usage by up to a day, so spend can pass $20 before the 
 
 1. It writes the `ANDON` `SystemFlag` item (`data-model.md` Section 14) with `isAndonCordPulled = true`, the budget name in `reason` and `pulledBy = BUDGET`.
 2. It puts the inline policy `AllPlay-AndonDeny` on `AllPlay-GuestRole-<Stage>`, `AllPlay-PlayerRole-<Stage>`, `AllPlay-PlayerPlusRole-<Stage>` and `AllPlay-AdminRole-<Stage>`, denying `transcribe:*` and `polly:*`. Browsers call Transcribe and Polly directly with Identity Pool credentials, so the API check alone would not stop that spend; role policy changes apply to credentials already issued.
-3. It publishes "All Play andon cord pulled: <budget>" to `AllPlay-Alerts`.
+The budget notification itself reaches the alert email, so the owner hears of every pull.
 
 The Lambda holds `dynamodb:PutItem` on both `SystemFlags` tables and `iam:PutRolePolicy` and `iam:DeleteRolePolicy` on those eight roles, named by ARN.
 
@@ -172,3 +172,4 @@ Status as of 2026-11-28.
 | Leg | Status | Notes |
 |---|---|---|
 | PZ-1 | Done | |
+| PZ-2 | Done, not deployed | `AllPlay-SystemFlags-<Stage>`; the router returns 500 `ANDON_CORD_PULLED` for every play route of the game, decision and player bundles (the flag cached 30 s per container, 0 locally); `GET` and `PUT /v1/admin/andon` with the admin page's Andon cord panel; the web banner and an idle game page while paused. In `AllPlayPipeline`: `AllPlay-Polly`, `AllPlay-Transcribe` and `AllPlay-Bedrock` at $20 with notifications at 100, 150 and 200% to `AllPlay-Andon` and the alert email (a notification takes one SNS subscriber), and `AllPlay-AndonCord`. The DAO contract is not run against Test, since it writes the live flag |

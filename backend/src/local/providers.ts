@@ -8,6 +8,13 @@ import { createDecisionsHandler } from "../controller/web-api/decisions/decision
 import { createGameHandler } from "../controller/web-api/game/gameController";
 import { createHealthHandler } from "../controller/web-api/health/healthController";
 import { createPlayersHandler } from "../controller/web-api/players/playersController";
+import { createInMemorySystemFlagDao } from "../dao/systemFlag/inMemorySystemFlagDao";
+import { createInMemoryRolePolicyStore } from "../dao/rolePolicy/inMemoryRolePolicyStore";
+import {
+  createAndonGate,
+  createAndonService,
+  identityRoleNames,
+} from "../service/andon/andonService";
 import { createAdminHandler } from "../controller/web-api/admin/adminController";
 import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploymentPipeline";
 import { createDeploymentService } from "../service/admin/deploymentService";
@@ -259,6 +266,9 @@ export async function createLocalProviders(
       }),
       ...(overrides.now ? { now: overrides.now } : {}),
     });
+    const flags = createInMemorySystemFlagDao();
+    /* No cache locally, so the admin page's pull shows on the next request. */
+    const andon = createAndonGate(flags, logger, 0);
     const playerDao = createInMemoryPlayerDao();
     const preferenceDao = createInMemoryPreferenceDao();
     const merge = createMergeService({
@@ -279,6 +289,12 @@ export async function createLocalProviders(
             rollups: createInMemoryMetricRollupDao(),
             turns: turns.reader(),
           }),
+          andon: createAndonService({
+            flags,
+            policies: createInMemoryRolePolicyStore(),
+            roleNames: identityRoleNames("Local"),
+            ...(overrides.now ? { now: overrides.now } : {}),
+          }),
           logger: logger.child({ bundle: "admin" }),
         }),
         players: createPlayersHandler({
@@ -290,11 +306,13 @@ export async function createLocalProviders(
           }),
           merge,
           logger: logger.child({ bundle: "players" }),
+          andon,
         }),
         game: createGameHandler({
           catalog: repository,
           sessions,
           logger: logger.child({ bundle: "game" }),
+          andon,
         }),
         health: createHealthHandler({
           health: createHealthService("LOCAL"),
@@ -303,6 +321,7 @@ export async function createLocalProviders(
         decisions: createDecisionsHandler({
           decisions,
           logger: logger.child({ bundle: "decisions" }),
+          andon,
         }),
       },
     };

@@ -21,6 +21,25 @@ function synth(stage: StageName, environment?: Record<string, string>) {
 }
 
 describe("AllPlayFunction", () => {
+  it("names an account-wide Lambda without the stage, and sets no STAGE", () => {
+    const app = testApp();
+    const stack = new Stack(app, "AccountWide", { env: { region: "us-east-1" } });
+    new AllPlayFunction(stack, "AndonCord", {
+      stage: "Prod",
+      accountWide: true,
+      name: "AndonCord",
+      entry: "controller/alerts/andonCordHandler.ts",
+      memorySize: 256,
+      timeout: Duration.seconds(30),
+    });
+    const template = Template.fromStack(stack);
+    template.hasResourceProperties("AWS::Lambda::Function", {
+      FunctionName: "AllPlay-AndonCord",
+      Environment: { Variables: Match.objectLike({ LOG_LEVEL: "INFO" }) },
+    });
+    expect(JSON.stringify(template.toJSON())).not.toContain('"STAGE"');
+  });
+
   it("copies bundled files from the backend source beside the handler", () => {
     expect(bundledFileCommands(["service/a/file.md"], "/backend", "/out")).toEqual([
       'cp "/backend/src/service/a/file.md" "/out/"',

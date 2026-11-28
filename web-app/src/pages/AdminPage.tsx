@@ -1,3 +1,4 @@
+import { AndonPanel } from "../components/AndonPanel";
 import { DeploymentsPanel } from "../components/DeploymentsPanel";
 import { DuplicatesPanel } from "../components/DuplicatesPanel";
 import { LineChart } from "../components/charts/LineChart";
@@ -11,7 +12,8 @@ const ROUND_TRIP_TARGET_MS = 2000;
 
 /** Product metrics and deployments (0-day-0-project-idea.md, Admin Functions and Key Metrics). */
 export function AdminPage(): React.JSX.Element {
-  const { days, failures, deployments, deploy, duplicates, mergeAccounts } = useAdmin();
+  const { days, failures, deployments, deploy, duplicates, mergeAccounts, andon, setAndon } =
+    useAdmin();
   const periods = days.map((day) => day.period);
   const today = days[days.length - 1];
   const failureRate =
@@ -21,6 +23,7 @@ export function AdminPage(): React.JSX.Element {
   return (
     <main className="flex flex-col gap-6">
       <PageHeading title="Admin" lead="Product metrics for the last 30 days, and deployments." />
+      <AndonPanel andon={andon} onChange={setAndon} />
       {today === undefined ? (
         <p className="rounded-2xl border-4 border-line bg-surface p-4 text-2xl">
           No product metrics are recorded for these days yet. Counting starts with the first game or

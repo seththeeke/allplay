@@ -4,13 +4,14 @@ import {
   sampleFailures,
   sampleMetrics,
 } from "../../../test-data/admin";
-import type { Deployment } from "../../models/api";
+import type { AndonState, Deployment } from "../../models/api";
 import type { AdminService } from "../types";
 
 /** Admin API over deterministic sample data; a started deployment shows as in progress. */
 export function createMemoryAdminService(now: () => Date = () => new Date()): AdminService {
   const started: Deployment[] = [];
   const merged = new Set<string>();
+  let andon: AndonState = { pulled: false, reason: null, pulledBy: null, changedAt: null };
   return {
     metrics: (from, to) =>
       Promise.resolve({
@@ -43,6 +44,16 @@ export function createMemoryAdminService(now: () => Date = () => new Date()): Ad
     mergeAccounts: (primaryPlayerId, duplicatePlayerId) => {
       merged.add(duplicatePlayerId);
       return Promise.resolve({ primaryPlayerId, mergedPlayerId: duplicatePlayerId });
+    },
+    andon: () => Promise.resolve(andon),
+    setAndon: (pulled) => {
+      andon = {
+        pulled,
+        reason: pulled ? "Pulled by an admin" : "Released by an admin",
+        pulledBy: "ADMIN",
+        changedAt: now().toISOString(),
+      };
+      return Promise.resolve(andon);
     },
   };
 }

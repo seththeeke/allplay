@@ -6,7 +6,9 @@ import { PolicyStatement, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { Schedule, ScheduleExpression } from "aws-cdk-lib/aws-scheduler";
 import { CodePipelineStartPipelineExecution } from "aws-cdk-lib/aws-scheduler-targets";
 import { Topic } from "aws-cdk-lib/aws-sns";
-import { EmailSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
+import { EmailSubscription, LambdaSubscription } from "aws-cdk-lib/aws-sns-subscriptions";
+import { Duration } from "aws-cdk-lib";
+import { AllPlayFunction } from "../constructs/AllPlayFunction";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import {
   CodeBuildStep,
@@ -30,6 +32,16 @@ export const REPOSITORY = "seththeeke/allplay";
 export const BRANCH = "main";
 export const CONNECTION_PARAMETER = "/allplay/github-connection-arn";
 export const MONTHLY_BUDGET_USD = 25;
+/** Monthly spend per monitored service that pulls the andon cord (productionalization.md section 4.1). */
+export const ANDON_BUDGET_USD = 20;
+/** Each budget's name suffix and its Cost Explorer service name. */
+export const ANDON_SERVICES = [
+  ["Polly", "Amazon Polly"],
+  ["Transcribe", "Amazon Transcribe"],
+  ["Bedrock", "Amazon Bedrock"],
+] as const;
+/** Actual spend, as a percent of the limit, that notifies; repeats pull a cord released mid-month again. */
+export const ANDON_THRESHOLDS = [100, 150, 200] as const;
 /** The one place the alert address is defined (cdk-stacks.md section 9.1). */
 export const ALERT_EMAIL = "seththeeke@gmail.com";
 export const CDK_CLI_VERSION = "2.1148.1";
@@ -97,6 +109,8 @@ export class AllPlayPipelineStack extends Stack {
   readonly pipeline: CodePipeline;
   readonly stages: AllPlayStage[];
   readonly alerts: Topic;
+  /** Budget notifications that pull the andon cord (productionalization.md section 4). */
+  readonly andon: Topic;
   /** Wildcard findings acknowledged on the generated pipeline resources. */
   readonly acknowledgedWildcards: string[];
 
@@ -184,6 +198,8 @@ export class AllPlayPipelineStack extends Stack {
       })),
     });
 
+    this.andon = this.addAndonCord();
+
     for (const [rule, reason] of PIPELINE_ACKNOWLEDGED) {
       Validations.of(this.pipeline).acknowledge({ id: rule, reason });
     }
@@ -197,6 +213,99 @@ export class AllPlayPipelineStack extends Stack {
       reason:
         "Alerts carry no player data, and AWS Budgets cannot publish to a topic encrypted with the AWS managed key; a customer key costs more than the alerts justify.",
     });
+  }
+
+  /**
+   * The andon cord (productionalization.md section 4): one budget per
+   * monitored service notifies the andon topic and the alert email, and
+   * `AllPlay-AndonCord` pulls the cord in every stage. Spend is account-wide,
+   * so one monitor serves both stages.
+   */
+  private addAndonCord(): Topic {
+    const topic = new Topic(this, "Andon", {
+      topicName: `${PROJECT_NAME}-Andon`,
+      displayName: "All Play andon cord",
+      enforceSSL: true,
+    });
+    topic.addToResourcePolicy(
+      new PolicyStatement({
+        actions: ["sns:Publish"],
+        principals: [new ServicePrincipal("budgets.amazonaws.com")],
+        resources: [topic.topicArn],
+        conditions: { StringEquals: { "aws:SourceAccount": this.account } },
+      }),
+    );
+    const cord = new AllPlayFunction(this, "AndonCord", {
+      stage: "Prod",
+      accountWide: true,
+      name: "AndonCord",
+      entry: "controller/alerts/andonCordHandler.ts",
+      memorySize: 256,
+      timeout: Duration.seconds(30),
+      environment: {
+        ANDON_TARGETS: JSON.stringify(
+          STAGE_NAMES.map((stage) => ({ stage, table: resourceName("SystemFlags", stage) })),
+        ),
+      },
+    });
+    cord.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:UpdateItem"],
+        resources: STAGE_NAMES.map((stage) =>
+          this.formatArn({
+            service: "dynamodb",
+            resource: "table",
+            resourceName: resourceName("SystemFlags", stage),
+          }),
+        ),
+      }),
+    );
+    cord.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["iam:PutRolePolicy", "iam:DeleteRolePolicy"],
+        resources: STAGE_NAMES.flatMap((stage) =>
+          ["GuestRole", "PlayerRole", "PlayerPlusRole", "AdminRole"].map((role) =>
+            this.formatArn({
+              service: "iam",
+              region: "",
+              resource: "role",
+              resourceName: resourceName(role, stage),
+            }),
+          ),
+        ),
+      }),
+    );
+    topic.addSubscription(new LambdaSubscription(cord.function));
+    for (const [suffix, service] of ANDON_SERVICES) {
+      new CfnBudget(this, `Andon${suffix}Budget`, {
+        budget: {
+          budgetName: `${PROJECT_NAME}-${suffix}`,
+          budgetType: "COST",
+          timeUnit: "MONTHLY",
+          budgetLimit: { amount: ANDON_BUDGET_USD, unit: "USD" },
+          costFilters: { Service: [service] },
+        },
+        notificationsWithSubscribers: ANDON_THRESHOLDS.map((threshold) => ({
+          notification: {
+            notificationType: "ACTUAL",
+            comparisonOperator: "GREATER_THAN",
+            threshold,
+            thresholdType: "PERCENTAGE",
+          },
+          subscribers: [
+            { subscriptionType: "SNS", address: topic.topicArn },
+            /* A notification takes one SNS subscriber, so the alert address is subscribed by email. */
+            { subscriptionType: "EMAIL", address: ALERT_EMAIL },
+          ],
+        })),
+      });
+    }
+    Validations.of(topic).acknowledge({
+      id: "AwsSolutions-SNS2",
+      reason:
+        "Budget notifications carry no player data, and AWS Budgets cannot publish to a topic encrypted with the AWS managed key.",
+    });
+    return topic;
   }
 
   private addStage(stageName: StageName, webAssetPath: string): AllPlayStage {

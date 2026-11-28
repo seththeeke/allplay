@@ -7,6 +7,7 @@ import type { ColumnInteraction } from "../components/TableauColumn";
 import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
+import { usePaused } from "../hooks/usePaused";
 import { usePreferences } from "../hooks/usePreferences";
 import { ConversationDock } from "../components/ConversationDock";
 import { VoiceBar } from "../components/VoiceBar";
@@ -90,6 +91,10 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
       />
     );
   const conversational = help.preferences.voiceMode === "CONVERSATIONAL";
+  const paused = usePaused();
+
+  /* While play is paused, nothing listens or deals; the shell's banner says why. */
+  if (paused) return <main className="pb-24" />;
 
   return (
     /* Room below the board for the voice controls fixed to the bottom of the game. */

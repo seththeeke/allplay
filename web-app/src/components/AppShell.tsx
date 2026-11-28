@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router";
+import { usePaused } from "../hooks/usePaused";
 import { tierAtLeast, usePlayer } from "../hooks/usePlayer";
+import { PausedBanner } from "./PausedBanner";
 import { VoiceProvider } from "../voice/VoiceProvider";
 import { IoSettingsSharp } from "react-icons/io5";
 
@@ -21,6 +23,7 @@ export function AppShell(): React.JSX.Element {
   const { player } = usePlayer();
   const isAdmin = player !== undefined && tierAtLeast(player.tier, "ADMIN");
   const signedIn = player?.kind === "ACCOUNT";
+  const paused = usePaused();
   return (
     <div className="min-h-screen bg-page text-ink">
       <a
@@ -73,6 +76,7 @@ export function AppShell(): React.JSX.Element {
           )}
         </nav>
       </header>
+      {paused ? <PausedBanner /> : null}
       <VoiceProvider>
         <div id="main" className="mx-auto max-w-6xl p-4">
           <Outlet />

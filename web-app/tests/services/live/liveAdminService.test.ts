@@ -51,4 +51,23 @@ describe("live admin service", () => {
       mergedPlayerId: "ACCT#b",
     });
   });
+
+  it("reads and changes the andon cord", async () => {
+    const state = {
+      pulled: true,
+      reason: "Pulled by an admin",
+      pulledBy: "ADMIN",
+      changedAt: null,
+    };
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(state) }),
+    );
+    const admin = createLiveAdminService(createApiClient("http://localhost:4000", fetchImpl));
+    expect(await admin.andon()).toEqual(state);
+    expect(await admin.setAndon(true)).toEqual(state);
+    expect(fetchImpl.mock.calls[1]).toEqual([
+      "http://localhost:4000/v1/admin/andon",
+      expect.objectContaining({ method: "PUT", body: '{"pulled":true}' }),
+    ]);
+  });
 });

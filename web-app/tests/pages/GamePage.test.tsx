@@ -5,6 +5,8 @@ import { createServices } from "../../src/services/createServices";
 import { createMemoryStore } from "../../src/services/memory/memoryStore";
 import type { Services } from "../../src/services/types";
 import { LOCAL_CONFIG, renderApp } from "../renderApp";
+import { act } from "@testing-library/react";
+import { pauseSignal } from "../../src/services/pauseSignal";
 
 const seeded = (): Services => createServices(LOCAL_CONFIG, createMemoryStore(null), () => 7);
 
@@ -104,5 +106,19 @@ describe("game page", () => {
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
+  });
+
+  it("hides the table and shows the paused banner while the andon cord is pulled", async () => {
+    await openSpider();
+    act(() => {
+      pauseSignal.set(true);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("All Play is paused right now.");
+    expect(screen.queryByRole("region", { name: "Card table" })).not.toBeInTheDocument();
+    act(() => {
+      pauseSignal.set(false);
+    });
+    expect(await screen.findByRole("region", { name: "Card table" })).toBeInTheDocument();
+    expect(screen.queryByText("All Play is paused right now.")).not.toBeInTheDocument();
   });
 });

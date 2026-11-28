@@ -1,6 +1,7 @@
 import type {
   AbandonRequest,
   AdminDecisionsResponse,
+  AndonState,
   DuplicateAccountsResponse,
   MergeResponse,
   DeploymentsResponse,
@@ -101,6 +102,9 @@ export interface AdminService {
   /** Accounts sharing an email, and folding one into another (authn-authz.md section 6.2). */
   duplicates(): Promise<DuplicateAccountsResponse>;
   mergeAccounts(primaryPlayerId: string, duplicatePlayerId: string): Promise<MergeResponse>;
+  /** The stage's andon cord (productionalization.md section 4.4). */
+  andon(): Promise<AndonState>;
+  setAndon(pulled: boolean): Promise<AndonState>;
 }
 
 /** Result of one call to `GET /v1/health`: the HTTP status, the parsed body when it matched the contract, and the round trip time. */
