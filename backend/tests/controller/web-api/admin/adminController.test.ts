@@ -17,6 +17,8 @@ import { createInMemorySystemFlagDao } from "../../../../src/dao/systemFlag/inMe
 import { createInMemoryRolePolicyStore } from "../../../../src/dao/rolePolicy/inMemoryRolePolicyStore";
 import { createAndonService, identityRoleNames } from "../../../../src/service/andon/andonService";
 import { createInMemoryInvitationService } from "../../../../src/service/admin/invitationService";
+import { createGameLimitAdminService } from "../../../../src/service/admin/gameLimitAdminService";
+import { createGameAllowanceService } from "../../../../src/service/player/gameAllowance";
 
 const AT = new Date("2026-11-21T10:00:00.000Z");
 
@@ -60,7 +62,46 @@ describe("admin controller", () => {
       now: () => AT,
     }),
     invitations: createInMemoryInvitationService(),
+    gameLimits: createGameLimitAdminService(
+      players,
+      createGameAllowanceService({
+        players,
+        defaultLimit: { count: 5, period: "DAY" },
+        now: () => AT,
+      }),
+      () => AT,
+    ),
     logger: createLogger({ write: vi.fn() }),
+  });
+
+  it("finds an account by email and sets its game limit", async () => {
+    await players.create(account("ACCT#limited", "limit@example.com"));
+    const found = await handler({
+      ...asCaller("GET /v1/admin/players", "admin"),
+      queryStringParameters: { email: "limit@example.com" },
+    });
+    expect(JSON.parse(found.body)).toMatchObject({
+      players: [{ playerId: "ACCT#limited", gameLimit: null, gameAllowance: { limit: 5 } }],
+    });
+    expect((await handler(asCaller("GET /v1/admin/players", "admin"))).statusCode).toBe(400);
+    const set = (playerId: string, body: unknown) =>
+      handler({
+        ...asCaller("PUT /v1/admin/players/{playerId}/game-limit", "admin"),
+        pathParameters: { playerId },
+        body: JSON.stringify(body),
+      });
+    const unlimited = await set("ACCT%23limited", { gameLimit: { unlimited: true } });
+    expect(unlimited.statusCode).toBe(200);
+    expect(JSON.parse(unlimited.body)).toMatchObject({
+      gameLimit: { unlimited: true },
+      gameAllowance: { limit: null },
+    });
+    expect((await set("ACCT#limited", { gameLimit: null })).statusCode).toBe(200);
+    expect(
+      (await set("ACCT#limited", { gameLimit: { count: -1, period: "DAY" } })).statusCode,
+    ).toBe(400);
+    expect((await set("nobody", { gameLimit: null })).statusCode).toBe(400);
+    expect((await set("ACCT#nobody", { gameLimit: null })).statusCode).toBe(404);
   });
 
   it("invites a player once, refusing a second invitation and a bad email", async () => {

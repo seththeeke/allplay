@@ -89,4 +89,27 @@ describe("live admin service", () => {
       expect.objectContaining({ method: "POST", body: '{"email":"pat@example.com"}' }),
     ]);
   });
+
+  it("finds players and sets a game limit", async () => {
+    const player = {
+      playerId: "ACCT#a",
+      email: "pat@example.com",
+      gameLimit: null,
+      gameAllowance: { limit: 5, period: "DAY", used: 0, resetsAt: null },
+    };
+    const fetchImpl = vi.fn((input: string) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(input.includes("?email=") ? { players: [player] } : player),
+      }),
+    );
+    const admin = createLiveAdminService(createApiClient("http://localhost:4000", fetchImpl));
+    expect(await admin.findPlayers("pat@example.com")).toEqual({ players: [player] });
+    expect(await admin.setGameLimit("ACCT#a", { unlimited: true })).toEqual(player);
+    expect(fetchImpl.mock.calls.map((call) => call[0])).toEqual([
+      "http://localhost:4000/v1/admin/players?email=pat%40example.com",
+      "http://localhost:4000/v1/admin/players/ACCT%23a/game-limit",
+    ]);
+  });
 });

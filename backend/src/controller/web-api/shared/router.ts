@@ -86,6 +86,7 @@ export function createRouter(
           code: error.code,
           message: error.message,
           ...(error.current === undefined ? {} : { current: error.current }),
+          ...error.details,
         });
       }
       logger.error("Request failed", {

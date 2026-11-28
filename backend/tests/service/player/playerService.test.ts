@@ -10,6 +10,7 @@ import {
 } from "../../../src/service/player/playerService";
 import { createInMemoryGameTables } from "../../../src/dao/gameSession/inMemoryGameSessionDao";
 import { createPlayerGameData } from "../../../src/service/gameSession/playerGameData";
+import { createGameAllowanceService } from "../../../src/service/player/gameAllowance";
 
 /** Sessions, seats and stats over fresh in-memory tables. */
 const memoryGameData = () => createPlayerGameData(createInMemoryGameTables());
@@ -37,6 +38,32 @@ function setup(start = Date.parse("2026-11-21T12:00:00.000Z")) {
 }
 
 describe("player service", () => {
+  it("reports the caller's games left, for guests and accounts", async () => {
+    const players = createInMemoryPlayerDao();
+    const allowance = createGameAllowanceService({
+      players,
+      defaultLimit: { count: 5, period: "DAY" },
+      now: () => new Date("2026-11-21T12:00:00.000Z"),
+    });
+    const service = createPlayerService({
+      players,
+      preferences: createInMemoryPreferenceDao(),
+      gameData: memoryGameData(),
+      allowance,
+    });
+    await allowance.consume(guest.playerId);
+    expect((await service.me(guest)).gameAllowance).toEqual({
+      limit: 5,
+      period: "DAY",
+      used: 1,
+      resetsAt: "2026-11-22T00:00:00.000Z",
+    });
+    expect((await service.me(account)).gameAllowance).toMatchObject({ used: 0 });
+    expect(
+      createDeployedPlayerService({ PLAYERS_TABLE: "t", DEFAULT_GAME_LIMIT: "5/DAY" }),
+    ).toHaveProperty("me");
+  });
+
   it("creates a guest on first activity and refreshes it at most hourly with a 90-day ttl", async () => {
     const t = setup();
     await t.service.recordActivity(guest);

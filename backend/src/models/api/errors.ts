@@ -15,6 +15,7 @@ export const ApiErrorCodeSchema = z.enum([
   "RATE_LIMITED",
   "ANDON_CORD_PULLED",
   "ALREADY_INVITED",
+  "GAME_LIMIT_REACHED",
   "INTERNAL_ERROR",
 ]);
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
@@ -24,5 +25,9 @@ export const ApiErrorSchema = z.object({
   message: z.string().min(1),
   speech: z.string().min(1).optional(),
   current: SessionEnvelopeSchema.optional(),
+  /** With GAME_LIMIT_REACHED: the limit and when the window resets (productionalization.md section 5). */
+  limit: z.number().int().min(0).optional(),
+  period: z.enum(["DAY", "WEEK", "MONTH"]).optional(),
+  resetsAt: z.iso.datetime().optional(),
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;

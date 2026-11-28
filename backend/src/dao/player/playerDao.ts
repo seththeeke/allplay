@@ -1,3 +1,4 @@
+import type { GamesPlayed } from "../../models/gamesPlayed";
 import type { Player } from "../../models/player";
 
 export class PlayerExistsError extends Error {
@@ -54,6 +55,25 @@ export interface PlayerDao {
   listByEmail(emailKey: string): Promise<EmailMatch[]>;
   /** Every account with an email, for the admin duplicate list (a scan of `ByEmail`). */
   listAllEmails(): Promise<EmailEntry[]>;
+  /**
+   * Counts one started game in the window (productionalization.md section 5)
+   * with one conditional write: a stored count of another window restarts at
+   * 1, and a count already at `limit` is refused (null). A missing player is
+   * created from `seed`. `limit` null counts without a cap.
+   */
+  countGame(
+    playerId: string,
+    window: Pick<GamesPlayed, "period" | "windowStart">,
+    limit: number | null,
+    at: string,
+    seed: Player,
+  ): Promise<GamesPlayed | null>;
+  /** Takes back one game counted in the window, when the session it was for was not written. */
+  giveBackGame(
+    playerId: string,
+    window: Pick<GamesPlayed, "period" | "windowStart">,
+    at: string,
+  ): Promise<void>;
   /** Every player's counting fields, for the daily rollup's one scan (data-model.md section 11). */
   listForRollup(): Promise<RollupPlayer[]>;
 }

@@ -2,6 +2,8 @@ import {
   AdminDecisionsResponseSchema,
   AndonStateSchema,
   InvitationResponseSchema,
+  AdminPlayerSchema,
+  AdminPlayersResponseSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
   DuplicateAccountsResponseSchema,
@@ -33,5 +35,13 @@ export function createLiveAdminService(api: ApiClient): AdminService {
     andon: () => api.get("v1/admin/andon", AndonStateSchema),
     setAndon: (pulled) => api.put("v1/admin/andon", { pulled }, AndonStateSchema),
     invite: (email) => api.post("v1/admin/invitations", { email }, InvitationResponseSchema),
+    findPlayers: (email) =>
+      api.get(`v1/admin/players?email=${encodeURIComponent(email)}`, AdminPlayersResponseSchema),
+    setGameLimit: (playerId, gameLimit) =>
+      api.put(
+        `v1/admin/players/${encodeURIComponent(playerId)}/game-limit`,
+        { gameLimit },
+        AdminPlayerSchema,
+      ),
   };
 }

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createRouter } from "../../../../src/controller/web-api/shared/router";
 import { devIdentity } from "../../../../src/local/eventAdapter";
 import { createLogger } from "../../../../src/logger";
+import { GameSessionError } from "../../../../src/service/gameSession/errors";
 import { apiEvent } from "../apiEvent";
 
 function asGuest(routeKey: string) {
@@ -43,5 +44,27 @@ describe("router andon check", () => {
       gate: { isPulled: () => Promise.resolve(true) },
     });
     expect((await router(asGuest("GET /v1/free"))).statusCode).toBe(500);
+  });
+
+  it("adds a session error's details to its body", async () => {
+    const router = createRouter(
+      {
+        "GET /v1/play": () =>
+          Promise.reject(
+            new GameSessionError(429, "GAME_LIMIT_REACHED", "Come back tomorrow.", undefined, {
+              limit: 5,
+            }),
+          ),
+      },
+      logger,
+      routes,
+    );
+    const refused = await router(asGuest("GET /v1/play"));
+    expect(refused.statusCode).toBe(429);
+    expect(JSON.parse(refused.body)).toEqual({
+      code: "GAME_LIMIT_REACHED",
+      message: "Come back tomorrow.",
+      limit: 5,
+    });
   });
 });

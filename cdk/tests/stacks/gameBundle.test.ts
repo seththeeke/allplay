@@ -41,8 +41,11 @@ describe("game bundle", () => {
             .PolicyDocument.Statement,
       )
       .map((statement) => JSON.stringify(statement));
-    /* Three table statements, the counters and the andon flag, plus the log grant every AllPlayFunction carries. */
-    expect(statements).toHaveLength(6);
+    /* Three table statements, the counters, the andon flag and the game count, plus the log grant every AllPlayFunction carries. */
+    expect(statements).toHaveLength(7);
+    expect(statements.find((statement) => statement.includes("Players"))).toContain(
+      '"Action":["dynamodb:GetItem","dynamodb:UpdateItem"]',
+    );
     expect(statements.find((statement) => statement.includes("SystemFlags"))).toContain(
       '"Action":"dynamodb:GetItem"',
     );
@@ -54,5 +57,25 @@ describe("game bundle", () => {
     expect(on("MetricRollups")).toContain('"Action":["dynamodb:PutItem","dynamodb:UpdateItem"]');
     const all = statements.join();
     for (const action of ["DeleteItem", "Scan"]) expect(all).not.toContain(action);
+  });
+
+  it("counts games against the stage's default limit", () => {
+    for (const [stage, limit] of [
+      ["Test", "UNLIMITED"],
+      ["Prod", "5/DAY"],
+    ] as const) {
+      const template = Template.fromStack(
+        new AllPlayStage(testApp(), stage, {
+          stageName: stage,
+          webAssetPath: WEB_FIXTURE,
+          env: { region: "us-east-1" },
+        }).app,
+      );
+      for (const name of ["GameApi", "PlayerApi", "AdminApi"])
+        template.hasResourceProperties("AWS::Lambda::Function", {
+          FunctionName: `AllPlay-${name}-${stage}`,
+          Environment: { Variables: Match.objectLike({ DEFAULT_GAME_LIMIT: limit }) },
+        });
+    }
   });
 });

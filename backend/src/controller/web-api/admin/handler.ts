@@ -4,6 +4,7 @@ import { createDeployedDeploymentService } from "../../../service/admin/deployme
 import { createDeployedMetricsAdminService } from "../../../service/admin/metricsAdminService";
 import { createDeployedAndonService } from "../../../service/andon/andonService";
 import { createDeployedInvitationService } from "../../../service/admin/invitationService";
+import { createDeployedGameLimitAdminService } from "../../../service/admin/gameLimitAdminService";
 import { createAdminHandler } from "./adminController";
 
 /** Entry point of the `AllPlay-AdminApi-<Stage>` Lambda. */
@@ -13,5 +14,6 @@ export const handler = createAdminHandler({
   metrics: createDeployedMetricsAdminService(),
   andon: createDeployedAndonService(),
   invitations: createDeployedInvitationService(),
+  gameLimits: createDeployedGameLimitAdminService(),
   logger: logger.child({ bundle: "admin" }),
 });

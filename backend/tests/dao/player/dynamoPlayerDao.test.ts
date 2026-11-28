@@ -5,6 +5,7 @@ import { conditionalCheckFailed, stubDynamo } from "../dynamoStub";
 import { account, guest } from "./playerDaoContract";
 
 const TABLE = "AllPlay-Players-Test";
+const AT = "2026-11-21T12:00:00.000Z";
 
 describe("DynamoPlayerDao", () => {
   it("gets a player, turning string sets into sorted arrays", async () => {
@@ -149,5 +150,51 @@ describe("DynamoPlayerDao", () => {
     expect(stub.sent.map((sent) => sent.command)).toEqual(["ScanCommand", "ScanCommand"]);
     expect(stub.sent[0]?.input).toMatchObject({ TableName: TABLE, IndexName: "ByEmail" });
     expect(stub.sent[1]?.input).toMatchObject({ ExclusiveStartKey: { playerId: "ACCT#a" } });
+  });
+
+  it("counts a game in its window, opens a new one, retries a racing start, and gives back", async () => {
+    const day = { period: "DAY" as const, windowStart: "2026-11-21" };
+    const seed = guest("GUEST#g-1");
+    const stub = stubDynamo(
+      { Attributes: { gamesPlayed: { ...day, count: 3 } } },
+      conditionalCheckFailed(),
+      {},
+      conditionalCheckFailed(),
+      conditionalCheckFailed(),
+      { Attributes: { gamesPlayed: { ...day, count: 2 } } },
+      conditionalCheckFailed(),
+      conditionalCheckFailed(),
+      conditionalCheckFailed(),
+      conditionalCheckFailed(),
+      new Error("throttled"),
+      {},
+      conditionalCheckFailed(),
+      new Error("throttled"),
+      conditionalCheckFailed(),
+      new Error("throttled"),
+    );
+    const dao = createDynamoPlayerDao("AllPlay-Players-Test", stub);
+    expect(await dao.countGame("GUEST#g-1", day, 5, AT, seed)).toEqual({ ...day, count: 3 });
+    expect(stub.sent[0]?.input).toMatchObject({
+      UpdateExpression: "SET #gp.#c = #gp.#c + :one, updatedAt = :at",
+      ConditionExpression: "#gp.#p = :p AND #gp.#ws = :ws AND #gp.#c < :limit",
+      ExpressionAttributeValues: expect.objectContaining({ ":limit": 5 }) as unknown,
+    });
+    /* A new window starts at 1, writing the seed's fields only where the item has none. */
+    expect(await dao.countGame("GUEST#g-1", day, null, AT, seed)).toEqual({ ...day, count: 1 });
+    expect(stub.sent[1]?.input["ConditionExpression"]).toBe("#gp.#p = :p AND #gp.#ws = :ws");
+    expect(stub.sent[2]?.input["ConditionExpression"]).toBe(
+      "attribute_not_exists(#gp) OR #gp.#p <> :p OR #gp.#ws <> :ws",
+    );
+    expect(String(stub.sent[2]?.input["UpdateExpression"])).toContain("if_not_exists");
+    /* Both writes refused: another start opened the window, so the count is tried once more. */
+    expect(await dao.countGame("GUEST#g-1", day, 5, AT, seed)).toEqual({ ...day, count: 2 });
+    expect(await dao.countGame("GUEST#g-1", day, 5, AT, seed)).toBeNull();
+    expect(await dao.countGame("GUEST#g-1", day, 0, AT, seed)).toBeNull();
+    await expect(dao.countGame("GUEST#g-1", day, 5, AT, seed)).rejects.toThrow("throttled");
+    await dao.giveBackGame("GUEST#g-1", day, AT);
+    await dao.giveBackGame("GUEST#g-1", day, AT);
+    await expect(dao.giveBackGame("GUEST#g-1", day, AT)).rejects.toThrow("throttled");
+    await expect(dao.countGame("GUEST#g-1", day, 5, AT, seed)).rejects.toThrow("throttled");
   });
 });

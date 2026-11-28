@@ -216,4 +216,24 @@ describe("admin page with sparse data", () => {
       await within(panel).findByText("That email already has an account."),
     ).toBeInTheDocument();
   });
+
+  it("finds an account and sets its game limit", async () => {
+    const user = userEvent.setup();
+    await openAdmin();
+    const panel = must(screen.getByRole("heading", { name: "Game limits" }).closest("section"));
+    await user.type(within(panel).getByLabelText("Account email"), "pat@example.com");
+    await user.click(within(panel).getByRole("button", { name: "Find account" }));
+    expect(
+      await within(panel).findByText(/has the stage default, 3 of 5 games left today/),
+    ).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "No limit" }));
+    expect(await within(panel).findByText("Set pat@example.com to no limit.")).toBeInTheDocument();
+    expect(within(panel).getByText(/has no limit, 2 played today/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "10 a day" }));
+    expect(await within(panel).findByText("Set pat@example.com to 10 a day.")).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: "Stage default" }));
+    expect(
+      await within(panel).findByText("Set pat@example.com to the stage default."),
+    ).toBeInTheDocument();
+  });
 });

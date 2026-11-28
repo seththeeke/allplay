@@ -5,6 +5,9 @@ import {
   AndonStateSchema,
   InvitationRequestSchema,
   InvitationResponseSchema,
+  AdminPlayerSchema,
+  AdminPlayersResponseSchema,
+  SetGameLimitRequestSchema,
   SetAndonRequestSchema,
   DeploymentsResponseSchema,
   MetricsResponseSchema,
@@ -15,6 +18,7 @@ import {
 } from "../../../models/api";
 import type { AndonService } from "../../../service/andon/andonService";
 import type { InvitationService } from "../../../service/admin/invitationService";
+import type { GameLimitAdminService } from "../../../service/admin/gameLimitAdminService";
 import type { AccountAdminService } from "../../../service/admin/accountAdminService";
 import type { DeploymentService } from "../../../service/admin/deploymentService";
 import type { MetricsAdminService } from "../../../service/admin/metricsAdminService";
@@ -30,8 +34,15 @@ export interface AdminControllerDeps {
   metrics: MetricsAdminService;
   andon: AndonService;
   invitations: InvitationService;
+  gameLimits: GameLimitAdminService;
   logger: Logger;
 }
+
+/** A path player id, decoded once when the client percent-encoded its `#`. */
+const PlayerIdSchema = z
+  .string()
+  .transform((value) => (value.includes("%") ? decodeURIComponent(value) : value))
+  .pipe(z.string().regex(/^(GUEST|ACCT)#.+$/));
 
 /**
  * The operator's direct invocation of the admin Lambda by
@@ -95,6 +106,25 @@ export function createAdminHandler(
         });
         deps.logger.info("ANDON_CHANGED", { pulled: state.pulled, admin: caller.playerId });
         return [200, AndonStateSchema.parse(state)];
+      },
+      "GET /v1/admin/players": async ({ query }) => {
+        const email = z.email().safeParse(query("email")?.trim() ?? "");
+        if (!email.success) throw invalidRequest("Send ?email= with a valid email address.");
+        return [
+          200,
+          AdminPlayersResponseSchema.parse({ players: await deps.gameLimits.find(email.data) }),
+        ];
+      },
+      "PUT /v1/admin/players/{playerId}/game-limit": async ({ caller, event, param }) => {
+        const playerId = PlayerIdSchema.safeParse(param("playerId"));
+        const request = SetGameLimitRequestSchema.safeParse(jsonBody(event));
+        if (!playerId.success || !request.success)
+          throw invalidRequest(
+            "Send { gameLimit } as { count, period }, { unlimited: true } or null.",
+          );
+        const player = await deps.gameLimits.setLimit(playerId.data, request.data.gameLimit);
+        deps.logger.info("GAME_LIMIT_SET", { playerId: player.playerId, admin: caller.playerId });
+        return [200, AdminPlayerSchema.parse(player)];
       },
       "POST /v1/admin/invitations": async ({ caller, event }) => {
         const request = InvitationRequestSchema.safeParse(jsonBody(event));

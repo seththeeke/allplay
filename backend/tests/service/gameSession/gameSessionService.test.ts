@@ -10,6 +10,8 @@ import { compileRules } from "../../../src/game-engine";
 import { toyRules } from "../../game-engine/toyRules";
 import { SessionEnvelopeSchema } from "../../../src/models/api";
 import { GameSessionError } from "../../../src/service/gameSession/errors";
+import { createInMemoryPlayerDao } from "../../../src/dao/player/inMemoryPlayerDao";
+import { createGameAllowanceService } from "../../../src/service/player/gameAllowance";
 import {
   createGameSessionService,
   variantKeyOf,
@@ -32,6 +34,35 @@ function setup(wrap: (dao: GameSessionDao) => GameSessionDao = (dao) => dao) {
 }
 
 describe("game session service", () => {
+  it("counts each start against the limit, keeps the game in progress when refused, and gives back a failed start", async () => {
+    const players = createInMemoryPlayerDao();
+    const tables = createInMemoryGameTables();
+    const allowance = createGameAllowanceService({
+      players,
+      defaultLimit: { count: 2, period: "DAY" },
+    });
+    const service = createGameSessionService({ ...tables, games, allowance });
+    await service.start(PLAYER, { gameId: "spider-solitaire" });
+    const second = await service.start(PLAYER, { gameId: "spider-solitaire" });
+    await expect(service.start(PLAYER, { gameId: "spider-solitaire" })).rejects.toMatchObject({
+      status: 429,
+      code: "GAME_LIMIT_REACHED",
+    });
+    expect((await service.current(PLAYER, "spider-solitaire"))?.session.sessionId).toBe(
+      second.session.sessionId,
+    );
+    const failing = createGameSessionService({
+      ...tables,
+      dao: { ...tables.dao, create: () => Promise.reject(new Error("write failed")) },
+      games,
+      allowance,
+    });
+    await expect(failing.start("GUEST#p2", { gameId: "spider-solitaire" })).rejects.toThrow(
+      "write failed",
+    );
+    expect((await players.get("GUEST#p2"))?.gamesPlayed?.count).toBe(0);
+  });
+
   it("starts a session with defaults and a ULID, and reads it back", async () => {
     const { service, dao } = setup();
     const envelope = SessionEnvelopeSchema.parse(

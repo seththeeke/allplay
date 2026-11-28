@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GameOptionsSchema, IsoTimestampSchema } from "./common";
+import { GameOptionsSchema, IsoTimestampSchema, LimitPeriodSchema } from "./common";
 import { ThemeSchema, VoiceModeSchema } from "./decision";
 
 /** Player, preference and statistics contracts (data-model.md sections 4, 5 and 8; authn-authz.md section 5). */
@@ -28,12 +28,48 @@ export function passwordProblem(password: string): string | null {
 export const TierSchema = z.enum(["GUEST", "PLAYER", "PLAYER_PLUS", "ADMIN"]);
 export type Tier = z.infer<typeof TierSchema>;
 
+/** Games left in the current window (productionalization.md section 5); `limit` null means unlimited. */
+export const GameAllowanceSchema = z.object({
+  limit: z.number().int().min(0).nullable(),
+  period: LimitPeriodSchema.nullable(),
+  used: z.number().int().min(0),
+  resetsAt: IsoTimestampSchema.nullable(),
+});
+export type GameAllowance = z.infer<typeof GameAllowanceSchema>;
+
+const SPAN = {
+  DAY: ["today", "tomorrow"],
+  WEEK: ["this week", "next week"],
+  MONTH: ["this month", "next month"],
+} as const;
+
+/** "You have played your 5 games today. Come back tomorrow." (productionalization.md section 5). */
+export function limitMessage(count: number, period: z.infer<typeof LimitPeriodSchema>): string {
+  const [now, next] = SPAN[period];
+  return `You have played your ${String(count)} ${count === 1 ? "game" : "games"} ${now}. Come back ${next}.`;
+}
+
+/** "3 of 5 games left today", or null when no limit applies. */
+export function gamesLeftText(allowance: GameAllowance | undefined): string | null {
+  if (allowance === undefined || allowance.limit === null || allowance.period === null) return null;
+  const left = Math.max(0, allowance.limit - allowance.used);
+  const noun = allowance.limit === 1 ? "game" : "games";
+  return `${String(left)} of ${String(allowance.limit)} ${noun} left ${SPAN[allowance.period][0]}`;
+}
+
+/** The limit message when a limit applies and every game of the window is used, else null. */
+export function outOfGamesText(allowance: GameAllowance | undefined): string | null {
+  if (allowance === undefined || allowance.limit === null || allowance.period === null) return null;
+  return allowance.used >= allowance.limit ? limitMessage(allowance.limit, allowance.period) : null;
+}
+
 export const PlayerMeSchema = z.object({
   playerId: z.string().min(1),
   kind: z.enum(["GUEST", "ACCOUNT"]),
   tier: TierSchema,
   displayName: z.string().min(1).nullable(),
   email: z.email().nullable(),
+  gameAllowance: GameAllowanceSchema.optional(),
 });
 export type PlayerMe = z.infer<typeof PlayerMeSchema>;
 

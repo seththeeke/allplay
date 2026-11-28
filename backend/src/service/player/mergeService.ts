@@ -1,3 +1,4 @@
+import type { GamesPlayed } from "../../models/gamesPlayed";
 import { createHash, randomBytes } from "node:crypto";
 import { createDynamoMergeTokenDao } from "../../dao/mergeToken/dynamoMergeTokenDao";
 import type { MergeTokenDao } from "../../dao/mergeToken/mergeTokenDao";
@@ -107,6 +108,20 @@ const hashOf = (token: string): string => createHash("sha256").update(token).dig
 const union = (a: readonly string[] | undefined, b: readonly string[]): string[] =>
   [...new Set([...(a ?? []), ...b])].sort();
 
+/**
+ * The account's game count after a guest merge (productionalization.md
+ * section 5, item 6): the two are added when they count the same window, so
+ * signing in never hands back games already played today.
+ */
+export function combinedGamesPlayed(
+  account: GamesPlayed | undefined,
+  guest: GamesPlayed | undefined,
+): GamesPlayed | undefined {
+  if (account === undefined || guest === undefined) return account ?? guest;
+  const same = account.period === guest.period && account.windowStart === guest.windowStart;
+  return same ? { ...account, count: account.count + guest.count } : account;
+}
+
 export function createMergeService(deps: MergeServiceDeps): MergeService {
   const now = deps.now ?? (() => new Date());
   const newToken = deps.token ?? (() => randomBytes(32).toString("base64url"));
@@ -127,10 +142,17 @@ export function createMergeService(deps: MergeServiceDeps): MergeService {
     if (guest !== null && guest.status === "ACTIVE")
       await deps.players.update(guestId, { status: "MERGED", mergedInto: accountId }, at);
     const account = await deps.players.get(accountId);
+    /* A retried merge finds the guest already listed and adds its games only once. */
+    const gamesPlayed = account?.mergedGuestIds?.includes(guestId)
+      ? account.gamesPlayed
+      : combinedGamesPlayed(account?.gamesPlayed, guest?.gamesPlayed);
     if (account !== null)
       await deps.players.update(
         accountId,
-        { mergedGuestIds: union(account.mergedGuestIds, [guestId]) },
+        {
+          mergedGuestIds: union(account.mergedGuestIds, [guestId]),
+          ...(gamesPlayed === undefined ? {} : { gamesPlayed }),
+        },
         at,
       );
     return { primaryPlayerId: accountId, mergedPlayerId: guestId };

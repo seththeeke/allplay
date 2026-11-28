@@ -31,9 +31,11 @@ export type AccessMode = "OPEN" | "INVITE_ONLY";
 /** Every difference between Test and Prod (productionalization.md section 2). */
 export interface StageSettings {
   accessMode: AccessMode;
+  /** Games per window for a player without their own limit: `5/DAY` or `UNLIMITED` (section 5). */
+  defaultGameLimit: string;
 }
 
 export const STAGE_SETTINGS: Readonly<Record<StageName, StageSettings>> = {
-  Test: { accessMode: "INVITE_ONLY" },
-  Prod: { accessMode: "OPEN" },
+  Test: { accessMode: "INVITE_ONLY", defaultGameLimit: "UNLIMITED" },
+  Prod: { accessMode: "OPEN", defaultGameLimit: "5/DAY" },
 };

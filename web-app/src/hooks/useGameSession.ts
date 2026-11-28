@@ -18,6 +18,8 @@ export interface UseGameSession {
   announce: (message: string) => void;
   /** Replaces the cached envelope, for example with one returned by the action decider. */
   replace: (envelope: SessionEnvelope) => void;
+  /** Why no game could be dealt, such as a reached game limit (productionalization.md section 5). */
+  blocked: string | null;
 }
 
 /** Loads the player's game, starting one when none is in progress (direct links such as /spider). */
@@ -34,8 +36,15 @@ export function useGameSession(gameId: string): UseGameSession {
     queryFn: async () =>
       (await sessions.current(gameId)) ?? sessions.start(gameId, game.lastOptions ?? undefined),
     staleTime: Infinity,
+    /* A refusal such as a reached game limit will not change on a retry; network and server faults may. */
+    retry: (failures, error) =>
+      failures < 3 && !(error instanceof ApiRequestError && error.status < 500),
   });
   const envelope = query.data;
+  const blocked =
+    query.error instanceof ApiRequestError && query.error.body.code === "GAME_LIMIT_REACHED"
+      ? query.error.body.message
+      : null;
 
   const replace = (next: SessionEnvelope): void => {
     queryClient.setQueryData(key, next);
@@ -63,6 +72,7 @@ export function useGameSession(gameId: string): UseGameSession {
 
   return {
     envelope,
+    blocked,
     message,
     hintAction,
     replace,
@@ -96,6 +106,8 @@ export function useGameSession(gameId: string): UseGameSession {
       const chosen = options ?? game.lastOptions ?? undefined;
       if (options !== undefined) updateGame({ lastOptions: options });
       await perform(() => sessions.start(gameId, chosen));
+      /* A start counts against the player's games, which the player query reports. */
+      await queryClient.invalidateQueries({ queryKey: ["player"] });
     },
   };
 }

@@ -2,6 +2,9 @@ import type {
   AbandonRequest,
   AdminDecisionsResponse,
   AndonState,
+  AdminPlayer,
+  AdminPlayersResponse,
+  GameLimit,
   InvitationResponse,
   DuplicateAccountsResponse,
   MergeResponse,
@@ -112,6 +115,10 @@ export interface AdminService {
   setAndon(pulled: boolean): Promise<AndonState>;
   /** Invites a player by email (productionalization.md section 3); rejects with ALREADY_INVITED. */
   invite(email: string): Promise<InvitationResponse>;
+  /** Accounts with an email and their game limits (productionalization.md section 5). */
+  findPlayers(email: string): Promise<AdminPlayersResponse>;
+  /** Sets a player's game limit; null clears it back to the stage default. */
+  setGameLimit(playerId: string, gameLimit: GameLimit | null): Promise<AdminPlayer>;
 }
 
 /** Result of one call to `GET /v1/health`: the HTTP status, the parsed body when it matched the contract, and the round trip time. */

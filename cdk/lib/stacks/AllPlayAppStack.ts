@@ -411,6 +411,26 @@ export class AllPlayAppStack extends Stack {
     this.api.throttleRoutes({ "POST /v1/decisions": { rateLimit: 50, burstLimit: 100 } });
     this.addAlarms(props.stage, { decisionApi, gameApi });
     /*
+     * Game limits (productionalization.md section 5): a start counts on the
+     * player's item; the player and admin bundles report and set limits.
+     */
+    const defaultGameLimit = STAGE_SETTINGS[props.stage].defaultGameLimit;
+    for (const fn of [gameApi, playerApi, adminApi])
+      fn.function.addEnvironment("DEFAULT_GAME_LIMIT", defaultGameLimit);
+    gameApi.function.addEnvironment("PLAYERS_TABLE", players.table.tableName);
+    gameApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:GetItem", "dynamodb:UpdateItem"],
+        resources: [players.table.tableArn],
+      }),
+    );
+    adminApi.function.addToRolePolicy(
+      new PolicyStatement({
+        actions: ["dynamodb:Query"],
+        resources: [`${players.table.tableArn}/index/ByEmail`],
+      }),
+    );
+    /*
      * The andon cord (productionalization.md section 4): every play bundle
      * reads the flag; the admin bundle also changes it and the deny policy
      * on this stage's four Identity Pool roles.

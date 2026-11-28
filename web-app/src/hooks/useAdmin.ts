@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AdminDecision,
   AndonState,
+  AdminPlayer,
+  GameLimit,
   DayMetrics,
   Deployment,
   DuplicateAccountsResponse,
@@ -23,6 +25,8 @@ export interface UseAdmin {
   setAndon: (pulled: boolean) => Promise<void>;
   /** Invites a player; resolves to the email invited. */
   invite: (email: string) => Promise<string>;
+  findPlayers: (email: string) => Promise<AdminPlayer[]>;
+  setGameLimit: (playerId: string, gameLimit: GameLimit | null) => Promise<AdminPlayer>;
 }
 
 /** Admin data for the last 30 days (authn-authz.md section 5). */
@@ -80,5 +84,7 @@ export function useAdmin(today: Date = new Date()): UseAdmin {
       await changeAndon.mutateAsync(pulled);
     },
     invite: async (email) => (await admin.invite(email)).email,
+    findPlayers: async (email) => (await admin.findPlayers(email)).players,
+    setGameLimit: (playerId, gameLimit) => admin.setGameLimit(playerId, gameLimit),
   };
 }

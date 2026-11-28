@@ -9,6 +9,8 @@ export class GameSessionError extends Error {
     message: string,
     /** The current envelope, sent with VERSION_CONFLICT so clients re-render without another request. */
     readonly current?: SessionEnvelope,
+    /** More fields of the error body, such as a game limit's reset time. */
+    readonly details?: Readonly<Record<string, unknown>>,
   ) {
     super(message);
   }

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { GameLimitSchema } from "./api/common";
+import { GamesPlayedSchema } from "./gamesPlayed";
 
 export const PlayerKindSchema = z.enum(["GUEST", "ACCOUNT"]);
 export const SignInProviderSchema = z.enum(["COGNITO", "GOOGLE", "APPLE"]);
@@ -23,6 +25,10 @@ export const PlayerSchema = z.object({
   mergedGuestIds: z.array(z.string().min(1)).optional(),
   mergedAccountIds: z.array(z.string().min(1)).optional(),
   relayEmailEnabled: z.boolean().optional(),
+  /** Overrides the stage's default game limit (productionalization.md section 5). */
+  gameLimit: GameLimitSchema.optional(),
+  /** Games started in the current window; reset by the first start of a new window. */
+  gamesPlayed: GamesPlayedSchema.optional(),
   firstSeenAt: z.iso.datetime(),
   lastActiveAt: z.iso.datetime(),
   ttl: z.number().int().optional(),

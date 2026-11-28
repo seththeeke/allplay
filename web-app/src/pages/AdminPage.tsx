@@ -2,6 +2,7 @@ import { AndonPanel } from "../components/AndonPanel";
 import { DeploymentsPanel } from "../components/DeploymentsPanel";
 import { DuplicatesPanel } from "../components/DuplicatesPanel";
 import { InvitePanel } from "../components/InvitePanel";
+import { GameLimitsPanel } from "../components/GameLimitsPanel";
 import { LineChart } from "../components/charts/LineChart";
 import { formatNumber } from "../components/charts/scale";
 import { StackedBarChart } from "../components/charts/StackedBarChart";
@@ -132,6 +133,7 @@ export function AdminPage(): React.JSX.Element {
       )}
       <DeploymentsPanel deployments={deployments} onDeploy={deploy} />
       <InvitePanel onInvite={admin.invite} />
+      <GameLimitsPanel onFind={admin.findPlayers} onSet={admin.setGameLimit} />
       <DuplicatesPanel duplicates={duplicates} onMerge={mergeAccounts} />
     </main>
   );

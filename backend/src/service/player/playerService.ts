@@ -19,6 +19,11 @@ import { guestTtl, type Player } from "../../models/player";
 import type { Preference } from "../../models/preference";
 import { createDeployedPlayerGameData, type PlayerGameData } from "../gameSession/playerGameData";
 import { createIdentityService, type IdentityService } from "./identityService";
+import {
+  createGameAllowanceService,
+  parseGameLimit,
+  type GameAllowanceService,
+} from "./gameAllowance";
 
 /** Who is calling, as the controllers resolved it. */
 export interface PlayerCaller {
@@ -34,6 +39,8 @@ export interface PlayerServiceDeps {
   gameData: PlayerGameData;
   /** The User Pool, for account deletion; absent where there is no pool (the local server). */
   userPool?: { id: string; identities: IdentityService };
+  /** Game limits, reported by `me` (productionalization.md section 5); absent where play is unlimited. */
+  allowance?: Pick<GameAllowanceService, "allowance">;
   now?: () => Date;
 }
 
@@ -121,13 +128,20 @@ export function createPlayerService(deps: PlayerServiceDeps): PlayerService {
       }
     },
     me: async (caller) => {
-      const player = guest(caller) ? null : await deps.players.get(caller.playerId);
+      /* A guest's item holds no name or email, but it holds the guest's game count. */
+      const player =
+        guest(caller) && deps.allowance === undefined
+          ? null
+          : await deps.players.get(caller.playerId);
       return {
         playerId: caller.playerId,
         kind: guest(caller) ? "GUEST" : "ACCOUNT",
         tier: caller.tier,
         displayName: player?.displayName ?? null,
         email: player?.email ?? null,
+        ...(deps.allowance === undefined
+          ? {}
+          : { gameAllowance: deps.allowance.allowance(player) }),
       };
     },
     preferences: async (playerId) => layered(await deps.preferences.list(playerId)),
@@ -190,8 +204,13 @@ export function createDeployedPlayerService(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): PlayerService {
   const userPoolId = env["USER_POOL_ID"];
+  const players = createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? "");
   return createPlayerService({
-    players: createDynamoPlayerDao(env["PLAYERS_TABLE"] ?? ""),
+    players,
+    allowance: createGameAllowanceService({
+      players,
+      defaultLimit: parseGameLimit(env["DEFAULT_GAME_LIMIT"]),
+    }),
     preferences: createDynamoPreferenceDao(env["PREFERENCES_TABLE"] ?? ""),
     gameData: createDeployedPlayerGameData(env),
     ...(userPoolId === undefined

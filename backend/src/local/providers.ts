@@ -16,6 +16,8 @@ import {
   createAndonService,
   identityRoleNames,
 } from "../service/andon/andonService";
+import { createGameLimitAdminService } from "../service/admin/gameLimitAdminService";
+import { createGameAllowanceService, parseGameLimit } from "../service/player/gameAllowance";
 import { createAdminHandler } from "../controller/web-api/admin/adminController";
 import { createInMemoryDeploymentPipeline } from "../dao/pipeline/inMemoryDeploymentPipeline";
 import { createDeploymentService } from "../service/admin/deploymentService";
@@ -243,8 +245,16 @@ export async function createLocalProviders(
     const gameTables = createInMemoryGameTables();
     const conversations = createInMemoryConversationMessageDao();
     const gameData = createPlayerGameData({ ...gameTables, conversations });
+    const playerDao = createInMemoryPlayerDao();
+    /* Unlimited locally unless ALLPLAY_DEFAULT_GAME_LIMIT names one, such as 5/DAY (productionalization.md section 5). */
+    const allowance = createGameAllowanceService({
+      players: playerDao,
+      defaultLimit: parseGameLimit(process.env["ALLPLAY_DEFAULT_GAME_LIMIT"]),
+      ...(overrides.now ? { now: overrides.now } : {}),
+    });
     const sessions = createGameSessionService({
       ...gameTables,
+      allowance,
       games: (gameId, version) => repository.compiled(gameId, version),
       ...(overrides.now ? { now: overrides.now } : {}),
       newSeed: () => fixedSeed ?? (overrides.newSeed ?? randomSeed)(),
@@ -270,7 +280,6 @@ export async function createLocalProviders(
     const flags = createInMemorySystemFlagDao();
     /* No cache locally, so the admin page's pull shows on the next request. */
     const andon = createAndonGate(flags, logger, 0);
-    const playerDao = createInMemoryPlayerDao();
     const preferenceDao = createInMemoryPreferenceDao();
     const merge = createMergeService({
       players: playerDao,
@@ -297,11 +306,13 @@ export async function createLocalProviders(
             ...(overrides.now ? { now: overrides.now } : {}),
           }),
           invitations: createInMemoryInvitationService(),
+          gameLimits: createGameLimitAdminService(playerDao, allowance, overrides.now),
           logger: logger.child({ bundle: "admin" }),
         }),
         players: createPlayersHandler({
           players: createPlayerService({
             players: playerDao,
+            allowance,
             preferences: preferenceDao,
             gameData,
             ...(overrides.now ? { now: overrides.now } : {}),

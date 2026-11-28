@@ -36,6 +36,12 @@ import { createDeployedGameTables, withStatsRetry } from "./playerGameData";
 import { foldResult } from "./playerStats";
 import { abandonedCopy, isGuest, seatsOf, withSessionTtl } from "./sessionRecords";
 import { newUlid } from "./ulid";
+import { createDynamoPlayerDao } from "../../dao/player/dynamoPlayerDao";
+import {
+  createGameAllowanceService,
+  parseGameLimit,
+  type GameAllowanceService,
+} from "../player/gameAllowance";
 
 /** Spider and every schema version 1 game seat their one player here. */
 const SEAT = "S1";
@@ -48,6 +54,8 @@ export interface GameSessionServiceDeps {
   metrics?: Pick<MetricsRecorder, "gameStarted" | "gameEnded">;
   /** The compiled game for an id and optional pinned version; throws UnknownGameError. */
   games: (gameId: string, version?: number) => CompiledGame;
+  /** Game limits (productionalization.md section 5); absent where play is unlimited and uncounted. */
+  allowance?: Pick<GameAllowanceService, "consume" | "giveBack">;
   now?: () => Date;
   newSessionId?: () => string;
   newSeed?: () => string;
@@ -245,6 +253,8 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         if (error instanceof InvalidGameInputError) throw invalidRequest(error.message);
         throw error;
       }
+      /* A refused start leaves the game in progress alone, so the limit is checked first. */
+      const counted = await deps.allowance?.consume(playerId);
       /* Starting a game abandons the player's game of the same kind still in progress (game-engine.md section 11). */
       const previous = await deps.seats.currentFor(playerId, game.gameId);
       if (previous !== null) {
@@ -275,7 +285,12 @@ export function createGameSessionService(deps: GameSessionServiceDeps): GameSess
         },
         started,
       );
-      await deps.dao.create(session, seatsOf(session, started));
+      try {
+        await deps.dao.create(session, seatsOf(session, started));
+      } catch (error) {
+        if (counted !== undefined) await deps.allowance?.giveBack(playerId, counted);
+        throw error;
+      }
       await deps.metrics?.gameStarted(session.gameId);
       return envelope(session);
     },
@@ -324,8 +339,17 @@ export function createDeployedGameSessionService(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): GameSessionService {
   const rollups = createMetricRollupDaoFor(env);
+  const players = env["PLAYERS_TABLE"];
   return createGameSessionService({
     ...createDeployedGameTables(env),
+    ...(players === undefined || players === ""
+      ? {}
+      : {
+          allowance: createGameAllowanceService({
+            players: createDynamoPlayerDao(players),
+            defaultLimit: parseGameLimit(env["DEFAULT_GAME_LIMIT"]),
+          }),
+        }),
     ...(rollups === null ? {} : { metrics: createMetricsRecorder(rollups, logger) }),
     games: (gameId, version) => repository.compiled(gameId, version),
   });

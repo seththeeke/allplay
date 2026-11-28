@@ -46,6 +46,48 @@ export function account(playerId: string, email: string, createdAt = AT): Player
  * keys, so a run against a shared table never collides with another run.
  */
 export function playerDaoContract(create: () => PlayerDao, id: (name: string) => string): void {
+  it("counts games per window up to the limit, restarts a new window, and gives a game back", async () => {
+    const dao = create();
+    const playerId = `GUEST#${id("counted")}`;
+    const day = { period: "DAY" as const, windowStart: "2026-11-21" };
+    /* A player the table has never seen is created from the seed. */
+    expect(await dao.countGame(playerId, day, 2, AT, guest(playerId))).toEqual({
+      ...day,
+      count: 1,
+    });
+    expect((await dao.get(playerId))?.kind).toBe("GUEST");
+    expect(await dao.countGame(playerId, day, 2, AT, guest(playerId))).toEqual({
+      ...day,
+      count: 2,
+    });
+    expect(await dao.countGame(playerId, day, 2, AT, guest(playerId))).toBeNull();
+    expect(await dao.countGame(playerId, day, 0, AT, guest(playerId))).toBeNull();
+    await dao.giveBackGame(playerId, day, AT);
+    expect((await dao.get(playerId))?.gamesPlayed).toEqual({ ...day, count: 1 });
+    /* A give-back for another window, or none left, changes nothing. */
+    await dao.giveBackGame(playerId, { ...day, windowStart: "2026-11-20" }, AT);
+    expect((await dao.get(playerId))?.gamesPlayed?.count).toBe(1);
+    const next = { period: "DAY" as const, windowStart: "2026-11-22" };
+    expect(await dao.countGame(playerId, next, 2, AT, guest(playerId))).toEqual({
+      ...next,
+      count: 1,
+    });
+    expect(await dao.countGame(playerId, next, null, AT, guest(playerId))).toEqual({
+      ...next,
+      count: 2,
+    });
+    expect(await dao.countGame(playerId, next, null, AT, guest(playerId))).toEqual({
+      ...next,
+      count: 3,
+    });
+    await dao.giveBackGame(`GUEST#${id("never-seen")}`, next, AT);
+    expect(await dao.get(`GUEST#${id("never-seen")}`)).toBeNull();
+    const fresh = `GUEST#${id("zero")}`;
+    await dao.create(guest(fresh));
+    await dao.giveBackGame(fresh, next, AT);
+    expect((await dao.get(fresh))?.gamesPlayed).toBeUndefined();
+  });
+
   it("creates once, reads back, and refuses a second create", async () => {
     const dao = create();
     const player = guest(`GUEST#${id("create")}`);

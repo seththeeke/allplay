@@ -61,11 +61,12 @@ describe("admin bundle", () => {
     expect(invokers[0]).toContain(String(adminRoleId));
   });
 
-  it("lets the admin Lambda scan only ByEmail and merge accounts", () => {
+  it("lets the admin Lambda scan and query only ByEmail, and merge accounts", () => {
     const [policy] = Object.entries(app.findResources("AWS::IAM::Policy"))
       .filter(([logicalId]) => logicalId.startsWith("AdminApi"))
       .map(([, value]) => JSON.stringify(value));
-    expect(policy).toContain('"Action":"dynamodb:Scan"');
+    /* The duplicate list scans ByEmail; the game limits panel queries it (productionalization.md section 5). */
+    expect(policy).toContain('"Action":["dynamodb:Query","dynamodb:Scan"]');
     expect(policy).toContain('/index/ByEmail"');
     expect(policy).toContain(
       '"cognito-idp:AdminDeleteUser","cognito-idp:AdminGetUser","cognito-idp:AdminLinkProviderForUser","cognito-idp:ListUsers"',

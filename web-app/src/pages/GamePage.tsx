@@ -8,12 +8,14 @@ import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
 import { useGameSession } from "../hooks/useGameSession";
 import { usePaused } from "../hooks/usePaused";
+import { usePlayer } from "../hooks/usePlayer";
+import { GamesLeft } from "../components/GamesLeft";
 import { usePreferences } from "../hooks/usePreferences";
 import { ConversationDock } from "../components/ConversationDock";
 import { VoiceBar } from "../components/VoiceBar";
 import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
 import { isMove } from "../hooks/selection";
-import type { GameCatalogEntry } from "../models/api";
+import { outOfGamesText, type GameCatalogEntry } from "../models/api";
 import { CONVERSATION_HELP_STEPS, GAME_HELP_STEPS } from "./helpSteps";
 
 export interface GamePageProps {
@@ -81,6 +83,8 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
     void work();
   };
 
+  const { player } = usePlayer();
+  const noGamesLeft = outOfGamesText(player?.gameAllowance);
   const actions =
     envelope === undefined ? undefined : (
       <GameActions
@@ -88,6 +92,7 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
         onUndo={run(() => session.undo("POINTER"))}
         onHint={run(() => session.requestHint())}
         onNewGame={run(() => session.newGame())}
+        outOfGames={noGamesLeft}
       />
     );
   const conversational = help.preferences.voiceMode === "CONVERSATIONAL";
@@ -110,10 +115,13 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
         <VoiceBar actions={actions} />
       )}
       {envelope === undefined ? (
-        <p className="text-2xl">Dealing the cards...</p>
+        <p role={session.blocked === null ? undefined : "status"} className="text-2xl">
+          {session.blocked ?? "Dealing the cards..."}
+        </p>
       ) : (
         <>
           <GameHeader game={game} envelope={envelope} />
+          <GamesLeft />
           <p aria-live="polite" className="mb-2 min-h-7 text-lg font-semibold">
             {session.message}
           </p>

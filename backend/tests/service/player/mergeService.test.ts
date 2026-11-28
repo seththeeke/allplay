@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { createInMemoryMergeTokenDao } from "../../../src/dao/mergeToken/inMemoryMergeTokenDao";
 import { createInMemoryPlayerDao } from "../../../src/dao/player/inMemoryPlayerDao";
 import { createInMemoryPreferenceDao } from "../../../src/dao/preference/inMemoryPreferenceDao";
-import { createMergeService, preferencesStep } from "../../../src/service/player/mergeService";
+import {
+  combinedGamesPlayed,
+  createMergeService,
+  preferencesStep,
+} from "../../../src/service/player/mergeService";
 import type { PlayerCaller } from "../../../src/service/player/playerService";
 import { account, guest } from "../../dao/player/playerDaoContract";
 
@@ -40,6 +44,27 @@ async function setup() {
 }
 
 describe("merge service", () => {
+  it("adds a guest's games to the account's when both count the same window, once", async () => {
+    const { players, merge } = await setup();
+    const day = { period: "DAY" as const, windowStart: "2026-11-21" };
+    await players.update("GUEST#g-1", { gamesPlayed: { ...day, count: 2 } }, T0.toISOString());
+    await players.update("ACCT#a", { gamesPlayed: { ...day, count: 1 } }, T0.toISOString());
+    const issued = await merge.issue(GUEST);
+    await merge.redeem(ME, issued.token);
+    expect((await players.get("ACCT#a"))?.gamesPlayed).toEqual({ ...day, count: 3 });
+    await merge.redeem(ME, issued.token);
+    expect((await players.get("ACCT#a"))?.gamesPlayed).toEqual({ ...day, count: 3 });
+  });
+
+  it("combines game counts only within one window", () => {
+    const day = { period: "DAY" as const, windowStart: "2026-11-21", count: 2 };
+    expect(combinedGamesPlayed(undefined, undefined)).toBeUndefined();
+    expect(combinedGamesPlayed(undefined, day)).toEqual(day);
+    expect(combinedGamesPlayed(day, undefined)).toEqual(day);
+    expect(combinedGamesPlayed(day, { ...day, windowStart: "2026-11-20" })).toEqual(day);
+    expect(combinedGamesPlayed(day, { ...day, period: "WEEK" })).toEqual(day);
+  });
+
   it("folds a guest into the account: missing preference scopes copied, guest marked merged", async () => {
     const { players, preferences, merge } = await setup();
     await preferences.patch("GUEST#g-1", "APP", { zoomLevel: 2 }, T0.toISOString(), 1);

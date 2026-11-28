@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { IsoTimestampSchema } from "./common";
+import { GameLimitSchema, IsoTimestampSchema } from "./common";
+import { GameAllowanceSchema } from "./player";
 
 /** Admin contracts (authn-authz.md section 5, data-model.md section 11). */
 
@@ -125,3 +126,19 @@ export const InvitationResponseSchema = z.object({
   status: z.literal("INVITED"),
 });
 export type InvitationResponse = z.infer<typeof InvitationResponseSchema>;
+
+/** An account as the admin game limits panel shows it (productionalization.md section 5, item 7). */
+export const AdminPlayerSchema = z.object({
+  playerId: z.string().min(1),
+  email: z.string().min(1).nullable(),
+  gameLimit: GameLimitSchema.nullable(),
+  gameAllowance: GameAllowanceSchema,
+});
+export type AdminPlayer = z.infer<typeof AdminPlayerSchema>;
+
+export const AdminPlayersResponseSchema = z.object({ players: z.array(AdminPlayerSchema) });
+export type AdminPlayersResponse = z.infer<typeof AdminPlayersResponseSchema>;
+
+/** `null` clears the override, back to the stage's default. */
+export const SetGameLimitRequestSchema = z.object({ gameLimit: GameLimitSchema.nullable() });
+export type SetGameLimitRequest = z.infer<typeof SetGameLimitRequestSchema>;

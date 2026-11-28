@@ -5,6 +5,7 @@ import {
   ScanCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { GamesPlayedSchema, type GamesPlayed } from "../../models/gamesPlayed";
 import { PlayerSchema, type Player } from "../../models/player";
 
 import {
@@ -84,7 +85,111 @@ export function createDynamoPlayerDao(
   tableName: string,
   client: DocumentSender = documentClient(),
 ): PlayerDao {
+  const counterNames = {
+    "#gp": "gamesPlayed",
+    "#c": "count",
+    "#p": "period",
+    "#ws": "windowStart",
+  };
+  /* The stored window's count goes up by one, below the limit when there is one. */
+  const addToWindow = async (
+    playerId: string,
+    window: Pick<GamesPlayed, "period" | "windowStart">,
+    limit: number | null,
+    at: string,
+  ): Promise<GamesPlayed | null> => {
+    try {
+      const out = (await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { playerId },
+          UpdateExpression: "SET #gp.#c = #gp.#c + :one, updatedAt = :at",
+          ConditionExpression: `#gp.#p = :p AND #gp.#ws = :ws${limit === null ? "" : " AND #gp.#c < :limit"}`,
+          ExpressionAttributeNames: counterNames,
+          ExpressionAttributeValues: {
+            ":one": 1,
+            ":at": at,
+            ":p": window.period,
+            ":ws": window.windowStart,
+            ...(limit === null ? {} : { ":limit": limit }),
+          },
+          ReturnValues: "ALL_NEW",
+        }),
+      )) as { Attributes?: Record<string, unknown> };
+      return GamesPlayedSchema.parse(out.Attributes?.["gamesPlayed"]);
+    } catch (error) {
+      if (conditionFailed(error)) return null;
+      throw error;
+    }
+  };
+  /* A window not yet counted starts at 1; a missing player is created from the seed. */
+  const startWindow = async (
+    playerId: string,
+    window: Pick<GamesPlayed, "period" | "windowStart">,
+    at: string,
+    seed: Player,
+  ): Promise<GamesPlayed | null> => {
+    const fresh: GamesPlayed = { ...window, count: 1 };
+    /* The key, the counter and the stamp are written by this update itself. */
+    const initial = Object.fromEntries(
+      Object.entries(toItem(PlayerSchema.parse(seed))).filter(
+        ([field]) => !["playerId", "gamesPlayed", "updatedAt"].includes(field),
+      ),
+    );
+    const expression = updateExpression({ gamesPlayed: fresh, updatedAt: at }, [], initial);
+    try {
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { playerId },
+          ...expression,
+          ConditionExpression: "attribute_not_exists(#gp) OR #gp.#p <> :p OR #gp.#ws <> :ws",
+          ExpressionAttributeNames: { ...expression.ExpressionAttributeNames, ...counterNames },
+          ExpressionAttributeValues: {
+            ...expression.ExpressionAttributeValues,
+            ":p": window.period,
+            ":ws": window.windowStart,
+          },
+        }),
+      );
+      return fresh;
+    } catch (error) {
+      if (conditionFailed(error)) return null;
+      throw error;
+    }
+  };
   return {
+    countGame: async (playerId, window, limit, at, seed) => {
+      if (limit !== null && limit < 1) return null;
+      const added = await addToWindow(playerId, window, limit, at);
+      if (added !== null) return added;
+      const started = await startWindow(playerId, window, at, seed);
+      if (started !== null) return started;
+      /* Another start opened this window between the two writes; count against it once more. */
+      return addToWindow(playerId, window, limit, at);
+    },
+    giveBackGame: async (playerId, window, at) => {
+      try {
+        await client.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { playerId },
+            UpdateExpression: "SET #gp.#c = #gp.#c - :one, updatedAt = :at",
+            ConditionExpression: "#gp.#p = :p AND #gp.#ws = :ws AND #gp.#c > :zero",
+            ExpressionAttributeNames: counterNames,
+            ExpressionAttributeValues: {
+              ":one": 1,
+              ":zero": 0,
+              ":at": at,
+              ":p": window.period,
+              ":ws": window.windowStart,
+            },
+          }),
+        );
+      } catch (error) {
+        if (!conditionFailed(error)) throw error;
+      }
+    },
     get: async (playerId) => {
       const out = (await client.send(
         new GetCommand({ TableName: tableName, Key: { playerId }, ConsistentRead: true }),
