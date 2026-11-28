@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createBundledRulesRepository, UnknownGameError } from "../../src/game-catalog";
 import type { GameState } from "../../src/game-engine";
 import { arrange, type CardSpec } from "../game-engine/arrange";
+import spiderDocument from "../../src/game-catalog/spider-solitaire/rules.v1.json";
 
 const repository = createBundledRulesRepository();
 const spider = repository.compiled("spider-solitaire");
@@ -217,13 +218,52 @@ describe("Spider view and catalog", () => {
       path: "/spider",
       latestVersion: 1,
     });
-    expect(await repository.list()).toEqual([spider.catalogEntry]);
+    expect(await repository.list()).toEqual([
+      {
+        ...spider.catalogEntry,
+        tiles: [
+          expect.objectContaining({
+            path: "/spider",
+            options: { suits: 1, dealStyle: "MICROSOFT" },
+          }),
+          expect.objectContaining({
+            path: "/spider/two-suits",
+            options: { suits: 2, dealStyle: "MICROSOFT" },
+          }),
+          expect.objectContaining({
+            path: "/spider/four-suits",
+            options: { suits: 4, dealStyle: "MICROSOFT" },
+          }),
+        ],
+      },
+    ]);
     expect((await repository.latest("spider-solitaire")).version).toBe(1);
     expect((await repository.get("spider-solitaire", 1)).speech.deciderGuidance).toHaveLength(5);
     expect(repository.compiled("spider-solitaire", 1)).toBe(spider);
     expect(() => repository.compiled("chess")).toThrow(UnknownGameError);
     expect(() => repository.compiled("spider-solitaire", 9)).toThrow(/v9/);
     await expect(repository.get("chess", 1)).rejects.toThrow(UnknownGameError);
+  });
+
+  it("gives a game without a tiles file one tile, and refuses a tile whose options cannot start a game", async () => {
+    const bundled = { "spider-solitaire": [spiderDocument] };
+    const plain = createBundledRulesRepository(bundled, {});
+    expect((await plain.list())[0]?.tiles).toEqual([
+      {
+        path: "/spider",
+        name: "Spider Solitaire",
+        description: spider.catalogEntry.description,
+        options: {},
+      },
+    ]);
+    expect(() =>
+      createBundledRulesRepository(bundled, {
+        "spider-solitaire": [
+          { path: "/spider", name: "Bad", description: "", options: { suits: 3 } },
+        ],
+      }),
+    ).toThrow();
+    expect(() => createBundledRulesRepository(bundled, { "spider-solitaire": [] })).toThrow();
   });
 
   it("refuses an invalid bundled document at load", () => {

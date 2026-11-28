@@ -8,6 +8,11 @@ export function GameRoute(): React.JSX.Element | null {
   const { pathname } = useLocation();
   const { loaded, byPath } = useGames();
   if (!loaded) return null;
-  const game = byPath(pathname.replace(/\/+$/, ""));
-  return game === undefined ? <NotFoundPage /> : <GamePage game={game} />;
+  const found = byPath(pathname.replace(/\/+$/, ""));
+  /* Each tile is its own page, so a choice made on one never carries to another. */
+  return found === undefined ? (
+    <NotFoundPage />
+  ) : (
+    <GamePage key={found.tile.path} game={found.game} tile={found.tile} />
+  );
 }

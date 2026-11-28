@@ -20,10 +20,17 @@ export interface UseGameSession {
   replace: (envelope: SessionEnvelope) => void;
   /** Why no game could be dealt, such as a reached game limit (productionalization.md section 5). */
   blocked: string | null;
+  /** True when the game in progress has other options than the tile opened (productionalization.md section 6). */
+  otherOptions: boolean;
+}
+
+/** True when every option the tile fixes has that value in the session. */
+export function optionsMatch(session: GameOptions, wanted: GameOptions): boolean {
+  return Object.entries(wanted).every(([name, value]) => session[name] === value);
 }
 
 /** Loads the player's game, starting one when none is in progress (direct links such as /spider). */
-export function useGameSession(gameId: string): UseGameSession {
+export function useGameSession(gameId: string, tileOptions?: GameOptions): UseGameSession {
   const { sessions } = useServices();
   const { game, updateGame } = usePreferences(gameId);
   const queryClient = useQueryClient();
@@ -34,7 +41,8 @@ export function useGameSession(gameId: string): UseGameSession {
   const query = useQuery({
     queryKey: key,
     queryFn: async () =>
-      (await sessions.current(gameId)) ?? sessions.start(gameId, game.lastOptions ?? undefined),
+      (await sessions.current(gameId)) ??
+      sessions.start(gameId, tileOptions ?? game.lastOptions ?? undefined),
     staleTime: Infinity,
     /* A refusal such as a reached game limit will not change on a retry; network and server faults may. */
     retry: (failures, error) =>
@@ -73,6 +81,10 @@ export function useGameSession(gameId: string): UseGameSession {
   return {
     envelope,
     blocked,
+    otherOptions:
+      envelope !== undefined &&
+      tileOptions !== undefined &&
+      !optionsMatch(envelope.session.options, tileOptions),
     message,
     hintAction,
     replace,
@@ -103,7 +115,7 @@ export function useGameSession(gameId: string): UseGameSession {
       setMessage(hint.text);
     },
     newGame: async (options) => {
-      const chosen = options ?? game.lastOptions ?? undefined;
+      const chosen = options ?? tileOptions ?? game.lastOptions ?? undefined;
       if (options !== undefined) updateGame({ lastOptions: options });
       await perform(() => sessions.start(gameId, chosen));
       /* A start counts against the player's games, which the player query reports. */

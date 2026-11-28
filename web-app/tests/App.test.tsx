@@ -9,7 +9,7 @@ const renderAt = (path: string) => renderApp(path);
 describe("App", () => {
   it("renders the home page at /", async () => {
     renderAt("/");
-    await screen.findByRole("link", { name: /Spider Solitaire/ });
+    await screen.findAllByRole("link", { name: /Spider Solitaire/ });
     expect(screen.getByRole("heading", { level: 1, name: "All Play" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeInTheDocument();
   });

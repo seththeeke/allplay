@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import type { GameCatalogEntry } from "../models/api";
+import type { GameCatalogEntry, GameTile } from "../models/api";
 import { useServices } from "./useServices";
 
 export interface UseGames {
   games: GameCatalogEntry[];
   loaded: boolean;
-  byPath: (path: string) => GameCatalogEntry | undefined;
+  /** The game and tile a path opens, such as /spider/two-suits (productionalization.md section 6). */
+  byPath: (path: string) => { game: GameCatalogEntry; tile: GameTile } | undefined;
 }
 
 export function useGames(): UseGames {
@@ -19,6 +20,12 @@ export function useGames(): UseGames {
   return {
     games,
     loaded: query.isSuccess,
-    byPath: (path) => games.find((game) => game.path === path),
+    byPath: (path) => {
+      for (const game of games) {
+        const tile = game.tiles.find((candidate) => candidate.path === path);
+        if (tile !== undefined) return { game, tile };
+      }
+      return undefined;
+    },
   };
 }

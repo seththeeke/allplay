@@ -56,9 +56,39 @@ describe("game page", () => {
       expectedVersion: 0,
       source: "POINTER",
     });
-    await openSpider(services);
+    renderApp("/spider/four-suits", services);
+    await screen.findByRole("region", { name: "Card table" });
     expect(screen.getByText("four suits, standard deal")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deal (4 left)" })).toBeInTheDocument();
+  });
+
+  it("asks before replacing a game with other options, and continues or starts the tile's game", async () => {
+    const user = userEvent.setup();
+    const services = seeded();
+    await services.sessions.start("spider-solitaire", { suits: 4 });
+    const { unmount } = renderApp("/spider", services);
+    expect(
+      await screen.findByRole("heading", {
+        name: "You have a game of Spider Solitaire: Four Suits in progress.",
+      }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continue that game" }));
+    expect(await screen.findByText("four suits, standard deal")).toBeInTheDocument();
+    unmount();
+    renderApp("/spider", services);
+    await user.click(await screen.findByRole("button", { name: "Start Spider Solitaire" }));
+    expect(await screen.findByText("one suit, standard deal")).toBeInTheDocument();
+  });
+
+  it("names a game in progress without a tile by its options", async () => {
+    const services = seeded();
+    await services.sessions.start("spider-solitaire", { suits: 2, dealStyle: "HOYLE" });
+    renderApp("/spider", services);
+    expect(
+      await screen.findByRole("heading", {
+        name: "You have a game of Spider Solitaire, two suits, Hoyle deal in progress.",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("shows a hint and highlights the cards it moves", async () => {

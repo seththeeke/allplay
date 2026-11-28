@@ -12,9 +12,11 @@ export function HomePage(): React.JSX.Element {
       <GamesLeft />
       <h2 className="sr-only">Games</h2>
       <ul className="grid gap-6 md:grid-cols-2">
-        {games.map((game) => (
-          <GameTile key={game.gameId} game={game} />
-        ))}
+        {games
+          .flatMap((game) => game.tiles)
+          .map((tile) => (
+            <GameTile key={tile.path} tile={tile} />
+          ))}
       </ul>
     </main>
   );

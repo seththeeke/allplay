@@ -169,10 +169,16 @@ describe("catalog contracts", () => {
             },
           ],
           source: "CORE",
+          tiles: [
+            { path: "/spider", name: "Spider Solitaire", description: "", options: { suits: 1 } },
+          ],
         },
       ],
     };
     expect(GamesResponseSchema.parse(games)).toEqual(games);
+    expect(
+      GamesResponseSchema.safeParse({ games: [{ ...games.games[0], tiles: [] }] }).success,
+    ).toBe(false);
     expect(
       GamesResponseSchema.safeParse({ games: [{ ...games.games[0], path: "spider" }] }).success,
     ).toBe(false);

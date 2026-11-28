@@ -27,6 +27,26 @@ export const CATALOG: GamesResponse = {
         },
       ],
       source: "CORE",
+      tiles: [
+        {
+          path: "/spider",
+          name: "Spider Solitaire",
+          description: "The easiest game: all spades.",
+          options: { suits: 1, dealStyle: "MICROSOFT" },
+        },
+        {
+          path: "/spider/two-suits",
+          name: "Spider Solitaire: Two Suits",
+          description: "Spades and hearts. Runs must match suit.",
+          options: { suits: 2, dealStyle: "MICROSOFT" },
+        },
+        {
+          path: "/spider/four-suits",
+          name: "Spider Solitaire: Four Suits",
+          description: "All four suits. The hardest game.",
+          options: { suits: 4, dealStyle: "MICROSOFT" },
+        },
+      ],
     },
   ],
 };

@@ -6,7 +6,7 @@ import { StatusBanner } from "../components/StatusBanner";
 import type { ColumnInteraction } from "../components/TableauColumn";
 import { useCardDrag } from "../hooks/useCardDrag";
 import { useCardSelection } from "../hooks/useCardSelection";
-import { useGameSession } from "../hooks/useGameSession";
+import { optionsMatch, useGameSession } from "../hooks/useGameSession";
 import { usePaused } from "../hooks/usePaused";
 import { usePlayer } from "../hooks/usePlayer";
 import { GamesLeft } from "../components/GamesLeft";
@@ -15,16 +15,23 @@ import { ConversationDock } from "../components/ConversationDock";
 import { VoiceBar } from "../components/VoiceBar";
 import { useVoice, useVoiceGameTarget } from "../hooks/useVoice";
 import { isMove } from "../hooks/selection";
-import { outOfGamesText, type GameCatalogEntry } from "../models/api";
+import { outOfGamesText, type GameCatalogEntry, type GameTile } from "../models/api";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { InProgressChoice } from "../components/InProgressChoice";
 import { CONVERSATION_HELP_STEPS, GAME_HELP_STEPS } from "./helpSteps";
 
 export interface GamePageProps {
   game: GameCatalogEntry;
+  /** The home tile that opened the page, whose options a new game uses (productionalization.md section 6). */
+  tile: GameTile;
 }
 
 /** The game table: header, status, board and the message line. */
-export function GamePage({ game }: GamePageProps): React.JSX.Element {
-  const session = useGameSession(game.gameId);
+export function GamePage({ game, tile }: GamePageProps): React.JSX.Element {
+  const session = useGameSession(game.gameId, tile.options);
+  const [keepOther, setKeepOther] = useState(false);
+  const navigate = useNavigate();
   const help = usePreferences(game.gameId);
   const { envelope, hintAction } = session;
   const selection = useCardSelection(
@@ -41,7 +48,18 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
           sessionId: envelope.session.sessionId,
           version: envelope.session.version,
           replace: session.replace,
-          newGame: session.newGame,
+          newGame: async (options) => {
+            await session.newGame(options);
+            if (options === undefined) return;
+            /* A game asked for with other options moves to its own tile, or stays here when none has them. */
+            const resolved = {
+              ...Object.fromEntries(game.options.map((option) => [option.name, option.default])),
+              ...options,
+            };
+            const own = game.tiles.find((candidate) => optionsMatch(resolved, candidate.options));
+            if (own === undefined) setKeepOther(true);
+            else if (own.path !== tile.path) void navigate(own.path);
+          },
         },
   );
 
@@ -100,6 +118,22 @@ export function GamePage({ game }: GamePageProps): React.JSX.Element {
 
   /* While play is paused, nothing listens or deals; the shell's banner says why. */
   if (paused) return <main className="pb-24" />;
+  if (envelope !== undefined && session.otherOptions && !keepOther)
+    return (
+      <main>
+        <InProgressChoice
+          game={game}
+          tile={tile}
+          envelope={envelope}
+          onContinue={() => {
+            setKeepOther(true);
+          }}
+          onStart={() => {
+            void session.newGame();
+          }}
+        />
+      </main>
+    );
 
   return (
     /* Room below the board for the voice controls fixed to the bottom of the game. */
